@@ -64,8 +64,6 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         }
     }
     create_query.push_back(')');
-    //create_query.append(" (osm_id bigint, geom geometry(Point,4326))");
-    std::cout << create_query << std::endl;
     send_query(create_query.c_str());
     send_begin();
     start_copy();

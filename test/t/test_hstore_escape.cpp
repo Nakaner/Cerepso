@@ -16,7 +16,6 @@ TEST_CASE( "escape4hstore()") {
 
     SECTION("convert normal string") {
         Table::escape4hstore("highway", destination_str);
-        if (destination_str == "\"highway\"") std::cerr << "equal" << std::endl;
         REQUIRE(destination_str.str().compare("\"highway\"") == 0);
     }
 
