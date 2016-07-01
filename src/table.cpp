@@ -7,39 +7,36 @@
 
 #include "table.hpp"
 #include <string.h>
+#include <sstream>
 
-void Table::escape4hstore(std::string& to_escape) {
+void Table::escape4hstore(const char* source, std::stringstream& destination) {
     /**
     * taken from osm2pgsql/table.cpp, void table_t::escape4hstore(const char *src, string& dst)
     */
-    to_escape.insert(0, "\"");
-    for (size_t i = 0; i < to_escape.length(); ++i) {
-        switch (to_escape.at(i)) {
+    destination.put('"');
+    for (size_t i = 0; i < strlen(source); ++i) {
+        switch (source[i]) {
             case '\\':
-                to_escape.insert(i, "\\\\\\");
-                i = i + 3;
+                destination << "\\\\\\\\";
                 break;
             case '"':
-                to_escape.insert(i, "\\\\");
-                i = i + 2;
+                destination << "\\\\\"";
                 break;
             case '\t':
-                to_escape.insert(i, "\\");
-                i++;
+                destination << "\\\t";
                 break;
             case '\r':
-                to_escape.insert(i, "\\");
-                i++;
+                destination << "\\\r";
                 break;
             case '\n':
-                to_escape.insert(i, "\\");
-                i++;
+                destination << "\\\n";
                 break;
             default:
+                destination.put(source[i]);
                 break;
         }
     }
-    to_escape.push_back('"');
+    destination.put('"');
 }
 
 Table::Table(const char* table_name, Config& config, Columns& columns) :

@@ -41,6 +41,11 @@ private:
      */
     void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
 
+    /**
+     * add tag hstore column and metadate to query
+     */
+    void prepare_query(std::stringstream& query, const osmium::OSMObject& object);
+
 
 public:
     MyHandler() = delete;

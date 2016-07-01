@@ -43,11 +43,6 @@ private:
 
     void send_query(const char* query);
 
-    /**
-     * escape a string which should be inserted into a hstore column
-     */
-    void escape4hstore(std::string& to_escape);
-
 public:
     Table() = delete;
 
@@ -61,6 +56,14 @@ public:
     void send_line(const std::string& line);
 
     Columns& get_columns();
+
+    /**
+     * escape a string which should be inserted into a hstore column
+     *
+     * @param source string which should be escaped
+     * @param destination string where the escaped string has to be appended (later usually used for INSERT query)
+     */
+    static void escape4hstore(const char* source, std::stringstream& destination);
 
 };
 

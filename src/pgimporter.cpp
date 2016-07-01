@@ -71,15 +71,16 @@ int main(int argc, char* argv[]) {
     Columns way_polygon_columns(config, TableType::WAYS_POLYGON);
     Columns relation_polygon_columns(config, TableType::RELATION_POLYGON);
 
+    std::cerr << "Pass 1 (multipolygon relations)" << std::endl;
     osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::relation);
     osmium::area::Assembler::config_type assembler_config;
     osmium::area::MultipolygonCollector<osmium::area::Assembler> collector(assembler_config);
     collector.read_relations(reader1);
     reader1.close();
 
-    MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns);
-
+    std::cerr << "Pass 2 (nodes and ways; writing to database)" << std::endl;
     osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
+    MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns);
     osmium::apply(reader2, location_handler, handler, collector.handler([&handler](const osmium::memory::Buffer& area_buffer) {
             osmium::apply(area_buffer, handler);
             }));

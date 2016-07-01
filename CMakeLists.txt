@@ -119,6 +119,17 @@ set(CMAKE_BUILD_TYPE ${build_type}
     "Choose the type of build, options are: ${CMAKE_CONFIGURATION_TYPES}."
     FORCE)
 
+#-----------------------------------------------------------------------------
+#
+#  Unit and data tests
+#
+#-----------------------------------------------------------------------------
+enable_testing()
+add_subdirectory(test)
+
+
+
+
 
 #-----------------------------------------------------------------------------
 #
