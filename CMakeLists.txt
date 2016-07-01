@@ -39,7 +39,7 @@ set(AUTHOR "Michael Reichert <nakaner@gmx.net>")
 find_package(Boost REQUIRED COMPONENTS program_options)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
-find_package(Osmium COMPONENTS io ogr proj)
+find_package(Osmium COMPONENTS io geos proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
 
 # PostgreSQL stuff taken from osm2pgsql cmake config
