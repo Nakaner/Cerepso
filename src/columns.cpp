@@ -38,7 +38,7 @@ Columns::Columns(Config& config, TableType type):
         break;
     case TableType::RELATION_OTHER :
         //TODO change to GeometryCollection
-        m_columns.push_back(std::make_pair("geom", "geometry(Geometry,4326)"));
+        m_columns.push_back(std::make_pair("geom", "geometry(GeometryCollection,4326)"));
     }
 }
 

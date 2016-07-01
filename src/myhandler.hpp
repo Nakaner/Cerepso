@@ -30,7 +30,7 @@ private:
     /**
      * helper function
      */
-    void add_separator_to_stringstream(std::stringstream& ss);
+    static void add_separator_to_stringstream(std::stringstream& ss);
 
     /**
      * Add metadata (user, uid, changeset, timestamp) to the stringstream.
@@ -39,12 +39,7 @@ private:
      * @param ss stringstream
      * @param object OSM object
      */
-    void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
-
-    /**
-     * add tag hstore column and metadate to query
-     */
-    void prepare_query(std::stringstream& query, const osmium::OSMObject& object);
+    static void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
 
 
 public:
@@ -67,6 +62,11 @@ public:
     void way(const osmium::Way& way);
 
     void area(const osmium::Area& area);
+
+    /**
+     * add tag hstore column and metadate to query
+     */
+    static void prepare_query(std::stringstream& query, const osmium::OSMObject& object);
 };
 
 
