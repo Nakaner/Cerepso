@@ -52,7 +52,7 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
             %  PQerrorMessage(m_database_connection)).str());
     }
     // create table
-    std::string create_query = "CREATE TABLE ";
+    std::string create_query = "CREATE UNLOGGED TABLE ";
     create_query.append(m_name);
     create_query.push_back('(');
     for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
