@@ -41,29 +41,61 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     const osmium::Relation& relation = this->get_relation(relation_meta);
     std::stringstream query;
     query << relation.id();
-    MyHandler::prepare_query(query, relation);
+    MyHandler::add_tags(query, relation);
+    MyHandler::add_metadata_to_stringstream(query, relation);
 
     std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
-    for (const auto& member : relation.members()) {
-        //if (!member_missing(member, complete)) { // only if member was present in file
-            if ((member.type() == osmium::item_type::way)) {
-                osmium::Way& way = this->get_member_way(this->get_offset(member.type(), member.ref()));
-                std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
-                geometries->push_back(linestring.release());
+    std::vector<osmium::object_id_type> object_ids;
+    std::vector<osmium::item_type> object_types;
+    try {
+        for (const auto& member : relation.members()) {
+            //if (!member_missing(member, complete)) { // only if member was present in file
+                if ((member.type() == osmium::item_type::way)) {
+                    osmium::Way& way = this->get_member_way(this->get_offset(member.type(), member.ref()));
+                    std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
+                    geometries->push_back(linestring.release());
+                    object_ids.push_back(member.ref());
+                    object_types.push_back(osmium::item_type::way);
+                }
+                else if ((member.type() == osmium::item_type::node)) {
+                    osmium::Node& node =this->get_member_node(this->get_offset(member.type(), member.ref()));
+                    std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
+                    geometries->push_back(point.release());
+                    object_ids.push_back(member.ref());
+                    object_types.push_back(osmium::item_type::node);
+                }
+            //}
+        }
+        // create GeometryCollection
+        geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(geometries);
+        query << "SRID=4326;";
+        // convert to WKB
+        m_geos_wkb_writer.writeHEX(*geom_collection, query);
+        MyHandler::add_separator_to_stringstream(query);
+        query << "{";
+        for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
+            if (id != object_ids.begin()) {
+                query << ", ";
             }
-            else if ((member.type() == osmium::item_type::node)) {
-                osmium::Node& node =this->get_member_node(this->get_offset(member.type(), member.ref()));
-                std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
-                geometries->push_back(point.release());
+            query << *id;
+        }
+        query << "}";
+        MyHandler::add_separator_to_stringstream(query);
+        query << "{";
+        for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
+            if (type != object_types.begin()) {
+                query << ", ";
             }
-        //}
+            if (*type == osmium::item_type::node) {
+                query << "n";
+            } else if (*type == osmium::item_type::way) {
+                query << "w";
+            }
+        }
+        query << "}\n";
+        m_database_table.send_line(query.str());
+    } catch (osmium::geometry_error& e) {
+        std::cerr << e.what() << "\n";
     }
-    // create GeometryCollection
-    geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(geometries);
-    query << "SRID=4326;";
-    // convert to WKB
-    m_geos_wkb_writer.writeHEX(*geom_collection, query);
-    query << '\n';
-    m_database_table.send_line(query.str());
     delete geometries;
 }

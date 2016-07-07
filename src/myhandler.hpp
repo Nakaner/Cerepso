@@ -27,20 +27,6 @@ private:
     Table m_ways_polygon_table;
     Table m_relations_polygon_table;
 
-    /**
-     * helper function
-     */
-    static void add_separator_to_stringstream(std::stringstream& ss);
-
-    /**
-     * Add metadata (user, uid, changeset, timestamp) to the stringstream.
-     * A separator (via add_separator_to_stringstream) will be added before the first and after the last item.
-     *
-     * @param ss stringstream
-     * @param object OSM object
-     */
-    static void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
-
 
 public:
     MyHandler() = delete;
@@ -66,7 +52,21 @@ public:
     /**
      * add tag hstore column and metadate to query
      */
-    static void prepare_query(std::stringstream& query, const osmium::OSMObject& object);
+    static void add_tags(std::stringstream& query, const osmium::OSMObject& object);
+
+    /**
+     * Add metadata (user, uid, changeset, timestamp) to the stringstream.
+     * A separator (via add_separator_to_stringstream) will be added before the first and after the last item.
+     *
+     * @param ss stringstream
+     * @param object OSM object
+     */
+    static void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
+
+    /**
+     * helper function
+     */
+    static void add_separator_to_stringstream(std::stringstream& ss);
 };
 
 

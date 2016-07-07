@@ -10,7 +10,7 @@ Columns::Columns(Config& config, TableType type):
     m_columns(),
     m_type(type) {
     m_columns.push_back(std::make_pair("osm_id", "bigint"));
-    if (config.tags_hstore) {
+    if (config.tags_hstore && type != TableType::UNTAGGED_POINT) {
         m_columns.push_back(std::make_pair("tags", "hstore"));
     }
     if (config.metadata) {
@@ -29,16 +29,21 @@ Columns::Columns(Config& config, TableType type):
         break;
     case TableType::WAYS_LINEAR :
         m_columns.push_back(std::make_pair("geom", "geometry(LineString,4326)"));
+        m_columns.push_back(std::make_pair("way_nodes", "bigint[]"));
         break;
     case TableType::WAYS_POLYGON :
         m_columns.push_back(std::make_pair("geom", "geometry(MultiPolygon,4326)"));
+        m_columns.push_back(std::make_pair("way_nodes", "bigint[]"));
         break;
     case TableType::RELATION_POLYGON :
         m_columns.push_back(std::make_pair("geom", "geometry(MultiPolygon,4326)"));
+//        m_columns.push_back(std::make_pair("member_ids", "bigint[]"));
+//        m_columns.push_back(std::make_pair("member_types", "char[]"));
         break;
     case TableType::RELATION_OTHER :
-        //TODO change to GeometryCollection
         m_columns.push_back(std::make_pair("geom", "geometry(GeometryCollection,4326)"));
+        m_columns.push_back(std::make_pair("member_ids", "bigint[]"));
+        m_columns.push_back(std::make_pair("member_types", "char[]"));
     }
 }
 

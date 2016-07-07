@@ -9,7 +9,7 @@
 #include <osmium/osm/tag.hpp>
 #include <sstream>
 
-void MyHandler::prepare_query(std::stringstream& query, const osmium::OSMObject& object) {
+void MyHandler::add_tags(std::stringstream& query, const osmium::OSMObject& object) {
     add_separator_to_stringstream(query);
     bool first_tag = true;
     for (const osmium::Tag& tag : object.tags()) {
@@ -21,7 +21,6 @@ void MyHandler::prepare_query(std::stringstream& query, const osmium::OSMObject&
         Table::escape4hstore(tag.value(), query);
         first_tag = false;
     }
-    add_metadata_to_stringstream(query, object);
 }
 
 void MyHandler::node(const osmium::Node& node) {
@@ -30,7 +29,11 @@ void MyHandler::node(const osmium::Node& node) {
     }
     std::stringstream query;
     query << node.id();
-    prepare_query(query, node);
+    if (node.tags().size() > 0) {
+        // If the node has tags, it will be written to nodes, not untagged_nodes table.
+        add_tags(query, node);
+    }
+    add_metadata_to_stringstream(query, node);
     query << "SRID=4326;" << wkb_factory.create_point(node);
     query << '\n';
     if (node.tags().size() == 0) { //no tags, usually a node of way
@@ -52,24 +55,54 @@ void MyHandler::way(const osmium::Way& way) {
             //TODO support partial ways
         }
     }
-    std::stringstream query;
-    query << way.id();
-    prepare_query(query, way);
-    query << "SRID=4326;" << wkb_factory.create_linestring(way);
-    query << '\n';
-    m_ways_linear_table.send_line(query.str());
+    try {
+        std::stringstream query;
+        query << way.id();
+        add_tags(query, way);
+        add_metadata_to_stringstream(query, way);
+        query << "SRID=4326;" << wkb_factory.create_linestring(way);
+        add_separator_to_stringstream(query);
+        query << "{";
+        for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
+            if (i != way.nodes().begin()) {
+                query << ", ";
+            }
+            query << i->ref();
+        }
+        query << "}";
+        query << '\n';
+        m_ways_linear_table.send_line(query.str());
+    } catch (osmium::geometry_error& e) {
+        std::cerr << e.what() << "\n";
+    }
 }
 
 void MyHandler::area(const osmium::Area& area) {
     std::stringstream query;
     query << area.orig_id();
-    prepare_query(query, area);
+    add_tags(query, area);
+    add_metadata_to_stringstream(query, area);
     query << "SRID=4326;" << wkb_factory.create_multipolygon(area);
-    query << '\n';
-    if (area.from_way()) {
-        m_ways_polygon_table.send_line(query.str());
-    } else {
-        m_relations_polygon_table.send_line(query.str());
+    try {
+        if (area.from_way()) {
+            add_separator_to_stringstream(query);
+            query << "{";
+            osmium::memory::ItemIteratorRange<const osmium::OuterRing>::iterator nodes = area.outer_rings().begin();
+            for (osmium::NodeRefList::const_iterator i = nodes->begin(); i < nodes->end(); i++) {
+                if (i != nodes->begin()) {
+                    query << ", ";
+                }
+                query << i->ref();
+            }
+            query << "}";
+            query << '\n';
+            m_ways_polygon_table.send_line(query.str());
+        } else {
+            query << '\n';
+            m_relations_polygon_table.send_line(query.str());
+        }
+    } catch (osmium::geometry_error& e) {
+        std::cerr << e.what() << "\n";
     }
 }
 

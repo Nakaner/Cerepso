@@ -64,16 +64,17 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         }
     }
     create_query.push_back(')');
-    //create_query.append(" (osm_id bigint, geom geometry(Point,4326))");
-    std::cout << create_query << std::endl;
     send_query(create_query.c_str());
     send_begin();
     start_copy();
 }
 
 Table::~Table() {
+    time_t ts = time(NULL);
     end_copy();
+    std::cerr << "COMMIT on table " << m_name;
     send_query("COMMIT");
+    std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
     PQfinish(m_database_connection);
 }
 
@@ -85,6 +86,9 @@ void Table::end_copy() {
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
         throw std::runtime_error((boost::format("COPY END command failed: %1%\n") %  PQerrorMessage(m_database_connection)).str());
+    }
+    else {
+        std::cerr << "COPY END " << m_name << std::endl;
     }
     m_copy_mode = false;
 }
