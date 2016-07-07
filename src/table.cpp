@@ -72,10 +72,28 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
 Table::~Table() {
     time_t ts = time(NULL);
     end_copy();
-    std::cerr << "COMMIT on table " << m_name;
-    send_query("COMMIT");
-    std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
+    std::cerr << "committing …";
+    commit();
+    if (m_columns.get_type() != TableType::UNTAGGED_POINT
+            || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
+        create_geom_index();
+    }
+    std::cerr << " on table " << m_name << " needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
     PQfinish(m_database_connection);
+}
+
+void Table::create_geom_index() {
+    // pick out geometry column
+    for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
+    //for (Column& col : m_columns) {
+        if (it->second.compare(0, 8, "geometry") == 0) {
+            std::cerr << "and geometry index creation …";
+            std::stringstream query;
+            query << "CREATE INDEX " << m_name << "_index" << " ON " << m_name << " USING GIST (" << it->first << ")";
+            send_query(query.str().c_str());
+            break;
+        }
+    }
 }
 
 void Table::end_copy() {
@@ -95,6 +113,10 @@ void Table::end_copy() {
 
 void Table::send_begin() {
     send_query("BEGIN");
+}
+
+void Table::commit() {
+    send_query("COMMIT");
 }
 
 void Table::send_query(const char* query) {

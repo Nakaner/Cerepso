@@ -29,6 +29,7 @@ struct Config {
     std::string m_database_name = "pgimportertest";
     bool tags_hstore = true;
     bool metadata = true;
+    bool m_all_geom_indexes = false;
 };
 
 typedef std::pair<const std::string, const std::string> Column;
@@ -82,6 +83,10 @@ public:
      */
     const std::string& column_type_at(size_t n) {
         return m_columns.at(n).second;
+    }
+
+    TableType get_type() {
+        return m_type;
     }
 };
 

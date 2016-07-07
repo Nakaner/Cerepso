@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
             {"help",   no_argument, 0, 'h'},
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
+            {"all-geom-indexes", required_argument, 0, 'a'},
             {0, 0, 0, 0}
         };
     Config config;
@@ -49,6 +50,9 @@ int main(int argc, char* argv[]) {
             case 'd':
                 config.m_database_name = optarg;
                 break;
+            case 'a':
+                config.m_all_geom_indexes = true;
+                break;
             default:
                 exit(1);
         }
@@ -56,7 +60,8 @@ int main(int argc, char* argv[]) {
 
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
-        std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
+        "  -a, --all-geom-indexes  geometry indexes on all tables (otherwise not on untagged nodes table)" << std::endl;
         exit(1);
     } else {
         config.m_osm_file =  argv[optind];

@@ -39,6 +39,16 @@ private:
 
     void end_copy();
 
+    /*
+     * send COMMIT to table
+     */
+    void commit();
+
+    /**
+     * create index on geometry column
+     */
+    void create_geom_index();
+
     void send_begin();
 
     void send_query(const char* query);
