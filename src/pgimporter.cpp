@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
             {"all-geom-indexes", required_argument, 0, 'a'},
+            {"no-order-by-geohash", required_argument, 0, 'o'},
             {0, 0, 0, 0}
         };
     Config config;
@@ -53,6 +54,9 @@ int main(int argc, char* argv[]) {
             case 'a':
                 config.m_all_geom_indexes = true;
                 break;
+            case 'o':
+                config.m_order_by_geohash = false;
+                break;
             default:
                 exit(1);
         }
@@ -61,7 +65,8 @@ int main(int argc, char* argv[]) {
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
         std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
-        "  -a, --all-geom-indexes  geometry indexes on all tables (otherwise not on untagged nodes table)" << std::endl;
+        "  -a, --all-geom-indexes  geometry indexes on all tables (otherwise not on untagged nodes table)" \
+        "  -o, --no-order-by-geohash  don't order tables by ST_GeoHash" << std::endl;
         exit(1);
     } else {
         config.m_osm_file =  argv[optind];

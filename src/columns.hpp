@@ -30,6 +30,7 @@ struct Config {
     bool tags_hstore = true;
     bool metadata = true;
     bool m_all_geom_indexes = false;
+    bool m_order_by_geohash = true;
 };
 
 typedef std::pair<const std::string, const std::string> Column;

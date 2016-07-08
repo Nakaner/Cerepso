@@ -70,27 +70,51 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
 }
 
 Table::~Table() {
-    time_t ts = time(NULL);
     end_copy();
-    std::cerr << "committing …";
+    std::cerr << "committing table " << m_name << " …";
     commit();
     if (m_columns.get_type() != TableType::UNTAGGED_POINT
             || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
+        if (m_config.m_order_by_geohash) {
+            order_by_geohash();
+        }
         create_geom_index();
     }
-    std::cerr << " on table " << m_name << " needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
     PQfinish(m_database_connection);
+}
+
+void Table::order_by_geohash() {
+    for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
+        if (it->second.compare(0, 8, "geometry") == 0) {
+           time_t ts = time(NULL);
+           std::cerr << " and ordering it by ST_Geohash …";
+           std::stringstream query;
+           //TODO add ST_Transform to EPSG:4326 once pgimporter supports other coordinate systems.
+           query << "CREATE TABLE " << m_name << "_tmp" <<  " AS SELECT * from " << m_name << " ORDER BY ST_GeoHash";
+           query << "(ST_Envelope(" << it->first << "),10) COLLATE \"C\"";
+           send_query(query.str().c_str());
+           query.str("");
+           query << "DROP TABLE " << m_name;
+           send_query(query.str().c_str());
+           query.str("");
+           query << "ALTER TABLE " << m_name << "_tmp RENAME TO " << m_name;
+           send_query(query.str().c_str());
+           std::cerr << " took " << static_cast<int>(time(NULL) - ts) << " seconds." << std::endl;
+           break;
+       }
+    }
 }
 
 void Table::create_geom_index() {
     // pick out geometry column
     for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-    //for (Column& col : m_columns) {
         if (it->second.compare(0, 8, "geometry") == 0) {
-            std::cerr << "and geometry index creation …";
+            time_t ts = time(NULL);
+            std::cerr << "Creating geometry index on table " << m_name << " …";
             std::stringstream query;
             query << "CREATE INDEX " << m_name << "_index" << " ON " << m_name << " USING GIST (" << it->first << ")";
             send_query(query.str().c_str());
+            std::cerr << " took " << static_cast<int>(time(NULL) - ts) << " seconds." << std::endl;
             break;
         }
     }

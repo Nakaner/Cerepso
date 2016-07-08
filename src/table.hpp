@@ -49,6 +49,13 @@ private:
      */
     void create_geom_index();
 
+    /**
+     * Order content by "ST_GeoHash(ST_ENVELOPE(geometry_column), 10) COLLATE"
+     *
+     * See docs/usage.md for details.
+     */
+    void order_by_geohash();
+
     void send_begin();
 
     void send_query(const char* query);
