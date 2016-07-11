@@ -51,20 +51,24 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         throw std::runtime_error((boost::format("Cannot establish connection to database: %1%\n")
             %  PQerrorMessage(m_database_connection)).str());
     }
+    // delete existing table
+    std::string query = "DROP TABLE IF EXISTS ";
+    query.append(m_name);
+    send_query(query.c_str());
     // create table
-    std::string create_query = "CREATE UNLOGGED TABLE ";
-    create_query.append(m_name);
-    create_query.push_back('(');
+    query = "CREATE UNLOGGED TABLE ";
+    query.append(m_name);
+    query.push_back('(');
     for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-        create_query.append(it->first);
-        create_query.push_back(' ');
-        create_query.append(it->second);
+        query.append(it->first);
+        query.push_back(' ');
+        query.append(it->second);
         if (it != m_columns.end() - 1) {
-            create_query.append(", ");
+            query.append(", ");
         }
     }
-    create_query.push_back(')');
-    send_query(create_query.c_str());
+    query.push_back(')');
+    send_query(query.c_str());
     send_begin();
     start_copy();
 }
