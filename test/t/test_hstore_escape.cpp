@@ -7,7 +7,6 @@
 
 #include "catch.hpp"
 #include <table.hpp>
-#include <string.h>
 
 
 TEST_CASE( "escape4hstore()") {

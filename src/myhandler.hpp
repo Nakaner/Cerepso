@@ -8,65 +8,37 @@
 #ifndef MYHANDLER_HPP_
 #define MYHANDLER_HPP_
 
-#include <libpq-fe.h>
-#include <osmium/handler.hpp>
-#include <osmium/osm/node.hpp>
-#include <osmium/osm/way.hpp>
-#include <osmium/osm/area.hpp>
-#include <osmium/geom/wkt.hpp>
-#include <osmium/geom/wkb.hpp>
-#include "table.hpp"
+#include "postgres_handler.hpp"
 
 
-class MyHandler : public osmium::handler::Handler {
-private:
-    osmium::geom::WKBFactory<> wkb_factory;
-    Table m_nodes_table;
-    Table m_untagged_nodes_table;
-    Table m_ways_linear_table;
-    Table m_ways_polygon_table;
-    Table m_relations_polygon_table;
-
-
+class MyHandler : public PostgresHandler {
 public:
     MyHandler() = delete;
 
+    /**
+     * constructor for normal usage
+     */
     MyHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns, Columns& way_polygon_columns,
-            Columns& relation_polygon_columns) :
-        wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
-        m_nodes_table("nodes", config, node_columns),
-        m_untagged_nodes_table("untagged_nodes", config, untagged_nodes_columns),
-        m_ways_linear_table("ways_linear", config, way_linear_columns),
-        m_ways_polygon_table("ways_polygon", config, way_polygon_columns),
-        m_relations_polygon_table("relation_polygon", config, relation_polygon_columns) { }
+            Columns& relation_polygon_columns) : PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns,
+                    way_polygon_columns, relation_polygon_columns) { }
+
+    /**
+     * constructor for testing purposes, will not establish database connections
+     */
+    MyHandler(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns, Columns& way_polygon_columns,
+                Columns& relation_polygon_columns, Config& config) : PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns,
+                        way_polygon_columns, relation_polygon_columns, config) { }
 
     ~MyHandler() {
     }
 
     void node(const osmium::Node& node);
 
+    void prepare_node_query(const osmium::Node& node, std::stringstream& query);
+
     void way(const osmium::Way& way);
 
     void area(const osmium::Area& area);
-
-    /**
-     * add tag hstore column and metadate to query
-     */
-    static void add_tags(std::stringstream& query, const osmium::OSMObject& object);
-
-    /**
-     * Add metadata (user, uid, changeset, timestamp) to the stringstream.
-     * A separator (via add_separator_to_stringstream) will be added before the first and after the last item.
-     *
-     * @param ss stringstream
-     * @param object OSM object
-     */
-    static void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
-
-    /**
-     * helper function
-     */
-    static void add_separator_to_stringstream(std::stringstream& ss);
 };
 
 

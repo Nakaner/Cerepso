@@ -9,38 +9,28 @@
 #include <osmium/osm/tag.hpp>
 #include <sstream>
 
-void MyHandler::add_tags(std::stringstream& query, const osmium::OSMObject& object) {
-    add_separator_to_stringstream(query);
-    bool first_tag = true;
-    for (const osmium::Tag& tag : object.tags()) {
-        if (!first_tag) {
-            query.put(',');
-        }
-        Table::escape4hstore(tag.key(), query);
-        query << "=>";
-        Table::escape4hstore(tag.value(), query);
-        first_tag = false;
-    }
-}
-
 void MyHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
     std::stringstream query;
-    query << node.id();
-    if (node.tags().size() > 0) {
-        // If the node has tags, it will be written to nodes, not untagged_nodes table.
-        add_tags(query, node);
-    }
-    add_metadata_to_stringstream(query, node);
-    query << "SRID=4326;" << wkb_factory.create_point(node);
-    query << '\n';
+    prepare_node_query(node, query);
     if (node.tags().size() == 0) { //no tags, usually a node of way
         m_untagged_nodes_table.send_line(query.str());
     } else {
         m_nodes_table.send_line(query.str());
     }
+}
+
+void MyHandler::prepare_node_query(const osmium::Node& node, std::stringstream& query) {
+    query << node.id();
+    if (node.tags().size() > 0) {
+        // If the node has tags, it will be written to nodes, not untagged_nodes table.
+        PostgresHandler::add_tags(query, node);
+    }
+    PostgresHandler::add_metadata_to_stringstream(query, node);
+    query << "SRID=4326;" << wkb_factory.create_point(node);
+    query << '\n';
 }
 
 void MyHandler::way(const osmium::Way& way) {
@@ -104,22 +94,4 @@ void MyHandler::area(const osmium::Area& area) {
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
     }
-}
-
-void MyHandler::add_separator_to_stringstream(std::stringstream& ss) {
-    ss << '\t';
-}
-
-void MyHandler::add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object) {
-    add_separator_to_stringstream(ss);
-    ss << object.user();
-    add_separator_to_stringstream(ss);
-    ss << object.uid();
-    add_separator_to_stringstream(ss);
-    ss << object.version();
-    add_separator_to_stringstream(ss);
-    ss << object.timestamp().to_iso();
-    add_separator_to_stringstream(ss);
-    ss << object.changeset();
-    add_separator_to_stringstream(ss);
 }

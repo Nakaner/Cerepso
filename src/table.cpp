@@ -39,11 +39,16 @@ void Table::escape4hstore(const char* source, std::stringstream& destination) {
     destination.put('"');
 }
 
+Table::Table(Columns& columns, Config& config) :
+        m_copy_mode(false),
+        m_columns(columns),
+        m_config(config) { }
+
 Table::Table(const char* table_name, Config& config, Columns& columns) :
         m_name(table_name),
         m_copy_mode(false),
-        m_config(config),
-        m_columns(columns) {
+        m_columns(columns),
+        m_config(config) {
     std::string connection_params = "dbname=";
     connection_params.append(m_config.m_database_name);
     m_database_connection = PQconnectdb(connection_params.c_str());
@@ -52,42 +57,53 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
             %  PQerrorMessage(m_database_connection)).str());
     }
     // delete existing table
-    std::string query = "DROP TABLE IF EXISTS ";
-    query.append(m_name);
-    send_query(query.c_str());
-    // create table
-    query = "CREATE UNLOGGED TABLE ";
-    query.append(m_name);
-    query.push_back('(');
-    for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-        query.append(it->first);
-        query.push_back(' ');
-        query.append(it->second);
-        if (it != m_columns.end() - 1) {
-            query.append(", ");
+    std::string query;
+    // TODO split Table class up into two classes – one for first import, one for append mode.
+    if (!m_config.m_append) {
+        query = "DROP TABLE IF EXISTS ";
+        query.append(m_name);
+        send_query(query.c_str());
+        // create table
+        query = "CREATE UNLOGGED TABLE ";
+        query.append(m_name);
+        query.push_back('(');
+        for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
+            query.append(it->first);
+            query.push_back(' ');
+            query.append(it->second);
+            if (it != m_columns.end() - 1) {
+                query.append(", ");
+            }
         }
+        query.push_back(')');
+        send_query(query.c_str());
     }
-    query.push_back(')');
-    send_query(query.c_str());
     send_begin();
-    start_copy();
+    if (!m_config.m_append) {
+        start_copy();
+    }
 }
 
 Table::~Table() {
-    end_copy();
-    std::cerr << "committing table " << m_name << " …";
-    commit();
-    if (m_columns.get_type() != TableType::UNTAGGED_POINT
-            || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
-        if (m_config.m_order_by_geohash) {
-            order_by_geohash();
+    if (m_name != "") {
+        end_copy();
+        std::cerr << "committing table " << m_name << " …";
+        commit();
+        if (m_columns.get_type() != TableType::UNTAGGED_POINT
+                || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
+            if (m_config.m_order_by_geohash) {
+                order_by_geohash();
+            }
+            create_geom_index();
         }
-        create_geom_index();
+        PQfinish(m_database_connection);
     }
-    PQfinish(m_database_connection);
 }
 
 void Table::order_by_geohash() {
+    if (!m_database_connection) {
+        return;
+    }
     for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
         if (it->second.compare(0, 8, "geometry") == 0) {
            time_t ts = time(NULL);
@@ -110,6 +126,9 @@ void Table::order_by_geohash() {
 }
 
 void Table::create_geom_index() {
+    if (!m_database_connection) {
+        return;
+    }
     // pick out geometry column
     for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
         if (it->second.compare(0, 8, "geometry") == 0) {
@@ -125,6 +144,9 @@ void Table::create_geom_index() {
 }
 
 void Table::end_copy() {
+    if (!m_database_connection) {
+        return;
+    }
     if (PQputCopyEnd(m_database_connection, nullptr) != 1) {
         throw std::runtime_error(PQerrorMessage(m_database_connection));
     }
@@ -148,6 +170,9 @@ void Table::commit() {
 }
 
 void Table::send_query(const char* query) {
+    if (!m_database_connection) {
+        return;
+    }
     if (m_copy_mode) {
         throw std::runtime_error((boost::format("%1% failed: You are in COPY mode.\n") % query % PQerrorMessage(m_database_connection)).str());
     }
@@ -160,15 +185,17 @@ void Table::send_query(const char* query) {
 }
 
 void Table::start_copy() {
+    if (!m_database_connection) {
+        return;
+    }
     std::string copy_command = "COPY ";
     copy_command.append(m_name);
     copy_command.append(" (");
     for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
         copy_command.append(it->first);
-        if (it != m_columns.end() - 1) {
-            copy_command.append(", ");
-        }
+        copy_command.push_back(',');
     }
+    copy_command.pop_back();
     copy_command.append(") FROM STDIN");
     PGresult *result = PQexec(m_database_connection, copy_command.c_str());
     if (PQresultStatus(result) != PGRES_COPY_IN) {
@@ -180,6 +207,9 @@ void Table::start_copy() {
 }
 
 void Table::send_line(const std::string& line) {
+    if (!m_database_connection) {
+        return;
+    }
     if (!m_copy_mode) {
         throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: You are not in COPY mode!\n") % line).str());
     }

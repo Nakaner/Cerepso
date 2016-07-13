@@ -6,7 +6,7 @@
  */
 
 #include "relation_collector.hpp"
-#include "myhandler.hpp"
+#include "postgres_handler.hpp"
 #include <geos/geom/GeometryFactory.h>
 
 RelationCollector::RelationCollector(std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> multipolygon_collector,

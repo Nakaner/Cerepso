@@ -1,19 +1,5 @@
 enable_testing()
 
-#find_package(Catch REQUIRED)
-#include_directories(${CATCH_INCLUDE_DIRS})
-#set(LIBS ${LIBS} ${CATCH_LIBRARIES} pgimporter)
-#include_directories(. ../src)
-#add_executable(test_hstore_escape test_hstore_escape.cpp)
-#target_link_libraries(test_hstore_escape ${LIBS})
-#add_test(test_hstore_escape ${CMAKE_CURRENT_BINARY_DIR}/test_hstore_escape)
-
-
-
-
-#add_executable(test_hstore_escape test_hstore_escape.cpp)
-#add_test(test_hstore_escape test_hstore_escape)
-
 message(STATUS "Configuring unit tests")
 
 include(CMakeParseArguments)
@@ -36,4 +22,8 @@ add_test(NAME test_hstore_escape
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND test_hstore_escape)
 
-
+add_executable(test_node_handler t/test_node_handler.cpp ../src/myhandler.cpp ../src/table.cpp ../src/columns.cpp ../src/postgres_handler.cpp)
+target_link_libraries(test_node_handler testlib "-lboost_program_options -lpq")
+add_test(NAME test_node_handler
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND test_node_handler)
