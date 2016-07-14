@@ -4,7 +4,7 @@ Command Line Options
 Indexing and Performance
 ------------------------
 
-`-I`, `--all-geom-indexes` will create an geometry index on all tables. If this option is *not* given,
+`-G`, `--all-geom-indexes` will create an geometry index on all tables. If this option is *not* given,
 the untagged nodes' table will not get an geometry index. You will only need this option if you perform
 data analysis and want to work with untagged orphaned nodes. If you just want to analys or render ways,
 you will not need this option. Using this option increases the duration of the first import about 100%.
@@ -15,3 +15,6 @@ request are similar to those of a tileserver. See a [talk](https://vimeo.com/115
 osm2pgsql issue tracker about this topic.
 
 `-a`, `--append` import a OSM diff (OSC format, not gzipped).
+
+`-I`, `--no-id-index` create no indexes on `osm_id` columns. Don't use this option if you want to apply diffs later. Applying diffs
+needs an index on this columns for fast access.

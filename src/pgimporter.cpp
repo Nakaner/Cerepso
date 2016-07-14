@@ -10,6 +10,7 @@
 #include <osmium/handler/node_locations_for_ways.hpp>
 #include <osmium/visitor.hpp>
 #include "myhandler.hpp"
+#include "append_handler.hpp"
 #include "columns.hpp"
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
@@ -30,13 +31,15 @@ int main(int argc, char* argv[]) {
             {"help",   no_argument, 0, 'h'},
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
-            {"all-geom-indexes", required_argument, 0, 'a'},
-            {"no-order-by-geohash", required_argument, 0, 'o'},
+            {"all-geom-indexes", no_argument, 0, 'G'},
+            {"no-order-by-geohash", no_argument, 0, 'o'},
+            {"append", no_argument, 0, 'a'},
+            {"no-id-index", no_argument, 0, 'I'},
             {0, 0, 0, 0}
         };
     Config config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd", long_options, 0);
+        int c = getopt_long(argc, argv, "hDdIoaG", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -51,11 +54,17 @@ int main(int argc, char* argv[]) {
             case 'd':
                 config.m_database_name = optarg;
                 break;
-            case 'a':
+            case 'G':
                 config.m_all_geom_indexes = true;
                 break;
             case 'o':
                 config.m_order_by_geohash = false;
+                break;
+            case 'a':
+                config.m_append = true;
+                break;
+            case 'I':
+                config.m_id_index = false;
                 break;
             default:
                 exit(1);
@@ -84,31 +93,44 @@ int main(int argc, char* argv[]) {
     Columns relation_other_columns(config, TableType::RELATION_OTHER);
 
     time_t ts = time(NULL);
+    if (config.m_append) { // append mode, reading diffs
+        osmium::io::Reader reader(config.m_osm_file, osmium::osm_entity_bits::nwr);
+        AppendHandler append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns,
+                way_polygon_columns, relation_polygon_columns);
+        while (osmium::memory::Buffer buffer = reader.read()) {
+            for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
+                if (it->type_is_in(osmium::osm_entity_bits::node)) {
+                    append_handler.node(static_cast<const osmium::Node&>(*it));
+                }
+            }
+        }
+        reader.close();
+    } else {
+        std::cerr << "Pass 1 (multipolygon relations)";
+        osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::relation);
+        osmium::area::Assembler::config_type assembler_config;
+        std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> collector(new osmium::area::MultipolygonCollector<osmium::area::Assembler>(assembler_config));
+        collector->read_relations(reader1);
+        reader1.close();
+        std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
-    std::cerr << "Pass 1 (multipolygon relations)";
-    osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::relation);
-    osmium::area::Assembler::config_type assembler_config;
-    std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> collector(new osmium::area::MultipolygonCollector<osmium::area::Assembler>(assembler_config));
-    collector->read_relations(reader1);
-    reader1.close();
-    std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
+        ts = time(NULL);
+        std::cerr << "Pass 2 (other relations)";
+        osmium::io::Reader reader_rel(config.m_osm_file);
+        RelationCollector rel_collector(collector, config, relation_other_columns);
+        rel_collector.read_relations(reader_rel);
+        reader_rel.close();
+        std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
-    ts = time(NULL);
-    std::cerr << "Pass 2 (other relations)";
-    osmium::io::Reader reader_rel(config.m_osm_file);
-    RelationCollector rel_collector(collector, config, relation_other_columns);
-    rel_collector.read_relations(reader_rel);
-    reader_rel.close();
-    std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
-
-    ts = time(NULL);
-    std::cerr << "Pass 3 (nodes and ways; writing to database)" << std::endl;
-    osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-    MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns);
-    osmium::apply(reader2, location_handler, handler, collector->handler([&handler](const osmium::memory::Buffer& area_buffer) {
-            osmium::apply(area_buffer, handler);
-            }),
-            rel_collector.handler());
-    reader2.close();
-    std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
+        ts = time(NULL);
+        std::cerr << "Pass 3 (nodes and ways; writing to database)" << std::endl;
+        osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
+        MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns);
+        osmium::apply(reader2, location_handler, handler, collector->handler([&handler](const osmium::memory::Buffer& area_buffer) {
+                osmium::apply(area_buffer, handler);
+                }),
+                rel_collector.handler());
+        reader2.close();
+        std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
+    }
 }

@@ -31,6 +31,8 @@ struct Config {
     bool metadata = true;
     bool m_all_geom_indexes = false;
     bool m_order_by_geohash = true;
+    bool m_append = false;
+    bool m_id_index = true;
 };
 
 typedef std::pair<const std::string, const std::string> Column;
@@ -70,6 +72,10 @@ public:
 
     Column& at(size_t n) {
         return m_columns.at(n);
+    }
+
+    int size() {
+        return m_columns.size();
     }
 
     /**

@@ -53,6 +53,3 @@ Columns::Columns(Config& config, ColumnsVector& additional_columns, TableType ty
         m_columns.push_back(col);
     }
 }
-
-
-

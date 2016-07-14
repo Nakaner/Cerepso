@@ -86,11 +86,16 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
 
 Table::~Table() {
     if (m_name != "") {
-        end_copy();
+        if (!m_config.m_append) {
+            end_copy();
+        }
         std::cerr << "committing table " << m_name << " …";
         commit();
-        if (m_columns.get_type() != TableType::UNTAGGED_POINT
-                || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
+        if (m_config.m_id_index && !m_config.m_append) {
+            create_id_index();
+        }
+        if ((m_columns.get_type() != TableType::UNTAGGED_POINT && !m_config.m_append)
+                || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes && !m_config.m_append)) {
             if (m_config.m_order_by_geohash) {
                 order_by_geohash();
             }
@@ -143,6 +148,24 @@ void Table::create_geom_index() {
     }
 }
 
+void Table::create_id_index() {
+    if (!m_database_connection) {
+        return;
+    }
+    // pick out geometry column
+    for (ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
+        if (it->first.compare(0, 8, "osm_id") == 0) {
+            time_t ts = time(NULL);
+            std::cerr << "Creating ID index on table " << m_name << " …";
+            std::stringstream query;
+            query << "CREATE INDEX " << m_name << "_pkey" << " ON " << m_name << " USING BTREE (osm_id)";
+            send_query(query.str().c_str());
+            std::cerr << " took " << static_cast<int>(time(NULL) - ts) << " seconds." << std::endl;
+            break;
+        }
+    }
+}
+
 void Table::end_copy() {
     if (!m_database_connection) {
         return;
@@ -154,9 +177,6 @@ void Table::end_copy() {
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
         throw std::runtime_error((boost::format("COPY END command failed: %1%\n") %  PQerrorMessage(m_database_connection)).str());
-    }
-    else {
-        std::cerr << "COPY END " << m_name << std::endl;
     }
     m_copy_mode = false;
 }

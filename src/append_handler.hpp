@@ -1,0 +1,60 @@
+/*
+ * append_handler.hpp
+ *
+ *  Created on: 11.07.2016
+ *      Author: michael
+ */
+
+#ifndef APPEND_HANDLER_HPP_
+#define APPEND_HANDLER_HPP_
+#include <sstream>
+#include "postgres_handler.hpp"
+
+/**
+ * Diff handler for table imported using MyHandler class.
+ *
+ * This handler has buffers for both deletions and inserts.
+ */
+
+class AppendHandler : public PostgresHandler {
+private:
+    /**
+     * buffers for insert via COPY
+     */
+    std::stringstream m_nodes_table_copy_buffer;
+    std::stringstream m_untagged_nodes_table_copy_buffer;
+    std::stringstream m_ways_linear_table_copy_buffer;
+    std::stringstream m_ways_polygon_table_copy_buffer;
+    std::stringstream m_relations_polygon_table_copy_buffer;
+
+    /**
+     * buffers for SQL DELETE
+     */
+    std::stringstream m_nodes_table_sql_buffer;
+    std::stringstream m_untagged_nodes_table_sql_buffer;
+    std::stringstream m_ways_linear_table_sql_buffer;
+    std::stringstream m_ways_polygon_table_sql_buffer;
+    std::stringstream m_relations_polygon_table_sql_buffer;
+
+    /**
+     * maximum size of copy buffer
+     */
+    static const int BUFFER_SEND_SIZE = 10000;
+
+public:
+    AppendHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
+            Columns& way_polygon_columns, Columns& relation_polygon_columns) : PostgresHandler(config, node_columns,
+                    untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns) { }
+
+    void node(const osmium::Node& node);
+
+    void way(const osmium::Way& way);
+
+    void relation(const osmium::Relation& area);
+
+    void area(const osmium::Area& area) {};
+};
+
+
+
+#endif /* APPEND_HANDLER_HPP_ */

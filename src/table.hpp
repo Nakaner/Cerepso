@@ -36,20 +36,11 @@ private:
     std::string m_copy_buffer;
 
     /**
-     * maximum size of copy buffer
-     */
-    static const int BUFFER_SEND_SIZE = 1024;
-
-    /**
      * connection to database
      *
      * This pointer is a nullpointer if this table is used in demo mode (for testing purposes).
      */
     PGconn *m_database_connection;
-
-    void start_copy();
-
-    void end_copy();
 
     /*
      * send COMMIT to table
@@ -62,6 +53,11 @@ private:
     void create_geom_index();
 
     /**
+     * create index on osm_id column
+     */
+    void create_id_index();
+
+    /**
      * Order content by "ST_GeoHash(ST_ENVELOPE(geometry_column), 10) COLLATE"
      *
      * See docs/usage.md for details.
@@ -69,8 +65,6 @@ private:
     void order_by_geohash();
 
     void send_begin();
-
-    void send_query(const char* query);
 
 public:
     Table() = delete;
@@ -113,6 +107,25 @@ public:
      * send a line to the database (it will get it from STDIN) during copy mode
      */
     void send_line(const std::string& line);
+
+    std::string& get_name() {
+        return m_name;
+    }
+
+    /**
+     * start COPY mode
+     */
+    void start_copy();
+
+    /**
+     * stop COPY mode
+     */
+    void end_copy();
+
+    /**
+     * send any SQL query
+     */
+    void send_query(const char* query);
 
 };
 
