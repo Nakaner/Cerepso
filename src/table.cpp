@@ -170,6 +170,7 @@ void Table::end_copy() {
     if (!m_database_connection) {
         return;
     }
+    force_copy();
     if (PQputCopyEnd(m_database_connection, nullptr) != 1) {
         throw std::runtime_error(PQerrorMessage(m_database_connection));
     }
@@ -234,11 +235,35 @@ void Table::send_line(const std::string& line) {
         throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: You are not in COPY mode!\n") % line).str());
     }
     if (line[line.size()-1] != '\n') {
+        std::cerr << line << std::endl;
         throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: Line does not end with \\n\n") % line).str());
     }
     if (PQputCopyData(m_database_connection, line.c_str(), line.size()) != 1) {
         throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: %2%\n") % line % PQerrorMessage(m_database_connection)).str());
     }
+}
+
+void Table::push_copy() {
+    if (m_copy_buffer.str().size() > BUFFER_SEND_SIZE) {
+        force_copy();
+    }
+}
+
+void Table::push_sql() {
+    if (m_sql_buffer.str().size() > BUFFER_SEND_SIZE) {
+        force_sql();
+    }
+}
+
+void Table::force_copy() {
+    assert(m_copy_mode);
+    send_line(m_copy_buffer.str());
+    m_copy_buffer.str("");
+}
+
+void Table::force_sql() {
+    assert(!m_copy_mode);
+    send_query(m_sql_buffer.str().c_str());
 }
 
 Columns& Table::get_columns() {

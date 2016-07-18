@@ -11,6 +11,7 @@
 #include <libpq-fe.h>
 #include <boost/format.hpp>
 #include "columns.hpp"
+#include <sstream>
 
 /**
  * This class manages connection to a database table. We have one connection per table,
@@ -31,16 +32,26 @@ private:
     Config& m_config;
 
     /**
-     * copy buffer
-     */
-    std::string m_copy_buffer;
-
-    /**
      * connection to database
      *
      * This pointer is a nullpointer if this table is used in demo mode (for testing purposes).
      */
     PGconn *m_database_connection;
+
+    /**
+     * copy buffer
+     */
+    std::stringstream m_copy_buffer;
+
+    /**
+     * buffer for SQL queries (e.g. DELETE)
+     */
+    std::stringstream m_sql_buffer;
+
+    /**
+     * maximum size of copy buffer
+     */
+    static const int BUFFER_SEND_SIZE = 10000;
 
     /*
      * send COMMIT to table
@@ -65,6 +76,16 @@ private:
     void order_by_geohash();
 
     void send_begin();
+
+    /**
+     * send content of copy buffer to database
+     */
+    void force_copy();
+
+    /**
+     * send content of SQL query buffer to database
+     */
+    void force_sql();
 
 public:
     Table() = delete;
@@ -99,14 +120,28 @@ public:
      */
     void delete_if_existing(const char* database_query);
 
-    std::string& get_copy_buffer() {
+    std::stringstream& get_copy_buffer() {
         return m_copy_buffer;
+    }
+
+    std::stringstream& get_sql_buffer() {
+        return m_sql_buffer;
     }
 
     /**
      * send a line to the database (it will get it from STDIN) during copy mode
      */
     void send_line(const std::string& line);
+
+    /**
+     * check if COPY buffer is full enough and send it to the database
+     */
+    void push_copy();
+
+    /**
+     * check if SQL query buffer is full enough and send it to the database
+     */
+    void push_sql();
 
     std::string& get_name() {
         return m_name;

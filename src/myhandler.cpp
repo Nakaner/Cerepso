@@ -13,12 +13,12 @@ void MyHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
-    std::stringstream query;
-    prepare_node_query(node, query);
     if (node.tags().size() == 0) { //no tags, usually a node of way
-        m_untagged_nodes_table.send_line(query.str());
+        prepare_node_query(node, m_untagged_nodes_table.get_copy_buffer());
+        m_untagged_nodes_table.push_copy();
     } else {
-        m_nodes_table.send_line(query.str());
+        prepare_node_query(node, m_nodes_table.get_copy_buffer());
+        m_nodes_table.push_copy();
     }
 }
 
