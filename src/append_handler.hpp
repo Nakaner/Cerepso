@@ -36,8 +36,8 @@ private:
 
 public:
     AppendHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-            Columns& way_polygon_columns, Columns& relation_polygon_columns) : PostgresHandler(config, node_columns,
-                    untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns) { }
+            Columns& way_polygon_columns) : PostgresHandler(config, node_columns,
+                    untagged_nodes_columns, way_linear_columns, way_polygon_columns) { }
 
     ~AppendHandler();
 

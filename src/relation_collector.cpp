@@ -9,17 +9,12 @@
 #include "postgres_handler.hpp"
 #include <geos/geom/GeometryFactory.h>
 
-RelationCollector::RelationCollector(std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> multipolygon_collector,
-        Config& config, Columns& node_columns) :
-    m_multipolygon_collector(multipolygon_collector),
+RelationCollector::RelationCollector(Config& config, Columns& node_columns) :
     m_output_buffer(initial_output_buffer_size, osmium::memory::Buffer::auto_grow::yes),
     m_database_table("relations_other", config, node_columns)
     { }
 
 bool RelationCollector::keep_relation(const osmium::Relation& relation) const {
-    if (m_multipolygon_collector->keep_relation(relation)) {
-        return false;
-    }
     return true;
 }
 

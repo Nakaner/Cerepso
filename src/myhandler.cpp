@@ -86,7 +86,7 @@ void MyHandler::area(const osmium::Area& area) {
             m_ways_polygon_table.send_line(query);
         } else {
             query.push_back('\n');
-            m_relations_polygon_table.send_line(query);
+            assert(true); // We will not reach this branch here.
         }
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";

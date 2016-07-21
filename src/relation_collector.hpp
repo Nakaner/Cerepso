@@ -18,7 +18,6 @@
 #include <osmium/relations/collector.hpp>
 #include <osmium/area/assembler.hpp>
 #include <osmium/relations/detail/member_meta.hpp>
-#include <osmium/area/multipolygon_collector.hpp>
 #include "columns.hpp"
 #include "table.hpp"
 #include "myhandler.hpp"
@@ -33,10 +32,6 @@ class RelationCollector: public osmium::relations::Collector<RelationCollector,
     typedef typename osmium::relations::Collector<RelationCollector, true, true, true> collector_type;
 
 private:
-    /**
-     * pointer to an instance of MultipolygonCollector (we need a the method keep_relation())
-     */
-    std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> m_multipolygon_collector;
 
     osmium::memory::Buffer m_output_buffer;
     Table m_database_table;
@@ -67,8 +62,7 @@ private:
 public:
 
     RelationCollector() = delete;
-    explicit RelationCollector(std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> multipolygon_collector,
-            Config& config, Columns& node_columns);
+    explicit RelationCollector(Config& config, Columns& node_columns);
 
     /**
      * This method decides which relations we're interested in, and

@@ -46,8 +46,7 @@ TEST_CASE("node handler produces good lines for COPY") {
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
     Columns way_linear_columns(config, TableType::WAYS_LINEAR);
     Columns way_polygon_columns(config, TableType::WAYS_POLYGON);
-    Columns relation_polygon_columns(config, TableType::RELATION_POLYGON);
-    MyHandler handler( node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns, config);
+    MyHandler handler( node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, config);
 
     tl_builder.add_tag("amenity", "restaurant");
     tl_builder.add_tag("name", "Gasthof Hirsch");

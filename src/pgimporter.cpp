@@ -16,7 +16,7 @@
 #include <osmium/osm/way.hpp>
 #include <osmium/osm/area.hpp>
 #include <osmium/area/assembler.hpp>
-#include <osmium/area/multipolygon_collector.hpp>
+//#include <osmium/area/multipolygon_collector.hpp>
 #include <osmium/io/any_input.hpp>
 #include <iostream>
 #include <getopt.h>
@@ -89,14 +89,13 @@ int main(int argc, char* argv[]) {
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
     Columns way_linear_columns(config, TableType::WAYS_LINEAR);
     Columns way_polygon_columns(config, TableType::WAYS_POLYGON);
-    Columns relation_polygon_columns(config, TableType::RELATION_POLYGON);
     Columns relation_other_columns(config, TableType::RELATION_OTHER);
 
     time_t ts = time(NULL);
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader(config.m_osm_file, osmium::osm_entity_bits::nwr);
         AppendHandler append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns,
-                way_polygon_columns, relation_polygon_columns);
+                way_polygon_columns);
         while (osmium::memory::Buffer buffer = reader.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
@@ -106,30 +105,19 @@ int main(int argc, char* argv[]) {
         }
         reader.close();
     } else {
-        std::cerr << "Pass 1 (multipolygon relations)";
-        osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::relation);
-        osmium::area::Assembler::config_type assembler_config;
-        std::shared_ptr<osmium::area::MultipolygonCollector<osmium::area::Assembler>> collector(new osmium::area::MultipolygonCollector<osmium::area::Assembler>(assembler_config));
-        collector->read_relations(reader1);
-        reader1.close();
-        std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
-
         ts = time(NULL);
-        std::cerr << "Pass 2 (other relations)";
+        std::cerr << "Pass 1 (relations)";
         osmium::io::Reader reader_rel(config.m_osm_file);
-        RelationCollector rel_collector(collector, config, relation_other_columns);
+        RelationCollector rel_collector(config, relation_other_columns);
         rel_collector.read_relations(reader_rel);
         reader_rel.close();
         std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
         ts = time(NULL);
-        std::cerr << "Pass 3 (nodes and ways; writing to database)" << std::endl;
+        std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns);
-        osmium::apply(reader2, location_handler, handler, collector->handler([&handler](const osmium::memory::Buffer& area_buffer) {
-                osmium::apply(area_buffer, handler);
-                }),
-                rel_collector.handler());
+        MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns);
+        osmium::apply(reader2, location_handler, handler, rel_collector.handler());
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
     }
