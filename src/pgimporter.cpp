@@ -88,14 +88,12 @@ int main(int argc, char* argv[]) {
     Columns node_columns(config, TableType::POINT);
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
     Columns way_linear_columns(config, TableType::WAYS_LINEAR);
-    Columns way_polygon_columns(config, TableType::WAYS_POLYGON);
     Columns relation_other_columns(config, TableType::RELATION_OTHER);
 
     time_t ts = time(NULL);
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        AppendHandler append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns,
-                way_polygon_columns);
+        AppendHandler append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns);
         while (osmium::memory::Buffer buffer = reader.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
@@ -116,7 +114,7 @@ int main(int argc, char* argv[]) {
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns, way_polygon_columns);
+        MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns);
         osmium::apply(reader2, location_handler, handler, rel_collector.handler());
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;

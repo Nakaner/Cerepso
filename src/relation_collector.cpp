@@ -32,6 +32,11 @@ osmium::Way& RelationCollector::get_member_way(size_t offset) const {
     return static_cast<osmium::Way &>(this->get_member(offset));
 }
 
+/** Helper to retrieve relation member */
+osmium::Relation& RelationCollector::get_member_relation(size_t offset) const {
+    return static_cast<osmium::Relation&>(this->get_member(offset));
+}
+
 void RelationCollector::complete_relation(osmium::relations::RelationMeta& relation_meta) {
     const osmium::Relation& relation = this->get_relation(relation_meta);
     // We need a stringstream because writeHEX() needs a stringstream
@@ -62,6 +67,13 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
                     object_ids.push_back(member.ref());
                     object_types.push_back(osmium::item_type::node);
                 }
+                else if ((member.type() == osmium::item_type::relation)) {
+                    osmium::Relation& relation =this->get_member_relation(this->get_offset(member.type(), member.ref()));
+                    // We do not add the geometry of this relation to the GeometryCollection.
+                    // TODO support one level of nested relations
+                    object_ids.push_back(member.ref());
+                    object_types.push_back(osmium::item_type::relation);
+                }
             //}
         }
         // create GeometryCollection
@@ -91,6 +103,8 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
                 query.push_back('n');
             } else if (*type == osmium::item_type::way) {
                 query.push_back('w');
+            } else if (*type == osmium::item_type::relation) {
+                query.push_back('r');
             }
         }
         query.append("}\n");

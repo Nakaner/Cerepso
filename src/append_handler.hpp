@@ -23,6 +23,7 @@ private:
      */
     std::string m_nodes_table_copy_buffer;
     std::string m_untagged_nodes_table_copy_buffer;
+    std::string m_ways_table_copy_buffer;
 
     /**
      * list of objects which should be deleted
@@ -35,9 +36,8 @@ private:
     static const int BUFFER_SEND_SIZE = 10000;
 
 public:
-    AppendHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-            Columns& way_polygon_columns) : PostgresHandler(config, node_columns,
-                    untagged_nodes_columns, way_linear_columns, way_polygon_columns) { }
+    AppendHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns)
+        : PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns) { }
 
     ~AppendHandler();
 

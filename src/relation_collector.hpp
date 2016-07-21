@@ -47,6 +47,9 @@ private:
     /** Helper to retrieve relation member */
     osmium::Way& get_member_way(size_t offset) const ;
 
+    /** Helper to retrieve relation member */
+    osmium::Relation& get_member_relation(size_t offset) const ;
+
     /** Helper method. Returns true if the member will likely miss in the data source file.
      *
      *  If the member has an offset of 0 in the buffer and the relation is not contained

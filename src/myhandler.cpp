@@ -59,36 +59,3 @@ void MyHandler::way(const osmium::Way& way) {
         std::cerr << e.what() << "\n";
     }
 }
-
-void MyHandler::area(const osmium::Area& area) {
-    std::string query;
-    static char idbuffer[20];
-    sprintf(idbuffer, "%ld", area.orig_id());
-    query.append(idbuffer);
-    add_tags(query, area);
-    add_metadata_to_stringstream(query, area);
-    query.append("SRID=4326;");
-    query.append(wkb_factory.create_multipolygon(area));
-    try {
-        if (area.from_way()) {
-            add_separator_to_stringstream(query);
-            query.push_back('{');
-            osmium::memory::ItemIteratorRange<const osmium::OuterRing>::iterator nodes = area.outer_rings().begin();
-            for (osmium::NodeRefList::const_iterator i = nodes->begin(); i < nodes->end(); i++) {
-                if (i != nodes->begin()) {
-                    query.append(", ");
-                }
-                sprintf(idbuffer, "%ld", i->ref());
-                query.append(idbuffer);
-            }
-            query.push_back('}');
-            query.push_back('\n');
-            m_ways_polygon_table.send_line(query);
-        } else {
-            query.push_back('\n');
-            assert(true); // We will not reach this branch here.
-        }
-    } catch (osmium::geometry_error& e) {
-        std::cerr << e.what() << "\n";
-    }
-}
