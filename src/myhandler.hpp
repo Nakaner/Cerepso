@@ -34,8 +34,6 @@ public:
 
     void node(const osmium::Node& node);
 
-    void prepare_node_query(const osmium::Node& node, std::stringstream& query);
-
     void way(const osmium::Way& way);
 
     void area(const osmium::Area& area);

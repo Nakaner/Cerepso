@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include "columns.hpp"
 #include <sstream>
+#include <osmium/osm/types.hpp>
 
 /**
  * This class manages connection to a database table. We have one connection per table,
@@ -37,16 +38,6 @@ private:
      * This pointer is a nullpointer if this table is used in demo mode (for testing purposes).
      */
     PGconn *m_database_connection;
-
-    /**
-     * copy buffer
-     */
-    std::stringstream m_copy_buffer;
-
-    /**
-     * buffer for SQL queries (e.g. DELETE)
-     */
-    std::stringstream m_sql_buffer;
 
     /**
      * maximum size of copy buffer
@@ -77,16 +68,6 @@ private:
 
     void send_begin();
 
-    /**
-     * send content of copy buffer to database
-     */
-    void force_copy();
-
-    /**
-     * send content of SQL query buffer to database
-     */
-    void force_sql();
-
 public:
     Table() = delete;
 
@@ -111,7 +92,7 @@ public:
      * @param source string which should be escaped
      * @param destination string where the escaped string has to be appended (later usually used for INSERT query)
      */
-    static void escape4hstore(const char* source, std::stringstream& destination);
+    static void escape4hstore(const char* source, std::string& destination);
 
     /**
      * check if the object mentioned by this query exists and, if yes, delete it.
@@ -120,28 +101,16 @@ public:
      */
     void delete_if_existing(const char* database_query);
 
-    std::stringstream& get_copy_buffer() {
-        return m_copy_buffer;
-    }
-
-    std::stringstream& get_sql_buffer() {
-        return m_sql_buffer;
-    }
+    /**
+     * delete (try it) all objects with the given OSM object IDs
+     */
+    void delete_from_list(std::vector<osmium::object_id_type>& list);
 
     /**
      * send a line to the database (it will get it from STDIN) during copy mode
      */
     void send_line(const std::string& line);
 
-    /**
-     * check if COPY buffer is full enough and send it to the database
-     */
-    void push_copy();
-
-    /**
-     * check if SQL query buffer is full enough and send it to the database
-     */
-    void push_sql();
 
     std::string& get_name() {
         return m_name;

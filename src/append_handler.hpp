@@ -21,20 +21,13 @@ private:
     /**
      * buffers for insert via COPY
      */
-    std::stringstream m_nodes_table_copy_buffer;
-    std::stringstream m_untagged_nodes_table_copy_buffer;
-    std::stringstream m_ways_linear_table_copy_buffer;
-    std::stringstream m_ways_polygon_table_copy_buffer;
-    std::stringstream m_relations_polygon_table_copy_buffer;
+    std::string m_nodes_table_copy_buffer;
+    std::string m_untagged_nodes_table_copy_buffer;
 
     /**
-     * buffers for SQL DELETE
+     * list of objects which should be deleted
      */
-    std::stringstream m_nodes_table_sql_buffer;
-    std::stringstream m_untagged_nodes_table_sql_buffer;
-    std::stringstream m_ways_linear_table_sql_buffer;
-    std::stringstream m_ways_polygon_table_sql_buffer;
-    std::stringstream m_relations_polygon_table_sql_buffer;
+    std::vector<osmium::object_id_type> m_delete_nodes;
 
     /**
      * maximum size of copy buffer
@@ -45,6 +38,8 @@ public:
     AppendHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
             Columns& way_polygon_columns, Columns& relation_polygon_columns) : PostgresHandler(config, node_columns,
                     untagged_nodes_columns, way_linear_columns, way_polygon_columns, relation_polygon_columns) { }
+
+    ~AppendHandler();
 
     void node(const osmium::Node& node);
 

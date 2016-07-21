@@ -39,10 +39,13 @@ osmium::Way& RelationCollector::get_member_way(size_t offset) const {
 
 void RelationCollector::complete_relation(osmium::relations::RelationMeta& relation_meta) {
     const osmium::Relation& relation = this->get_relation(relation_meta);
-    std::stringstream query;
-    query << relation.id();
-    MyHandler::add_tags(query, relation);
-    MyHandler::add_metadata_to_stringstream(query, relation);
+    // We need a stringstream because writeHEX() needs a stringstream
+    std::string query;
+    static char idbuffer[20];
+    sprintf(idbuffer, "%ld", relation.id());
+    query.append(idbuffer);
+    PostgresHandler::add_tags(query, relation);
+    PostgresHandler::add_metadata_to_stringstream(query, relation);
 
     std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
     std::vector<osmium::object_id_type> object_ids;
@@ -68,32 +71,35 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
         }
         // create GeometryCollection
         geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(geometries);
-        query << "SRID=4326;";
+        query.append("SRID=4326;");
         // convert to WKB
-        m_geos_wkb_writer.writeHEX(*geom_collection, query);
+        std::stringstream query_stream;
+        m_geos_wkb_writer.writeHEX(*geom_collection, query_stream);
+        query.append(query_stream.str());
         MyHandler::add_separator_to_stringstream(query);
-        query << "{";
+        query.push_back('{');
         for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
             if (id != object_ids.begin()) {
-                query << ", ";
+                query.append(", ");
             }
-            query << *id;
+            sprintf(idbuffer, "%ld", *id);
+            query.append(idbuffer);
         }
-        query << "}";
+        query.push_back('}');
         MyHandler::add_separator_to_stringstream(query);
-        query << "{";
+        query.push_back('{');
         for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
             if (type != object_types.begin()) {
-                query << ", ";
+                query.append(", ");
             }
             if (*type == osmium::item_type::node) {
-                query << "n";
+                query.push_back('n');
             } else if (*type == osmium::item_type::way) {
-                query << "w";
+                query.push_back('w');
             }
         }
-        query << "}\n";
-        m_database_table.send_line(query.str());
+        query.append("}\n");
+        m_database_table.send_line(query);
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
     }

@@ -9,34 +9,34 @@
 #include <string.h>
 #include <sstream>
 
-void Table::escape4hstore(const char* source, std::stringstream& destination) {
+void Table::escape4hstore(const char* source, std::string& destination) {
     /**
     * taken from osm2pgsql/table.cpp, void table_t::escape4hstore(const char *src, string& dst)
     */
-    destination.put('"');
+    destination.push_back('"');
     for (size_t i = 0; i < strlen(source); ++i) {
         switch (source[i]) {
             case '\\':
-                destination << "\\\\\\\\";
+                destination.append("\\\\\\\\");
                 break;
             case '"':
-                destination << "\\\\\"";
+                destination.append("\\\\\"");
                 break;
             case '\t':
-                destination << "\\\t";
+                destination.append("\\\t");
                 break;
             case '\r':
-                destination << "\\\r";
+                destination.append("\\\r");
                 break;
             case '\n':
-                destination << "\\\n";
+                destination.append("\\\n");
                 break;
             default:
-                destination.put(source[i]);
+                destination.push_back(source[i]);
                 break;
         }
     }
-    destination.put('"');
+    destination.push_back('"');
 }
 
 Table::Table(Columns& columns, Config& config) :
@@ -170,7 +170,7 @@ void Table::end_copy() {
     if (!m_database_connection) {
         return;
     }
-    force_copy();
+//    force_copy();
     if (PQputCopyEnd(m_database_connection, nullptr) != 1) {
         throw std::runtime_error(PQerrorMessage(m_database_connection));
     }
@@ -235,37 +235,25 @@ void Table::send_line(const std::string& line) {
         throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: You are not in COPY mode!\n") % line).str());
     }
     if (line[line.size()-1] != '\n') {
-        std::cerr << line << std::endl;
-        throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: Line does not end with \\n\n") % line).str());
+        throw std::runtime_error((boost::format("Insertion via COPY into %1% failed: Line does not end with \\n\n%2%") % m_name % line).str());
     }
     if (PQputCopyData(m_database_connection, line.c_str(), line.size()) != 1) {
         throw std::runtime_error((boost::format("Insertion via COPY \"%1%\" failed: %2%\n") % line % PQerrorMessage(m_database_connection)).str());
     }
 }
 
-void Table::push_copy() {
-    if (m_copy_buffer.str().size() > BUFFER_SEND_SIZE) {
-        force_copy();
-    }
-}
-
-void Table::push_sql() {
-    if (m_sql_buffer.str().size() > BUFFER_SEND_SIZE) {
-        force_sql();
-    }
-}
-
-void Table::force_copy() {
-    assert(m_copy_mode);
-    send_line(m_copy_buffer.str());
-    m_copy_buffer.str("");
-}
-
-void Table::force_sql() {
-    assert(!m_copy_mode);
-    send_query(m_sql_buffer.str().c_str());
-}
-
 Columns& Table::get_columns() {
     return m_columns;
+}
+
+void Table::delete_from_list(std::vector<osmium::object_id_type>& list) {
+    assert(!m_copy_mode);
+    for (osmium::object_id_type id : list) {
+        PGresult *result = PQexec(m_database_connection, (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
+        if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+            PQclear(result);
+            throw std::runtime_error((boost::format("%1% failed: %2%\n") % (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str() % PQerrorMessage(m_database_connection)).str());
+        }
+        PQclear(result);
+    }
 }

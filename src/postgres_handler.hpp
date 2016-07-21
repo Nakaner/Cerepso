@@ -22,7 +22,7 @@ public:
     /**
      * add tag hstore column and metadate to query
      */
-    static void add_tags(std::stringstream& query, const osmium::OSMObject& object);
+    static void add_tags(std::string& query, const osmium::OSMObject& object);
 
     /**
      * Add metadata (user, uid, changeset, timestamp) to the stringstream.
@@ -31,12 +31,14 @@ public:
      * @param ss stringstream
      * @param object OSM object
      */
-    static void add_metadata_to_stringstream(std::stringstream& ss, const osmium::OSMObject& object);
+    static void add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object);
 
     /**
      * helper function
      */
-    static void add_separator_to_stringstream(std::stringstream& ss);
+    static void add_separator_to_stringstream(std::string& ss);
+
+    void prepare_node_query(const osmium::Node& node, std::string& query);
 
     virtual void node(const osmium::Node& node) = 0;
 

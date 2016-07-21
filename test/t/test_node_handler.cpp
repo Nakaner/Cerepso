@@ -51,9 +51,8 @@ TEST_CASE("node handler produces good lines for COPY") {
 
     tl_builder.add_tag("amenity", "restaurant");
     tl_builder.add_tag("name", "Gasthof Hirsch");
-    std::stringstream query;
-    handler.prepare_node_query(node, query);
-    std::string query_str = query.str();
+    std::string query_str;
+    handler.prepare_node_query(node, query_str);
 
     SECTION("check number of column separators") {
         REQUIRE(count_occurence_of_substring(query_str, '\t') == node_columns.size()-1);

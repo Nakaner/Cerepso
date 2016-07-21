@@ -7,43 +7,34 @@
 
 #include "append_handler.hpp"
 
+AppendHandler::~AppendHandler() {
+    m_nodes_table.delete_from_list(m_delete_nodes);
+    m_nodes_table.start_copy();
+    m_nodes_table.send_line(m_nodes_table_copy_buffer);
+    m_nodes_table.end_copy();
+    m_untagged_nodes_table.delete_from_list(m_delete_nodes);
+    m_untagged_nodes_table.start_copy();
+    m_untagged_nodes_table.send_line(m_untagged_nodes_table_copy_buffer);
+    m_untagged_nodes_table.end_copy();
+}
+
 void AppendHandler::node(const osmium::Node& node) {
     // if node has version 1, we don't have to check if it already exists
     if (node.version() > 1) {
         // delete old node, try first untagged nodes table
-        m_untagged_nodes_table_copy_buffer << "DELETE FROM " << m_untagged_nodes_table.get_name() << " WHERE osm_id = " << node.id() << ";";
-        if (m_untagged_nodes_table_sql_buffer.str().size()  > BUFFER_SEND_SIZE) {
-            m_untagged_nodes_table.send_query(m_untagged_nodes_table_sql_buffer.str().c_str());
-            m_untagged_nodes_table_sql_buffer.str("");
-        }
-        m_nodes_table_sql_buffer << "DELETE FROM " << m_nodes_table.get_name() << " WHERE osm_id = " << node.id() << ";";
-        if (m_nodes_table_sql_buffer.str().size()  > BUFFER_SEND_SIZE) {
-            m_nodes_table.send_query(m_nodes_table_sql_buffer.str().c_str());
-            m_nodes_table_sql_buffer.str("");
-        }
+        m_delete_nodes.push_back(node.id());
     }
     if (node.deleted()) { // we are finish now
         return;
     }
+    if (!node.location().valid()) {
+        return;
+    }
     if (node.tags().size() > 0) {
-        m_nodes_table_copy_buffer << node.id();
-        if (node.tags().size() > 0) {
-            // If the node has tags, it will be written to nodes, not untagged_nodes table.
-            add_tags(m_nodes_table_copy_buffer, node);
-        }
-        add_metadata_to_stringstream(m_nodes_table_copy_buffer, node);
-        m_nodes_table_copy_buffer << "SRID=4326;" << wkb_factory.create_point(node);
-        m_nodes_table_copy_buffer << '\n';
-        if (m_nodes_table_copy_buffer.str().size() > BUFFER_SEND_SIZE) {
-            // delete buffer has to be sent and cleared beforehand
-            m_nodes_table.send_query(m_nodes_table_sql_buffer.str().c_str());
-            m_nodes_table_sql_buffer.str("");
-            m_nodes_table.start_copy();
-            m_nodes_table.send_line(m_nodes_table_copy_buffer.str());
-            m_nodes_table.end_copy();
-            // clean buffer
-            m_nodes_table_copy_buffer.str("");
-        }
+        prepare_node_query(node, m_nodes_table_copy_buffer);
+    }
+    else {
+        prepare_node_query(node, m_untagged_nodes_table_copy_buffer);
     }
 }
 
