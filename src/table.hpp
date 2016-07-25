@@ -13,6 +13,7 @@
 #include "columns.hpp"
 #include <sstream>
 #include <osmium/osm/types.hpp>
+#include <geos/geom/Point.h>
 
 /**
  * This class manages connection to a database table. We have one connection per table,
@@ -31,6 +32,11 @@ private:
     Columns& m_columns;
 
     Config& m_config;
+
+    /**
+     * ID of geometry column, for fast access only
+     */
+    int m_geom_column_id = -1;
 
     /**
      * connection to database
@@ -107,6 +113,11 @@ public:
     void delete_from_list(std::vector<osmium::object_id_type>& list);
 
     /**
+     * delete an object with given ID
+     */
+    void delete_object(const osmium::object_id_type id);
+
+    /**
      * send a line to the database (it will get it from STDIN) during copy mode
      */
     void send_line(const std::string& line);
@@ -127,9 +138,18 @@ public:
     void end_copy();
 
     /**
-     * send any SQL query
+     * Send any SQL query.
+     *
+     * This query will not return anything, i.e. it is useful for INSERT and DELETE operations.
      */
     void send_query(const char* query);
+
+    /**
+     * get the longitude and latitude of a node
+     *
+     * @param id OSM ID
+     */
+    geos::geom::Coordinate* get_point(const osmium::object_id_type id);
 
 };
 

@@ -17,13 +17,13 @@ endif()
 
 
 add_executable(test_hstore_escape t/test_hstore_escape.cpp ../src/table.cpp ../src/columns.cpp)
-target_link_libraries(test_hstore_escape testlib "-lboost_program_options -lpq")
+target_link_libraries(test_hstore_escape testlib ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${GEOS_LIBRARY})
 add_test(NAME test_hstore_escape
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND test_hstore_escape)
 
 add_executable(test_node_handler t/test_node_handler.cpp ../src/myhandler.cpp ../src/table.cpp ../src/columns.cpp ../src/postgres_handler.cpp)
-target_link_libraries(test_node_handler testlib "-lboost_program_options -lpq")
+target_link_libraries(test_node_handler testlib ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${GEOS_LIBRARY})
 add_test(NAME test_node_handler
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND test_node_handler)
