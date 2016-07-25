@@ -8,6 +8,9 @@
 #include "table.hpp"
 #include <string.h>
 #include <sstream>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <geos/io/WKBReader.h>
 
 void Table::escape4hstore(const char* source, std::string& destination) {
     /**
@@ -49,6 +52,7 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         m_copy_mode(false),
         m_columns(columns),
         m_config(config) {
+    m_geom_column_id = get_geometry_column_id();
     std::string connection_params = "dbname=";
     connection_params.append(m_config.m_database_name);
     m_database_connection = PQconnectdb(connection_params.c_str());
@@ -257,3 +261,40 @@ void Table::delete_from_list(std::vector<osmium::object_id_type>& list) {
         PQclear(result);
     }
 }
+
+void Table::delete_object(const osmium::object_id_type id) {
+    assert(!m_copy_mode);
+    PGresult *result = PQexec(m_database_connection, (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        PQclear(result);
+        throw std::runtime_error((boost::format("%1% failed: %2%\n") % (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str() % PQerrorMessage(m_database_connection)).str());
+    }
+    PQclear(result);
+}
+
+int Table::get_geometry_column_id() {
+    int i = 0;
+    for (i = 0; i != m_columns.size(); i++) {
+        if (m_columns.at(i).second.compare(0, 8, "geometry") == 0) {
+            return i;
+        }
+    }
+    throw std::runtime_error(boost::format("Table %1% does not have a geometry column!\n") %  m_name);
+}
+
+geos::geom::Coordinate Table::get_point(const osmium::object_id_type id) {
+    assert(m_database_connection);
+    assert(!m_copy_mode);
+    geos::geom::Coordinate coord;
+    PGresult *result = PQexec(m_database_connection, boost::format("SELECT geom FROM %1% WHERE osm_id = %2%" % m_name % id).str().c_str());
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        PQclear(result);
+        throw std::runtime_error((boost::format("Failed: %1%\n") % PQerrorMessage(m_database_connection)).str());
+    }
+
+    coord.x = atof(PQgetvalue(result, 0, 0));
+    coord.y = atof(PQgetvalue(result, 0, 1));
+    PQclear(result);
+    return coord;
+}
+

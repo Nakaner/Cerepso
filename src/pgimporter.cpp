@@ -10,7 +10,7 @@
 #include <osmium/handler/node_locations_for_ways.hpp>
 #include <osmium/visitor.hpp>
 #include "myhandler.hpp"
-#include "append_handler.hpp"
+#include "diff_handler1.hpp"
 #include "columns.hpp"
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
     time_t ts = time(NULL);
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        AppendHandler append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns);
+        DiffHandler1 append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns, relation_other_columns);
         while (osmium::memory::Buffer buffer = reader.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
