@@ -6,6 +6,7 @@
  */
 
 #include "diff_handler1.hpp"
+<<<<<<< HEAD
 #include <geos/geom/CoordinateArraySequenceFactory.h>
 #include <geos/geom/CoordinateArraySequence.h>
 #include <geos/geom/GeometryFactory.h>
@@ -21,6 +22,19 @@ DiffHandler1::~DiffHandler1() {
     m_ways_linear_table.send_line(m_ways_table_copy_buffer);
     m_ways_linear_table.end_copy();
 }
+=======
+
+//DiffHandler1::~DiffHandler1() {
+//    m_nodes_table.delete_from_list(m_delete_nodes);
+//    m_nodes_table.start_copy();
+//    m_nodes_table.send_line(m_nodes_table_copy_buffer);
+//    m_nodes_table.end_copy();
+//    m_untagged_nodes_table.delete_from_list(m_delete_nodes);
+//    m_untagged_nodes_table.start_copy();
+//    m_untagged_nodes_table.send_line(m_untagged_nodes_table_copy_buffer);
+//    m_untagged_nodes_table.end_copy();
+//}
+>>>>>>> 99cc6aa5448dd713aeb218008409b16818bc98ef
 
 void DiffHandler1::node(const osmium::Node& node) {
     // if node has version 1, we don't have to check if it already exists

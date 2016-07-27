@@ -11,7 +11,10 @@
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <geos/io/WKBReader.h>
+<<<<<<< HEAD
 #include <geos/geom/Coordinate.h>
+=======
+>>>>>>> 99cc6aa5448dd713aeb218008409b16818bc98ef
 
 void Table::escape4hstore(const char* source, std::string& destination) {
     /**
@@ -53,6 +56,7 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         m_copy_mode(false),
         m_columns(columns),
         m_config(config) {
+    m_geom_column_id = get_geometry_column_id();
     std::string connection_params = "dbname=";
     connection_params.append(m_config.m_database_name);
     m_database_connection = PQconnectdb(connection_params.c_str());

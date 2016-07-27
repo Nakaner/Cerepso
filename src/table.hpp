@@ -74,6 +74,11 @@ private:
 
     void send_begin();
 
+    /**
+     * get ID of geometry column, first column is 0
+     */
+    int get_geometry_column_id();
+
 public:
     Table() = delete;
 
@@ -150,7 +155,6 @@ public:
      * @param id OSM ID
      */
     geos::geom::Coordinate* get_point(const osmium::object_id_type id);
-
 };
 
 
