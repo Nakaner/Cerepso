@@ -25,18 +25,13 @@ private:
     /**
      * name of the table
      */
-    std::string m_name;
+    std::string m_name = "";
 
     bool m_copy_mode = false;
 
     Columns& m_columns;
 
     Config& m_config;
-
-    /**
-     * ID of geometry column, for fast access only
-     */
-    int m_geom_column_id = -1;
 
     /**
      * connection to database
@@ -73,6 +68,11 @@ private:
     void order_by_geohash();
 
     void send_begin();
+
+    /**
+     * get ID of geometry column, first column is 0
+     */
+    int get_geometry_column_id();
 
 public:
     Table() = delete;
@@ -148,9 +148,10 @@ public:
      * get the longitude and latitude of a node
      *
      * @param id OSM ID
+     *
+     * @returns pointer to coordinate or nullptr otherwise
      */
-    geos::geom::Coordinate* get_point(const osmium::object_id_type id);
-
+    std::unique_ptr<geos::geom::Coordinate> get_point(const osmium::object_id_type id);
 };
 
 

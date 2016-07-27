@@ -267,23 +267,24 @@ void Table::delete_object(const osmium::object_id_type id) {
     PGresult *result = PQexec(m_database_connection, (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
-        throw std::runtime_error((boost::format("%1% failed: %2%\n") % (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str() % PQerrorMessage(m_database_connection)).str());
+        throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
     }
     PQclear(result);
 }
 
-geos::geom::Coordinate* Table::get_point(const osmium::object_id_type id) {
+std::unique_ptr<geos::geom::Coordinate> Table::get_point(const osmium::object_id_type id) {
     assert(m_database_connection);
     assert(!m_copy_mode);
+    std::unique_ptr<geos::geom::Coordinate> coord;
     PGresult *result = PQexec(m_database_connection, (boost::format("SELECT geom FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
-    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
-        PQclear(result);
-        throw std::runtime_error((boost::format("Failed: %1%\n") % PQerrorMessage(m_database_connection)).str());
-    }
+//    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+//        throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+//        PQclear(result);
+//    }
     if (PQntuples(result) == 0) {
         throw std::runtime_error(((boost::format("Node %1% not found.") % id)).str());
     }
-    geos::geom::Coordinate* coord = new geos::geom::Coordinate(atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1)));
+    coord = std::unique_ptr<geos::geom::Coordinate>(new geos::geom::Coordinate(atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1))));
     PQclear(result);
     return coord;
 }

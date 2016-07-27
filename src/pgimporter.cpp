@@ -99,6 +99,9 @@ int main(int argc, char* argv[]) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
                     append_handler.node(static_cast<const osmium::Node&>(*it));
                 }
+                else if (it->type_is_in(osmium::osm_entity_bits::way)) {
+                    append_handler.way(static_cast<const osmium::Way&>(*it));
+                }
             }
         }
         reader.close();
