@@ -46,28 +46,11 @@ public:
             PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns),
             m_relations_table("relations_other", config, relation_other_columns) { }
 
-    /**
-     * constructor for testing purposes, will not establish database connections
-     */
-    DiffHandler1(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns, Columns relation_other_columns,
-                Config& config) : PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config),
-            m_relations_table(relation_other_columns, config) { }
-
     ~DiffHandler1();
 
     void node(const osmium::Node& node);
 
     void way(const osmium::Way& way);
-
-    /**
-     * add tags, metadata and geometry of a way to the copy buffer
-     *
-     * This method is public because we want to test it.
-     *
-     * @param way the way
-     * @param ways_table_copy_buffer copy buffer
-     */
-    void insert_way(const osmium::Way& way, std::string& ways_table_copy_buffer);
 
     void relation(const osmium::Relation& area);
 
