@@ -46,11 +46,22 @@ public:
             PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns),
             m_relations_table("relations_other", config, relation_other_columns) { }
 
+    /**
+     * constructor for testing purposes, will not establish database connections
+     */
+    DiffHandler1(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
+                Columns& relation_columns, Config& config) :
+        PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config),
+        m_relations_table(relation_columns, config)
+        { }
+
     ~DiffHandler1();
 
     void node(const osmium::Node& node);
 
     void way(const osmium::Way& way);
+
+    void insert_way(const osmium::Way& way, std::string& ways_table_copy_buffer);
 
     void relation(const osmium::Relation& area);
 

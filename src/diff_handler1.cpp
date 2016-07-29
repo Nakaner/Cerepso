@@ -57,10 +57,10 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
         for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
             geos::geom::GeometryFactory gf;
             try {
-                std::unique_ptr<geos::geom::Coordinate> coord = m_ways_linear_table.get_point(i->ref());
+                std::unique_ptr<const geos::geom::Coordinate> coord = m_ways_linear_table.get_point(i->ref());
                 if (coord) {
                     //TODO check memory leak?
-                    coord_sequence->add(coord.release());
+                    coord_sequence->add(*(coord.release()));
                 }
             } catch (std::runtime_error& e) {
                 std::cerr << e.what();
