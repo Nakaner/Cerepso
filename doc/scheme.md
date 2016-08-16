@@ -1,39 +1,63 @@
 Database Schema
 ===============
 
+Tables and Columns
+------------------
+
 pgimporter uses a database schema which is inspired by osm2pgsql.
 
 There are following tables:
-* osm_nodes
-* osm_ways_linear
-* osm_ways_area
-* osm_relation_multipolygon
-* osm_relation_other
+* nodes
+* untagged_nodes
+* ways
+* relations
 
 All tables have at least following columns:
 
-| name     | type     | description
-| ---------+----------+-----------
-| osm_id   | bigint   | OSM object ID
-| tags     | hstore   | tags as hstore
-| osm_user | text     | OSM username
-| osm_uid  | bigint   | OSM user ID
-| osm_version | bigint | OSM object version
-| osm_lastmodified | | last_modified timestamp
-| osm_changeset    | | OSM changeset ID
+| name             | type     | description
+| -----------------+----------+---------------------------------------------
+| osm_id           | bigint   | OSM object ID
+| tags             | hstore   | tags as hstore (execpt untagged_nodes table)
+| osm_user         | text     | OSM username
+| osm_uid          | bigint   | OSM user ID
+| osm_version      | bigint   | OSM object version
+| osm_lastmodified | char(23) | last_modified timestamp
+| osm_changeset    | bigint   | OSM changeset ID
 
 All geometry columns are called way, they have following types:
-* `osm_nodes`: Point(2)
-* `osm_ways_linear`: LineString(2)
-* `osm_ways_area`: Polygon(2)
-* `osm_relation_multipolygon`: Geometry(2)
+* `nodes`: Point(2)
+* `untagged_nodes`: Point(2)
+* `ways`: LineString(2)
 * `osm_relation_other`: GeometryCollection(2)
 
-osm_ways_* tables have additional columns about their members:
+ways table has additional columns about their members:
 * `way_nodes` bigint[]
 
-osm_relation_* tables have additional columns about their members:
-* `relation_members` COMPOSITE relmembers (`member_id bigint, `member_type` char(1))
+relations table has additional columns about their members:
+* `member_ids` bigint[] – array containing IDs of all members
+* `member_types` char[] – array containing either `n`, `w` or `r`
 
-All tables can have additional columns for tags which you want to have in a separate column instead of the hstore colum
+
+
+Indexes
+-------
+
+By default following indexes are created:
+* nodes_pkey btree (osm_id)
+* nodes_index gist (geom)
+* untagged_pkey btree (osm_id)
+* ways_pkey btree (osm_id)
+* ways_index gist (geom)
+* relations_pkey btree (osm_id)
+* relations_index gist (geom)
+
+Using `-G`, you can add a GIST index on untagged_nodes table. Only use this option if you want to do special spatial analysis or queries on untagged nodes!
+
+Using `-I` disables creation of indexes on `osm_id` columns. Use this if you do not want to update your database using diffs.
+If you later want to update but have not used `-I`, don't worry! Just create these indexes manually.
+
+
+Ordering
+--------
+By default, all tables are ordered by ST_GeoHash because most users do bbox like queries. This can be disabled by `-o`. See this [talk](https://pdf.yt/d/P0vxShtbGagwXg3Q) ([video](https://vimeo.com/115315282)) by Christian Quest and [these](https://github.com/openstreetmap/osm2pgsql/issues/208) [two](https://github.com/openstreetmap/osm2pgsql/issues/87) osm2pgsql issues for details.
 

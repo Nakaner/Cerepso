@@ -11,7 +11,7 @@
 
 RelationCollector::RelationCollector(Config& config, Columns& node_columns) :
     m_output_buffer(initial_output_buffer_size, osmium::memory::Buffer::auto_grow::yes),
-    m_database_table("relations_other", config, node_columns)
+    m_database_table("relations", config, node_columns)
     { }
 
 bool RelationCollector::keep_relation(const osmium::Relation& relation) const {

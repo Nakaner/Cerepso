@@ -75,8 +75,9 @@ int main(int argc, char* argv[]) {
     if (remaining_args != 1) {
         std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
         "  -a, --append               this is a diff import" \
-        "  -I, --no-id-index          don't create an index on osm_id columns" \
+        "  -d, --database-name        database name" \
         "  -G, --all-geom-indexes     create geometry indexes on all tables (otherwise not on untagged nodes table)" \
+        "  -I, --no-id-index          don't create an index on osm_id columns" \
         "  -o, --no-order-by-geohash  don't order tables by ST_GeoHash" << std::endl;
         exit(1);
     } else {
