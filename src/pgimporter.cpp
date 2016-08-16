@@ -74,7 +74,9 @@ int main(int argc, char* argv[]) {
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
         std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
-        "  -a, --all-geom-indexes  geometry indexes on all tables (otherwise not on untagged nodes table)" \
+        "  -a, --append               this is a diff import" \
+        "  -I, --no-id-index          don't create an index on osm_id columns" \
+        "  -G, --all-geom-indexes     create geometry indexes on all tables (otherwise not on untagged nodes table)" \
         "  -o, --no-order-by-geohash  don't order tables by ST_GeoHash" << std::endl;
         exit(1);
     } else {
