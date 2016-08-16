@@ -10,6 +10,8 @@
 //#include <sstream>
 #include "postgres_handler.hpp"
 
+enum class TypeProgress {POINT, WAY, RELATION};
+
 /**
  * Diff handler for table imported using MyHandler class.
  *
@@ -39,6 +41,18 @@ private:
      * maximum size of copy buffer
      */
     static const int BUFFER_SEND_SIZE = 10000;
+
+    /**
+     * Track progress of import.
+     *
+     * Nodes have to be imported before ways, otherwise we will not find some v1 nodes which are needed by "their" ways.
+     */
+    TypeProgress m_progress = TypeProgress::POINT;
+
+    /**
+     * write all nodes which have to be written to the database
+     */
+    void write_new_nodes();
 
 public:
     DiffHandler1(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,

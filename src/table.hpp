@@ -27,7 +27,15 @@ private:
      */
     std::string m_name = "";
 
+    /**
+     * track if COPY mode has been entered
+     */
     bool m_copy_mode = false;
+
+    /**
+     * track if a BEGIN COMMIT block has been opened
+     */
+    bool m_begin = false;
 
     Columns& m_columns;
 
@@ -47,6 +55,8 @@ private:
 
     /*
      * send COMMIT to table
+     *
+     * This method is intended to be called from the destructor of this class.
      */
     void commit();
 
@@ -143,6 +153,14 @@ public:
      * This query will not return anything, i.e. it is useful for INSERT and DELETE operations.
      */
     void send_query(const char* query);
+
+    /*
+     * send COMMIT to table and checks if this is currently allowed (i.e. currently not in COPY mode)
+     *
+     * This method is intended to be called from outside of this class and therefore contains some additional checks.
+     * It will send an additional BEGIN after sending COMMIT.
+     */
+    void intermediate_commit();
 
     /**
      * get the longitude and latitude of a node
