@@ -184,6 +184,7 @@ void Table::end_copy() {
         throw std::runtime_error((boost::format("COPY END command failed: %1%\n") %  PQerrorMessage(m_database_connection)).str());
     }
     m_copy_mode = false;
+    PQclear(result);
 }
 
 void Table::send_begin() {
