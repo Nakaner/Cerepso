@@ -14,9 +14,9 @@
 #include <osmium/osm/relation.hpp>
 
 DiffHandler1::~DiffHandler1() {
-    m_ways_linear_table.start_copy();
-    m_ways_linear_table.send_line(m_ways_table_copy_buffer);
-    m_ways_linear_table.end_copy();
+    m_relations_table.start_copy();
+    m_relations_table.send_line(m_relations_table_copy_buffer);
+    m_relations_table.end_copy();
 }
 
 void DiffHandler1::node(const osmium::Node& node) {
@@ -71,7 +71,6 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
         std::unique_ptr<geos::geom::Geometry> linestring (gf.createLineString(coord_sequence));
         geos::io::WKBWriter wkb_writer;
         std::stringstream stream(std::ios_base::out);
-        //TODO check if memory leak
         wkb_writer.writeHEX(*(linestring.get()), stream);
         ways_table_copy_buffer.append("SRID=4326;");
         ways_table_copy_buffer.append(stream.str());
@@ -91,6 +90,82 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
     }
 }
 
+void DiffHandler1::insert_relation(const osmium::Relation& relation) {
+    try {
+        char idbuffer[20];
+        sprintf(idbuffer, "%ld", relation.id());
+        m_relations_table_copy_buffer.append(idbuffer, strlen(idbuffer));
+        add_tags(m_relations_table_copy_buffer, relation);
+        add_metadata_to_stringstream(m_relations_table_copy_buffer, relation);
+        geos::geom::GeometryFactory gf;
+        std::vector<geos::geom::Geometry*> geometries;// = new std::vector<geos::geom::Geometry*>();
+        std::vector<osmium::object_id_type> object_ids;
+        std::vector<osmium::item_type> object_types;
+        for (const auto& member : relation.members()) {
+            object_ids.push_back(member.ref());
+            if ((member.type() == osmium::item_type::node)) {
+                std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(member.ref());
+                if (!coord) {
+                    coord = m_nodes_table.get_point(member.ref());
+                }
+                if (coord) {
+                    std::unique_ptr<geos::geom::Point> point (gf.createPoint(*(coord.get())));
+                    geometries.push_back(point.get());
+                }
+                object_types.push_back(osmium::item_type::node);
+            }
+            else if ((member.type() == osmium::item_type::way)) {
+                std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), gf);
+                if (linestring) {
+                    geometries.push_back(linestring.get());
+                }
+                object_types.push_back(osmium::item_type::way);
+            }
+            else if ((member.type() == osmium::item_type::relation)) {
+                // We do not add the geometry of this relation to the GeometryCollection.
+                // TODO support one level of nested relations
+                object_types.push_back(osmium::item_type::relation);
+            }
+        }
+        // create GeometryCollection
+        geos::geom::GeometryCollection* geom_collection = gf.createGeometryCollection(&geometries);
+        m_relations_table_copy_buffer.append("SRID=4326;");
+        // convert to WKB
+        std::stringstream query_stream;
+        geos::io::WKBWriter wkb_writer;
+        wkb_writer.writeHEX(*geom_collection, query_stream);
+        m_relations_table_copy_buffer.append(query_stream.str());
+        add_separator_to_stringstream(m_relations_table_copy_buffer);
+        m_relations_table_copy_buffer.push_back('{');
+        for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
+            if (id != object_ids.begin()) {
+                m_relations_table_copy_buffer.append(", ");
+            }
+            sprintf(idbuffer, "%ld", *id);
+            m_relations_table_copy_buffer.append(idbuffer);
+        }
+        m_relations_table_copy_buffer.push_back('}');
+        add_separator_to_stringstream(m_relations_table_copy_buffer);
+        m_relations_table_copy_buffer.push_back('{');
+        for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
+            if (type != object_types.begin()) {
+                m_relations_table_copy_buffer.append(", ");
+            }
+            if (*type == osmium::item_type::node) {
+                m_relations_table_copy_buffer.push_back('n');
+            } else if (*type == osmium::item_type::way) {
+                m_relations_table_copy_buffer.push_back('w');
+            } else if (*type == osmium::item_type::relation) {
+                m_relations_table_copy_buffer.push_back('r');
+            }
+        }
+        m_relations_table_copy_buffer.append("}\n");
+    }
+    catch (osmium::geometry_error& e) {
+
+    }
+}
+
 void DiffHandler1::write_new_nodes() {
     m_nodes_table.start_copy();
     m_nodes_table.send_line(m_nodes_table_copy_buffer);
@@ -103,12 +178,17 @@ void DiffHandler1::write_new_nodes() {
     m_progress = TypeProgress::WAY;
 }
 
+void DiffHandler1::write_new_ways() {
+    m_ways_linear_table.start_copy();
+    m_ways_linear_table.send_line(m_ways_table_copy_buffer);
+    m_ways_linear_table.end_copy();
+    m_ways_linear_table.intermediate_commit();
+    m_progress = TypeProgress::RELATION;
+}
+
 void DiffHandler1::way(const osmium::Way& way) {
     if (m_progress == TypeProgress::POINT) {
         write_new_nodes();
-    }
-    if (m_progress == TypeProgress::POINT) {
-        std::runtime_error("We are still in POINT mode.");
     }
     if (way.version() > 1) {
         m_ways_linear_table.delete_object(way.id());
@@ -121,8 +201,15 @@ void DiffHandler1::way(const osmium::Way& way) {
 
 
 void DiffHandler1::relation(const osmium::Relation& relation) {
+    if (m_progress == TypeProgress::WAY) {
+        write_new_ways();
+    }
     if (relation.version() > 1) {
         m_relations_table.delete_object(relation.id());
     }
+    if (relation.deleted()) {
+        return;
+    }
+    insert_relation(relation);
 }
 

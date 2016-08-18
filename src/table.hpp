@@ -167,9 +167,18 @@ public:
      *
      * @param id OSM ID
      *
-     * @returns pointer to coordinate or nullptr otherwise
+     * @returns unique_ptr to coordinate or empty unique_ptr (equivalent to nullptr if it were a raw pointer) otherwise
      */
     std::unique_ptr<geos::geom::Coordinate> get_point(const osmium::object_id_type id);
+
+    /**
+     * get a way as GEOS LineString
+     *
+     * @param id OSM ID
+     *
+     * @returns unique_ptr to Geometry or empty unique_ptr otherwise
+     */
+    std::unique_ptr<geos::geom::Geometry> get_linestring(const osmium::object_id_type id, geos::geom::GeometryFactory& geometry_factory);
 };
 
 

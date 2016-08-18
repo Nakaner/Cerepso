@@ -89,6 +89,7 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
 }
 
 Table::~Table() {
+    std::cerr << "destroying table" << std::endl;
     if (m_name != "") {
         if (!m_config.m_append) {
             end_copy();
@@ -193,17 +194,16 @@ void Table::send_begin() {
 }
 
 void Table::commit() {
-    if (m_begin) {
-        send_query("COMMIT");
-    }
-    m_begin = false;
+    send_query("COMMIT");
 }
 
 void Table::intermediate_commit() {
     if (m_copy_mode) {
         throw std::runtime_error((boost::format("secure COMMIT failed: You are in COPY mode.\n")).str());
     }
+    assert(m_begin);
     commit();
+    m_begin = false;
 }
 
 void Table::send_query(const char* query) {
@@ -303,5 +303,29 @@ std::unique_ptr<geos::geom::Coordinate> Table::get_point(const osmium::object_id
     coord = std::unique_ptr<geos::geom::Coordinate>(new geos::geom::Coordinate(atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1))));
     PQclear(result);
     return coord;
+}
+
+std::unique_ptr<geos::geom::Geometry> Table::get_linestring(const osmium::object_id_type id, geos::geom::GeometryFactory& geometry_factory) {
+    assert(m_database_connection);
+    assert(!m_copy_mode);
+    assert(!m_begin);
+    std::unique_ptr<geos::geom::Geometry> linestring;
+    PGresult *result = PQexec(m_database_connection, (boost::format("SELECT geom FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
+    if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
+        throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+        PQclear(result);
+        return linestring;
+    }
+    if (PQntuples(result) == 0) {
+//        throw std::runtime_error(((boost::format("Node %1% not found. ") % id)).str());
+        PQclear(result);
+        return linestring;
+    }
+    std::stringstream geom_stream;
+    geos::io::WKBReader wkb_reader (geometry_factory);
+    geom_stream.str(PQgetvalue(result, 0, 0));
+    linestring = std::unique_ptr<geos::geom::Geometry>(wkb_reader.read(geom_stream));
+    PQclear(result);
+    return linestring;
 }
 

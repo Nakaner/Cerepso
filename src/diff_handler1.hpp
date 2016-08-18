@@ -31,6 +31,7 @@ private:
     std::string m_nodes_table_copy_buffer;
     std::string m_untagged_nodes_table_copy_buffer;
     std::string m_ways_table_copy_buffer;
+    std::string m_relations_table_copy_buffer;
 
 //    /**
 //     * list of objects which should be deleted
@@ -54,6 +55,11 @@ private:
      */
     void write_new_nodes();
 
+    /**
+     * write all ways which have to be written to the database
+     */
+    void write_new_ways();
+
 public:
     DiffHandler1(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
             Columns relation_other_columns) :
@@ -76,6 +82,8 @@ public:
     void way(const osmium::Way& way);
 
     void insert_way(const osmium::Way& way, std::string& ways_table_copy_buffer);
+
+    void insert_relation(const osmium::Relation& relation);
 
     void relation(const osmium::Relation& area);
 
