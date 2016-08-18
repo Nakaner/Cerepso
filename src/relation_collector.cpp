@@ -109,8 +109,8 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
         }
         query.append("}\n");
         m_database_table.send_line(query);
+        delete geom_collection;
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
     }
-//    delete geometries;
 }
