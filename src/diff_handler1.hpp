@@ -31,7 +31,6 @@ private:
     std::string m_nodes_table_copy_buffer;
     std::string m_untagged_nodes_table_copy_buffer;
     std::string m_ways_table_copy_buffer;
-    std::string m_relations_table_copy_buffer;
 
 //    /**
 //     * list of objects which should be deleted
@@ -62,9 +61,11 @@ private:
 
 public:
     DiffHandler1(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-            Columns relation_other_columns) :
+            Columns& relation_other_columns) :
             PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns),
-            m_relations_table("relations_other", config, relation_other_columns) { }
+            m_relations_table("relations", config, relation_other_columns) {
+        m_relations_table.start_copy();
+    }
 
     /**
      * constructor for testing purposes, will not establish database connections

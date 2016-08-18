@@ -47,7 +47,7 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     PostgresHandler::add_tags(query, relation);
     PostgresHandler::add_metadata_to_stringstream(query, relation);
 
-    std::vector<geos::geom::Geometry*> geometries;// = new std::vector<geos::geom::Geometry*>();
+    std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
     std::vector<osmium::object_id_type> object_ids;
     std::vector<osmium::item_type> object_types;
     try {
@@ -56,14 +56,14 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
                 if ((member.type() == osmium::item_type::way)) {
                     osmium::Way& way = this->get_member_way(this->get_offset(member.type(), member.ref()));
                     std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
-                    geometries.push_back(linestring.get());
+                    geometries->push_back(linestring.release());
                     object_ids.push_back(member.ref());
                     object_types.push_back(osmium::item_type::way);
                 }
                 else if ((member.type() == osmium::item_type::node)) {
                     osmium::Node& node =this->get_member_node(this->get_offset(member.type(), member.ref()));
                     std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
-                    geometries.push_back(point.get());
+                    geometries->push_back(point.release());
                     object_ids.push_back(member.ref());
                     object_types.push_back(osmium::item_type::node);
                 }
@@ -77,7 +77,7 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
             //}
         }
         // create GeometryCollection
-        geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(&geometries);
+        geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(geometries);
         query.append("SRID=4326;");
         // convert to WKB
         std::stringstream query_stream;

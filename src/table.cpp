@@ -89,7 +89,6 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
 }
 
 Table::~Table() {
-    std::cerr << "destroying table" << std::endl;
     if (m_name != "") {
         if (!m_config.m_append) {
             end_copy();
@@ -223,7 +222,7 @@ void Table::send_query(const char* query) {
 
 void Table::start_copy() {
     if (!m_database_connection) {
-        return;
+        std::runtime_error("No database connection.");
     }
     std::string copy_command = "COPY ";
     copy_command.append(m_name);

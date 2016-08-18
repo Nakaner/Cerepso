@@ -14,8 +14,6 @@
 #include <osmium/osm/relation.hpp>
 
 DiffHandler1::~DiffHandler1() {
-    m_relations_table.start_copy();
-    m_relations_table.send_line(m_relations_table_copy_buffer);
     m_relations_table.end_copy();
 }
 
@@ -94,9 +92,10 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
     try {
         char idbuffer[20];
         sprintf(idbuffer, "%ld", relation.id());
-        m_relations_table_copy_buffer.append(idbuffer, strlen(idbuffer));
-        add_tags(m_relations_table_copy_buffer, relation);
-        add_metadata_to_stringstream(m_relations_table_copy_buffer, relation);
+        std::string relations_table_copy_buffer;
+        relations_table_copy_buffer.append(idbuffer, strlen(idbuffer));
+        add_tags(relations_table_copy_buffer, relation);
+        add_metadata_to_stringstream(relations_table_copy_buffer, relation);
         geos::geom::GeometryFactory gf;
         std::vector<geos::geom::Geometry*> geometries;// = new std::vector<geos::geom::Geometry*>();
         std::vector<osmium::object_id_type> object_ids;
@@ -129,37 +128,38 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
         }
         // create GeometryCollection
         geos::geom::GeometryCollection* geom_collection = gf.createGeometryCollection(&geometries);
-        m_relations_table_copy_buffer.append("SRID=4326;");
+        relations_table_copy_buffer.append("SRID=4326;");
         // convert to WKB
         std::stringstream query_stream;
         geos::io::WKBWriter wkb_writer;
         wkb_writer.writeHEX(*geom_collection, query_stream);
-        m_relations_table_copy_buffer.append(query_stream.str());
-        add_separator_to_stringstream(m_relations_table_copy_buffer);
-        m_relations_table_copy_buffer.push_back('{');
+        relations_table_copy_buffer.append(query_stream.str());
+        add_separator_to_stringstream(relations_table_copy_buffer);
+        relations_table_copy_buffer.push_back('{');
         for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
             if (id != object_ids.begin()) {
-                m_relations_table_copy_buffer.append(", ");
+                relations_table_copy_buffer.append(", ");
             }
             sprintf(idbuffer, "%ld", *id);
-            m_relations_table_copy_buffer.append(idbuffer);
+            relations_table_copy_buffer.append(idbuffer);
         }
-        m_relations_table_copy_buffer.push_back('}');
-        add_separator_to_stringstream(m_relations_table_copy_buffer);
-        m_relations_table_copy_buffer.push_back('{');
+        relations_table_copy_buffer.push_back('}');
+        add_separator_to_stringstream(relations_table_copy_buffer);
+        relations_table_copy_buffer.push_back('{');
         for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
             if (type != object_types.begin()) {
-                m_relations_table_copy_buffer.append(", ");
+                relations_table_copy_buffer.append(", ");
             }
             if (*type == osmium::item_type::node) {
-                m_relations_table_copy_buffer.push_back('n');
+                relations_table_copy_buffer.push_back('n');
             } else if (*type == osmium::item_type::way) {
-                m_relations_table_copy_buffer.push_back('w');
+                relations_table_copy_buffer.push_back('w');
             } else if (*type == osmium::item_type::relation) {
-                m_relations_table_copy_buffer.push_back('r');
+                relations_table_copy_buffer.push_back('r');
             }
         }
-        m_relations_table_copy_buffer.append("}\n");
+        relations_table_copy_buffer.append("}\n");
+        m_relations_table.send_line(relations_table_copy_buffer);
     }
     catch (osmium::geometry_error& e) {
 
