@@ -47,7 +47,7 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     PostgresHandler::add_tags(query, relation);
     PostgresHandler::add_metadata_to_stringstream(query, relation);
 
-    std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
+    std::vector<geos::geom::Geometry*>* geometries= new std::vector<geos::geom::Geometry*>();
     std::vector<osmium::object_id_type> object_ids;
     std::vector<osmium::item_type> object_types;
     try {
