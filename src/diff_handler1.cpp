@@ -59,8 +59,7 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
                     coord = m_nodes_table.get_point(i->ref());
                 }
                 if (coord) {
-                    //TODO check memory leak?
-                    coord_sequence->add(*(coord.release()));
+                    coord_sequence->add(*(coord.get()));
                 }
                 else {
                     throw std::runtime_error((boost::format("Node %1% not found. \n") % i->ref()).str());
