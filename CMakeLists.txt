@@ -36,7 +36,7 @@ set(AUTHOR "Michael Reichert <nakaner@gmx.net>")
 #
 #-----------------------------------------------------------------------------
 
-find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Boost)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 find_package(Osmium COMPONENTS io geos proj)
