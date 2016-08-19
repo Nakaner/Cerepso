@@ -323,7 +323,7 @@ std::unique_ptr<geos::geom::Geometry> Table::get_linestring(const osmium::object
     std::stringstream geom_stream;
     geos::io::WKBReader wkb_reader (geometry_factory);
     geom_stream.str(PQgetvalue(result, 0, 0));
-    linestring = std::unique_ptr<geos::geom::Geometry>(wkb_reader.read(geom_stream));
+    linestring = std::unique_ptr<geos::geom::Geometry>(wkb_reader.readHEX(geom_stream));
     PQclear(result);
     return linestring;
 }
