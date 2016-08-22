@@ -15,8 +15,7 @@
 
 DiffHandler1::~DiffHandler1() {
     m_relations_table.start_copy();
-    m_relations_table.send_line(m_ways_table_copy_buffer);
-//    m_ways_linear_table.end_copy();
+    m_relations_table.send_line(m_relations_table_copy_buffer);
     m_relations_table.end_copy();
 }
 
@@ -117,14 +116,14 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
                 }
                 if (coord) {
                     std::unique_ptr<geos::geom::Point> point (gf.createPoint(*(coord.get())));
-                    geometries->push_back(point.get());
+                    geometries->push_back(point.release());
                 }
                 object_types.push_back(osmium::item_type::node);
             }
             else if ((member.type() == osmium::item_type::way)) {
                 std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), gf);
                 if (linestring) {
-                    geometries->push_back(linestring.get());
+                    geometries->push_back(linestring.release());
                 }
                 object_types.push_back(osmium::item_type::way);
             }
@@ -134,10 +133,6 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
                 object_types.push_back(osmium::item_type::relation);
             }
         }
-        if (geometries->size() < 1) {
-            //TODO clean up memory
-            throw osmium::geometry_error("Could not find any member of relation " +  relation.id());
-        }
         // create GeometryCollection
         geos::geom::GeometryCollection* geom_collection = gf.createGeometryCollection(geometries);
         m_relations_table_copy_buffer.append("SRID=4326;");
@@ -146,6 +141,7 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
         geos::io::WKBWriter wkb_writer;
         wkb_writer.writeHEX(*geom_collection, query_stream);
         m_relations_table_copy_buffer.append(query_stream.str());
+        delete geom_collection;
         add_separator_to_stringstream(m_relations_table_copy_buffer);
         m_relations_table_copy_buffer.push_back('{');
         for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
@@ -172,7 +168,6 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
         }
         m_relations_table_copy_buffer.append("}\n");
 //        m_relations_table.send_line(relations_table_copy_buffer);
-        delete geom_collection;
     }
     catch (osmium::geometry_error& e) {
 

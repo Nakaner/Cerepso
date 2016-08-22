@@ -174,14 +174,13 @@ void Table::end_copy() {
     if (!m_database_connection) {
         return;
     }
-//    force_copy();
     if (PQputCopyEnd(m_database_connection, nullptr) != 1) {
         throw std::runtime_error(PQerrorMessage(m_database_connection));
     }
     PGresult *result = PQgetResult(m_database_connection);
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
-        PQclear(result);
         throw std::runtime_error((boost::format("COPY END command failed: %1%\n") %  PQerrorMessage(m_database_connection)).str());
+        PQclear(result);
     }
     m_copy_mode = false;
     PQclear(result);
