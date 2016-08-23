@@ -51,26 +51,28 @@ public:
 protected:
     osmium::geom::WKBFactory<> wkb_factory;
     Config& m_config;
-    Table m_nodes_table;
-    Table m_untagged_nodes_table;
-    Table m_ways_linear_table;
-    PostgresHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns) :
+    Table& m_nodes_table;
+    Table& m_untagged_nodes_table;
+    Table& m_ways_linear_table;
+    PostgresHandler(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
             m_config(config),
-            m_nodes_table("nodes", config, node_columns),
-            m_untagged_nodes_table("untagged_nodes", config, untagged_nodes_columns),
-            m_ways_linear_table("ways", config, way_linear_columns) {}
+            m_nodes_table(nodes_table),
+            m_untagged_nodes_table(untagged_nodes_table),
+            m_ways_linear_table(ways_table) {}
 
 
     /**
      * constructor for testing purposes, will not establish database connections
      */
-    PostgresHandler(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns, Config& config)  :
+
+    PostgresHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config)  :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
             m_config(config),
-            m_nodes_table(node_columns, config),
-            m_untagged_nodes_table(untagged_nodes_columns, config),
-            m_ways_linear_table(way_linear_columns, config) {}
+            m_nodes_table(nodes_table),
+            m_untagged_nodes_table(untagged_nodes_table),
+            m_ways_linear_table(ways_table) {}
+
 
     virtual ~PostgresHandler()  {}
 };

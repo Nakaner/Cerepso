@@ -20,17 +20,19 @@ private:
 public:
     MyHandler() = delete;
 
-    /**
-     * constructor for normal usage
-     */
-    MyHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns)
-        : PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns) { }
+//    /**
+//     * constructor for normal usage
+//     */
+//    MyHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns)
+//        : PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns) { }
+    MyHandler(Config& config,  Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
+        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table) {}
 
-    /**
-     * constructor for testing purposes, will not establish database connections
-     */
-    MyHandler(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-                Config& config) : PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config) { }
+//    /**
+//     * constructor for testing purposes, will not establish database connections
+//     */
+//    MyHandler(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
+//                Config& config) : PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config) { }
 
     ~MyHandler() {
     }

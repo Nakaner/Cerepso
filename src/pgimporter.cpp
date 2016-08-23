@@ -101,18 +101,19 @@ int main(int argc, char* argv[]) {
     }
 
 
-    const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
-    auto location_index = map_factory.create_map(config.m_location_handler);
-    location_handler_type location_handler(*location_index);
     Columns node_columns(config, TableType::POINT);
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
     Columns way_linear_columns(config, TableType::WAYS_LINEAR);
     Columns relation_other_columns(config, TableType::RELATION_OTHER);
 
     time_t ts = time(NULL);
+    Table nodes_table ("nodes", config, node_columns);
+    Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    Table ways_linear_table ("ways", config, way_linear_columns);
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        DiffHandler1 append_handler(config, node_columns, untagged_nodes_columns, way_linear_columns, relation_other_columns);
+        Table relations_table("relations", config, relation_other_columns);
+        DiffHandler1 append_handler(config, nodes_table, untagged_nodes_table, ways_linear_table, relations_table);
         while (osmium::memory::Buffer buffer = reader.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
@@ -128,6 +129,9 @@ int main(int argc, char* argv[]) {
         }
         reader.close();
     } else {
+        const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
+        auto location_index = map_factory.create_map(config.m_location_handler);
+        location_handler_type location_handler(*location_index);
         ts = time(NULL);
         std::cerr << "Pass 1 (relations)";
         osmium::io::Reader reader_rel(config.m_osm_file);
@@ -139,7 +143,7 @@ int main(int argc, char* argv[]) {
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        MyHandler handler(config, node_columns, untagged_nodes_columns, way_linear_columns);
+        MyHandler handler(config, nodes_table, untagged_nodes_table, ways_linear_table);
         osmium::apply(reader2, location_handler, handler, rel_collector.handler());
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;

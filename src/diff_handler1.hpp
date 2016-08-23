@@ -23,7 +23,7 @@ private:
     /**
      * additional table for relations which is not inherited from PostgresHandler
      */
-    Table m_relations_table;
+    Table& m_relations_table;
 
     /**
      * buffers for insert via COPY
@@ -62,19 +62,18 @@ private:
     void write_new_ways();
 
 public:
-    DiffHandler1(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-            Columns& relation_other_columns) :
-            PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns),
-            m_relations_table("relations", config, relation_other_columns) { }
+    DiffHandler1(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table) :
+            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
+            m_relations_table(relations_table) { }
 
-    /**
-     * constructor for testing purposes, will not establish database connections
-     */
-    DiffHandler1(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-                Columns& relation_columns, Config& config) :
-        PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config),
-        m_relations_table(relation_columns, config)
-        { }
+//    /**
+//     * constructor for testing purposes, will not establish database connections
+//     */
+//    DiffHandler1(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
+//                Columns& relation_columns, Config& config) :
+//        PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config),
+//        m_relations_table(relation_columns, config)
+//        { }
 
     ~DiffHandler1();
 
