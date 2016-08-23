@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
         };
     Config config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDdIoaG", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:IoaG", long_options, 0);
         if (c == -1) {
             break;
         }
