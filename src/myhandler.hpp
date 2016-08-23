@@ -12,6 +12,11 @@
 
 
 class MyHandler : public PostgresHandler {
+private:
+    std::string untagged_nodes_copy_buffer = "";
+    std::string nodes_copy_buffer = "";
+    std::string ways_copy_buffer = "";
+
 public:
     MyHandler() = delete;
 

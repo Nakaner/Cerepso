@@ -13,17 +13,27 @@ void MyHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
-    std::string query;
-    prepare_node_query(node, query);
     if (node.tags().size() == 0) { //no tags, usually a node of way
-        m_untagged_nodes_table.send_line(query);
+        prepare_node_query(node, untagged_nodes_copy_buffer);
+        if (untagged_nodes_copy_buffer.size() > 1024) {
+            m_untagged_nodes_table.send_line(untagged_nodes_copy_buffer);
+            untagged_nodes_copy_buffer.clear();
+        }
     } else {
-        m_nodes_table.send_line(query);
+        prepare_node_query(node, nodes_copy_buffer);
+        if (nodes_copy_buffer.size() > 1024) {
+            m_nodes_table.send_line(nodes_copy_buffer);
+            nodes_copy_buffer.clear();
+        }
     }
 }
 
 void MyHandler::way(const osmium::Way& way) {
-    if (way.nodes().size() < 2) {
+    if (way.id() == 106273106) {
+        std::cout << "test" << std::endl;
+        std::cout << ways_copy_buffer << std::endl;
+    }
+    if (way.nodes().size() < 3) {
         // degenerated way (none or only one node)
         //TODO add logging
         return;
