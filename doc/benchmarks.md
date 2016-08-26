@@ -36,4 +36,8 @@ hatano, Thüringen 86 MB PBF, 353472 kB RAM, 1:33
 Table objects were created before Handler was intialized:
 globe, Bayern 507 MB PBF, 1400304 kB RAM, 7:18
 globe, Germany 2850 MB PBF , 6040100 kB RAM, 39:24
+globe, Germany 2850 MB PBF, 6035596 kB RAM, 39:34
+
+Table objects were created by the Handler (1cd289f0dc2ed440799d072b2d73fa2289730733):
+globe, Germany 2850 MB PBF, kB RAM, 42:09
 
