@@ -35,11 +35,12 @@ int main(int argc, char* argv[]) {
             {"no-order-by-geohash", no_argument, 0, 'o'},
             {"append", no_argument, 0, 'a'},
             {"no-id-index", no_argument, 0, 'I'},
+            {"location-handler", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
     Config config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:IoaG", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:IoaGl:", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -66,6 +67,9 @@ int main(int argc, char* argv[]) {
             case 'I':
                 config.m_id_index = false;
                 break;
+            case 'l':
+                config.m_location_handler = optarg;
+                break;
             default:
                 exit(1);
         }
@@ -74,11 +78,12 @@ int main(int argc, char* argv[]) {
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
         std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
-        "  -a, --append               this is a diff import" \
-        "  -d, --database-name        database name" \
-        "  -G, --all-geom-indexes     create geometry indexes on all tables (otherwise not on untagged nodes table)" \
-        "  -I, --no-id-index          don't create an index on osm_id columns" \
-        "  -o, --no-order-by-geohash  don't order tables by ST_GeoHash" << std::endl;
+        "  -a, --append                   this is a diff import\n" \
+        "  -d, --database-name            database name\n" \
+        "  -G, --all-geom-indexes         create geometry indexes on all tables (otherwise not on untagged nodes table)\n" \
+        "  -I, --no-id-index              don't create an index on osm_id columns\n" \
+        "  -l, --location-handler HANDLER use HANDLER as location handler\n" \
+        "  -o, --no-order-by-geohash      don't order tables by ST_GeoHash\n" << std::endl;
         exit(1);
     } else {
         config.m_osm_file =  argv[optind];
@@ -86,7 +91,7 @@ int main(int argc, char* argv[]) {
 
 
     const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
-    auto location_index = map_factory.create_map("sparse_mmap_array");
+    auto location_index = map_factory.create_map(config.m_location_handler);
     location_handler_type location_handler(*location_index);
     Columns node_columns(config, TableType::POINT);
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
