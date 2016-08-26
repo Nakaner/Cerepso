@@ -1,0 +1,2 @@
+while true; do echo "==============" >> memory-usage.log; for i in `pgrep postgres`; do echo -n "$i "; grep VmRSS /proc/$i/status | egrep -o "[0-9]*"; done >> memory-usage.log; grep VmRss /proc/$(pgrep pgimporter)/status | egrep -o "[0-9]*" >> memory-usage.log; sleep 1; done
+

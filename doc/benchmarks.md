@@ -41,3 +41,9 @@ globe, Germany 2850 MB PBF, 6035596 kB RAM, 39:34
 Table objects were created by the Handler (1cd289f0dc2ed440799d072b2d73fa2289730733):
 globe, Germany 2850 MB PBF, kB RAM, 42:09
 
+
+Unbuffered
+----------
+globe, Europe, 41640924 kB RAM (pgimporter)+, 1:29:08,
+  details europe-4455683967af64ab9aacf39cafbb77acbd046fdd.log
+
