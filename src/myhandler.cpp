@@ -34,28 +34,31 @@ void MyHandler::way(const osmium::Way& way) {
             //TODO support partial ways
         }
     }
+    std::string query;
+    static char idbuffer[20];
+    sprintf(idbuffer, "%ld", way.id());
+    query.append(idbuffer, strlen(idbuffer));
+    add_tags(query, way);
+    add_metadata_to_stringstream(query, way);
+    std::string wkb = "010200000000000000"; // initalize with LINESTRING EMPTY
+    // If creating a linestring fails (e.g. way with four nodes at the same location), we have to use an empty linestring.
     try {
-        std::string query;
-        static char idbuffer[20];
-        sprintf(idbuffer, "%ld", way.id());
-        query.append(idbuffer, strlen(idbuffer));
-        add_tags(query, way);
-        add_metadata_to_stringstream(query, way);
-        query.append("SRID=4326;");
-        query.append(wkb_factory.create_linestring(way));
-        add_separator_to_stringstream(query);
-        query.append("{");
-        for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
-            if (i != way.nodes().begin()) {
-                query.append(", ");
-            }
-            sprintf(idbuffer, "%ld", i->ref());
-            query.append(idbuffer);
-        }
-        query.push_back('}');
-        query.push_back('\n');
-        m_ways_linear_table.send_line(query);
+        wkb = wkb_factory.create_linestring(way);
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
     }
+    query.append("SRID=4326;");
+    query.append(wkb);
+    add_separator_to_stringstream(query);
+    query.append("{");
+    for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
+        if (i != way.nodes().begin()) {
+            query.append(", ");
+        }
+        sprintf(idbuffer, "%ld", i->ref());
+        query.append(idbuffer);
+    }
+    query.push_back('}');
+    query.push_back('\n');
+    m_ways_linear_table.send_line(query);
 }
