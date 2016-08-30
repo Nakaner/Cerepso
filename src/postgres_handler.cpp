@@ -16,7 +16,7 @@ void PostgresHandler::add_separator_to_stringstream(std::string& ss) {
 
 void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object) {
     add_separator_to_stringstream(ss);
-    ss.append(object.user());
+    Table::escape(object.user(), ss);
     add_separator_to_stringstream(ss);
     static char idbuffer[20];
     sprintf(idbuffer, "%u", object.uid());

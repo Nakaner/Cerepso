@@ -111,6 +111,14 @@ public:
     static void escape4hstore(const char* source, std::string& destination);
 
     /**
+     * escape a string which should be inserted into a non-hstore column which is inserted into the database using SQL COPY
+     *
+     * @param source string which should be escaped
+     * @param destination string where the escaped string has to be appended (later usually used for INSERT query)
+     */
+    static void escape(const char* source, std::string& destination);
+
+    /**
      * check if the object mentioned by this query exists and, if yes, delete it.
      *
      * @param query SQL query

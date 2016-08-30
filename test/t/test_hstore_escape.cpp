@@ -9,27 +9,37 @@
 #include <table.hpp>
 
 
-TEST_CASE( "escape4hstore()") {
+TEST_CASE( "escape4hstore(), escape()") {
 
     std::string destination_str;
 
-    SECTION("convert normal string") {
+    SECTION("escaping normal string for hstore columns") {
         Table::escape4hstore("highway", destination_str);
         REQUIRE(destination_str.compare("\"highway\"") == 0);
     }
 
-    SECTION("convert quotation mark") {
+    SECTION("escaping quotation mark for hstore columns") {
         Table::escape4hstore("disused:rai\"lway", destination_str);
         REQUIRE(destination_str.compare("\"disused:rai\\\\\"lway\"") == 0);
     }
 
-    SECTION("convert colon and tab") {
+    SECTION("escaping colon and tab for hstore columns") {
         Table::escape4hstore("disused:rail\tway", destination_str);
         REQUIRE(destination_str.compare("\"disused:rail\\\tway\"") == 0);
     }
 
-    SECTION("convert backslash") {
+    SECTION("escaping colon and tab for non-hstore columns") {
+        Table::escape("disused:rail\tway", destination_str);
+        REQUIRE(destination_str.compare("disused:rail\\\tway") == 0);
+    }
+
+    SECTION("escaping backslash for hstore columns") {
         Table::escape4hstore("this_\\begin", destination_str);
         REQUIRE(destination_str.compare("\"this_\\\\\\\\begin\"") == 0);
+    }
+
+    SECTION("escaping backslash for non-hstore columns") {
+        Table::escape("this_\\begin\\", destination_str);
+        REQUIRE(destination_str.compare("this_\\\\begin\\\\") == 0);
     }
 }
