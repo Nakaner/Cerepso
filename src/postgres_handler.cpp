@@ -14,9 +14,11 @@ void PostgresHandler::add_separator_to_stringstream(std::string& ss) {
     ss.push_back('\t');
 }
 
-void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object) {
-    add_separator_to_stringstream(ss);
-    Table::escape(object.user(), ss);
+void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, Config& config) {
+    if (config.m_usernames) {
+        add_separator_to_stringstream(ss);
+        Table::escape(object.user(), ss);
+    }
     add_separator_to_stringstream(ss);
     static char idbuffer[20];
     sprintf(idbuffer, "%u", object.uid());
@@ -54,7 +56,7 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
         // If the node has tags, it will be written to nodes, not untagged_nodes table.
         PostgresHandler::add_tags(query, node);
     }
-    PostgresHandler::add_metadata_to_stringstream(query, node);
+    PostgresHandler::add_metadata_to_stringstream(query, node, m_config);
     query.append("SRID=4326;");
     query.append(wkb_factory.create_point(node).c_str());
     query.push_back('\n');

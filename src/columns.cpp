@@ -14,7 +14,9 @@ Columns::Columns(Config& config, TableType type):
         m_columns.push_back(std::make_pair("tags", "hstore"));
     }
     if (config.metadata) {
-        m_columns.push_back(std::make_pair("osm_user", "text"));
+        if (config.m_usernames) {
+            m_columns.push_back(std::make_pair("osm_user", "text"));
+        }
         m_columns.push_back(std::make_pair("osm_uid", "bigint"));
         m_columns.push_back(std::make_pair("osm_version", "integer"));
         m_columns.push_back(std::make_pair("osm_lastmodified", "char(23)"));

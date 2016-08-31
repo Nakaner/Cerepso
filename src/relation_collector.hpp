@@ -32,7 +32,7 @@ class RelationCollector: public osmium::relations::Collector<RelationCollector,
     typedef typename osmium::relations::Collector<RelationCollector, true, true, true> collector_type;
 
 private:
-
+    Config& m_config;
     osmium::memory::Buffer m_output_buffer;
     Table m_database_table;
     osmium::geom::GEOSFactory<> m_geos_factory;

@@ -39,7 +39,7 @@ void MyHandler::way(const osmium::Way& way) {
     sprintf(idbuffer, "%ld", way.id());
     query.append(idbuffer, strlen(idbuffer));
     add_tags(query, way);
-    add_metadata_to_stringstream(query, way);
+    add_metadata_to_stringstream(query, way, m_config);
     std::string wkb = "010200000000000000"; // initalize with LINESTRING EMPTY
     // If creating a linestring fails (e.g. way with four nodes at the same location), we have to use an empty linestring.
     try {

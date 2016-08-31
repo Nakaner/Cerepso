@@ -47,7 +47,7 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
         sprintf(idbuffer, "%ld", way.id());
         ways_table_copy_buffer.append(idbuffer, strlen(idbuffer));
         add_tags(ways_table_copy_buffer, way);
-        add_metadata_to_stringstream(ways_table_copy_buffer, way);
+        add_metadata_to_stringstream(ways_table_copy_buffer, way, m_config);
         geos::geom::GeometryFactory gf;
         geos::geom::CoordinateSequence* coord_sequence = gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2);
         for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
@@ -102,7 +102,7 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
 //        std::string relations_table_copy_buffer;
         m_relations_table_copy_buffer.append(idbuffer, strlen(idbuffer));
         add_tags(m_relations_table_copy_buffer, relation);
-        add_metadata_to_stringstream(m_relations_table_copy_buffer, relation);
+        add_metadata_to_stringstream(m_relations_table_copy_buffer, relation, m_config);
         geos::geom::GeometryFactory gf;
         std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
         std::vector<osmium::object_id_type> object_ids;

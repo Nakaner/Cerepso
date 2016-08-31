@@ -31,7 +31,9 @@ public:
      * @param ss stringstream
      * @param object OSM object
      */
-    static void add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object);
+    /* TODO move the static methods into either a separate namespace or create a class for the table scheme which is
+    the base class for all the handlers */
+    static void add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, Config& config);
 
     /**
      * helper function
@@ -48,11 +50,13 @@ public:
 
 protected:
     osmium::geom::WKBFactory<> wkb_factory;
+    Config& m_config;
     Table m_nodes_table;
     Table m_untagged_nodes_table;
     Table m_ways_linear_table;
     PostgresHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns) :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
+            m_config(config),
             m_nodes_table("nodes", config, node_columns),
             m_untagged_nodes_table("untagged_nodes", config, untagged_nodes_columns),
             m_ways_linear_table("ways", config, way_linear_columns) {}
@@ -63,6 +67,7 @@ protected:
      */
     PostgresHandler(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns, Config& config)  :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
+            m_config(config),
             m_nodes_table(node_columns, config),
             m_untagged_nodes_table(untagged_nodes_columns, config),
             m_ways_linear_table(way_linear_columns, config) {}

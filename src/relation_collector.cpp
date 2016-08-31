@@ -10,6 +10,7 @@
 #include <geos/geom/GeometryFactory.h>
 
 RelationCollector::RelationCollector(Config& config, Columns& node_columns) :
+    m_config(config),
     m_output_buffer(initial_output_buffer_size, osmium::memory::Buffer::auto_grow::yes),
     m_database_table("relations", config, node_columns)
     { }
@@ -45,7 +46,7 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     sprintf(idbuffer, "%ld", relation.id());
     query.append(idbuffer);
     PostgresHandler::add_tags(query, relation);
-    PostgresHandler::add_metadata_to_stringstream(query, relation);
+    PostgresHandler::add_metadata_to_stringstream(query, relation, m_config);
 
     std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
     std::vector<osmium::object_id_type> object_ids;
