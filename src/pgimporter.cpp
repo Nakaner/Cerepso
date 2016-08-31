@@ -37,11 +37,12 @@ int main(int argc, char* argv[]) {
             {"append", no_argument, 0, 'a'},
             {"no-id-index", no_argument, 0, 'I'},
             {"location-handler", required_argument, 0, 'l'},
+            {"no-usernames", no_argument, 0, 'u'},
             {0, 0, 0, 0}
         };
     Config config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:IoagGl:", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:IoagGl:u", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -74,6 +75,9 @@ int main(int argc, char* argv[]) {
             case 'l':
                 config.m_location_handler = optarg;
                 break;
+            case 'u':
+                config.m_usernames = false;
+                break;
             default:
                 exit(1);
         }
@@ -89,7 +93,8 @@ int main(int argc, char* argv[]) {
         "                                 overrides -g"
         "  -I, --no-id-index              don't create an index on osm_id columns\n" \
         "  -l, --location-handler HANDLER use HANDLER as location handler\n" \
-        "  -o, --no-order-by-geohash      don't order tables by ST_GeoHash\n" << std::endl;
+        "  -o, --no-order-by-geohash      don't order tables by ST_GeoHash\n" \
+        "  -u, --no-usernames             don't insert user names into the database\n" << std::endl;
         exit(1);
     } else {
         config.m_osm_file =  argv[optind];
