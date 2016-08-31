@@ -29,10 +29,6 @@ void MyHandler::node(const osmium::Node& node) {
 }
 
 void MyHandler::way(const osmium::Way& way) {
-    if (way.id() == 106273106) {
-        std::cout << "test" << std::endl;
-        std::cout << ways_copy_buffer << std::endl;
-    }
     if (way.nodes().size() < 3) {
         // degenerated way (none or only one node)
         //TODO add logging
@@ -47,9 +43,9 @@ void MyHandler::way(const osmium::Way& way) {
     std::string query;
     static char idbuffer[20];
     sprintf(idbuffer, "%ld", way.id());
-    query.append(idbuffer, strlen(idbuffer));
-    add_tags(query, way);
-    add_metadata_to_stringstream(query, way, m_config);
+    ways_copy_buffer.append(idbuffer, strlen(idbuffer));
+    add_tags(ways_copy_buffer, way);
+    add_metadata_to_stringstream(ways_copy_buffer, way, m_config);
     std::string wkb = "010200000000000000"; // initalize with LINESTRING EMPTY
     // If creating a linestring fails (e.g. way with four nodes at the same location), we have to use an empty linestring.
     try {
