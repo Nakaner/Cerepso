@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
             {"help",   no_argument, 0, 'h'},
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
+            {"no-geom-indexes", no_argument, 0, 'g'},
             {"all-geom-indexes", no_argument, 0, 'G'},
             {"no-order-by-geohash", no_argument, 0, 'o'},
             {"append", no_argument, 0, 'a'},
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]) {
         };
     Config config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:IoaGl:", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:IoagGl:", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -54,6 +55,9 @@ int main(int argc, char* argv[]) {
                 break;
             case 'd':
                 config.m_database_name = optarg;
+                break;
+            case 'g':
+                config.m_geom_indexes = false;
                 break;
             case 'G':
                 config.m_all_geom_indexes = true;
@@ -80,7 +84,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
         "  -a, --append                   this is a diff import\n" \
         "  -d, --database-name            database name\n" \
-        "  -G, --all-geom-indexes         create geometry indexes on all tables (otherwise not on untagged nodes table)\n" \
+        "  -g, --no-geom-indexes          don't create any geometry indexes\n" \
+        "  -G, --all-geom-indexes         create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
+        "                                 overrides -g"
         "  -I, --no-id-index              don't create an index on osm_id columns\n" \
         "  -l, --location-handler HANDLER use HANDLER as location handler\n" \
         "  -o, --no-order-by-geohash      don't order tables by ST_GeoHash\n" << std::endl;

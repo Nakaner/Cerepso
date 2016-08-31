@@ -129,12 +129,14 @@ Table::~Table() {
         }
         std::cerr << "committing table " << m_name << " …";
         commit();
-        if ((m_columns.get_type() != TableType::UNTAGGED_POINT && !m_config.m_append)
-                || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes && !m_config.m_append)) {
-            if (m_config.m_order_by_geohash) {
-                order_by_geohash();
+        if (m_config.m_geom_indexes && !m_config.m_append) {
+            if (m_columns.get_type() != TableType::UNTAGGED_POINT
+                    || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
+                if (m_config.m_order_by_geohash) {
+                    order_by_geohash();
+                }
+                create_geom_index();
             }
-            create_geom_index();
         }
         if (m_config.m_id_index && !m_config.m_append) {
             create_id_index();
