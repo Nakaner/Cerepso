@@ -116,19 +116,23 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         query.push_back(')');
         send_query(query.c_str());
     }
-    send_begin();
-    if (!m_config.m_append) {
+    if (m_config.m_append) {
+        send_begin();
+    }
+    else {
         start_copy();
     }
 }
 
 Table::~Table() {
     if (m_name != "") {
-        if (!m_config.m_append) {
+        if (m_config.m_append) {
+            std::cerr << "committing table " << m_name << " …";
+            commit();
+        }
+        else {
             end_copy();
         }
-        std::cerr << "committing table " << m_name << " …";
-        commit();
         if (m_config.m_geom_indexes && !m_config.m_append) {
             if (m_columns.get_type() != TableType::UNTAGGED_POINT
                     || (m_columns.get_type() == TableType::UNTAGGED_POINT && m_config.m_all_geom_indexes)) {
