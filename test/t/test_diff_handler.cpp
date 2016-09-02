@@ -42,8 +42,12 @@ TEST_CASE("inserting new way works") {
     Columns node_columns(config, TableType::POINT);
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
     Columns way_linear_columns(config, TableType::WAYS_LINEAR);
-    Columns relations_columns(config, TableType::RELATION_OTHER);
-    DiffHandler1 handler( node_columns, untagged_nodes_columns, way_linear_columns, relations_columns, config);
+    Columns relation_columns(config, TableType::RELATION_OTHER);
+    Table nodes_table ("nodes", config, node_columns);
+    Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    Table ways_table ("ways", config, way_linear_columns);
+    Table relations_table("relations", config, relation_columns);
+    DiffHandler1 handler( nodes_table, untagged_nodes_table, ways_table, relations_table, config);
 
     std::string ways_table_copy_buffer;
     handler.insert_way(way, ways_table_copy_buffer);

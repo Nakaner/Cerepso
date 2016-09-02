@@ -31,8 +31,8 @@ public:
 //    /**
 //     * constructor for testing purposes, will not establish database connections
 //     */
-//    MyHandler(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-//                Config& config) : PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config) { }
+    MyHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config) { }
 
     ~MyHandler() {
     }

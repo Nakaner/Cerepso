@@ -66,14 +66,13 @@ public:
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
             m_relations_table(relations_table) { }
 
-//    /**
-//     * constructor for testing purposes, will not establish database connections
-//     */
-//    DiffHandler1(Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns,
-//                Columns& relation_columns, Config& config) :
-//        PostgresHandler(node_columns, untagged_nodes_columns, way_linear_columns, config),
-//        m_relations_table(relation_columns, config)
-//        { }
+    /**
+     * constructor for testing purposes, will not establish database connections
+     */
+    DiffHandler1(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table, Config& config) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
+        m_relations_table(relations_table)
+        { }
 
     ~DiffHandler1();
 
