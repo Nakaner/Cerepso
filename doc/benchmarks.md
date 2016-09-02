@@ -26,6 +26,9 @@ hatano, Thüringen, 86 MB PBF, 351760 kB RAM, 1:36
 hatano, Thüringen, 86 MB PBF, 346672 kB RAM, 1:33
 hatano, Thüringen, 86 MB PBF, 354212 kB RAM, 1:39
 
+Table objects were created before Handler was intialized:
+globe, planet, 67700592 kB RAM, 11:06:51 (no order by ST_GeoHash, no import of usernames), no BEGIN/COMMIT before COPY
+
 2048 Byte
 ---------
 hatano, Thüringen 86 MB PBF, 346808 kB RAM, 1:31
@@ -46,4 +49,6 @@ Unbuffered
 ----------
 globe, Europe, 41640924 kB RAM (pgimporter)+, 1:29:08,
   details europe-4455683967af64ab9aacf39cafbb77acbd046fdd.log
+
+globe, planet, no BEGIN/COMMIT before COPY, 67812140 kB RAM, 10:50, (no order by ST_GeoHash, no import of usernames)
 
