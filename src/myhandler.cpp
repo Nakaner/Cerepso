@@ -13,19 +13,13 @@ void MyHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
+    std::string query;
     if (node.tags().size() == 0) { //no tags, usually a node of way
-        prepare_node_query(node, untagged_nodes_copy_buffer);
-        if (untagged_nodes_copy_buffer.size() > 1024) {
-            m_untagged_nodes_table.send_line(untagged_nodes_copy_buffer);
-            untagged_nodes_copy_buffer.clear();
-        }
+        prepare_node_query(node, query);
     } else {
-        prepare_node_query(node, nodes_copy_buffer);
-        if (nodes_copy_buffer.size() > 1024) {
-            m_nodes_table.send_line(nodes_copy_buffer);
-            nodes_copy_buffer.clear();
-        }
+        prepare_node_query(node, query);
     }
+    m_untagged_nodes_table.send_line(query);
 }
 
 void MyHandler::way(const osmium::Way& way) {
@@ -43,9 +37,9 @@ void MyHandler::way(const osmium::Way& way) {
     std::string query;
     static char idbuffer[20];
     sprintf(idbuffer, "%ld", way.id());
-    ways_copy_buffer.append(idbuffer, strlen(idbuffer));
-    add_tags(ways_copy_buffer, way);
-    add_metadata_to_stringstream(ways_copy_buffer, way, m_config);
+    query.append(idbuffer, strlen(idbuffer));
+    add_tags(query, way);
+    add_metadata_to_stringstream(query, way, m_config);
     std::string wkb = "010200000000000000"; // initalize with LINESTRING EMPTY
     // If creating a linestring fails (e.g. way with four nodes at the same location), we have to use an empty linestring.
     try {
