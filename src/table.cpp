@@ -116,21 +116,14 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         query.push_back(')');
         send_query(query.c_str());
     }
-    if (m_config.m_append) {
-        send_begin();
-    }
-    else {
+    if (!m_config.m_append) {
         start_copy();
     }
 }
 
 Table::~Table() {
     if (m_name != "") {
-        if (m_config.m_append) {
-            std::cerr << "committing table " << m_name << " …";
-            commit();
-        }
-        else {
+        if (!m_config.m_append) {
             end_copy();
         }
         if (m_config.m_geom_indexes && !m_config.m_append) {
