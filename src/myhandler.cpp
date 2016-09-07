@@ -16,10 +16,11 @@ void MyHandler::node(const osmium::Node& node) {
     std::string query;
     if (node.tags().size() == 0) { //no tags, usually a node of way
         prepare_node_query(node, query);
+        m_untagged_nodes_table.send_line(query);
     } else {
         prepare_node_query(node, query);
+        m_nodes_table.send_line(query);
     }
-    m_untagged_nodes_table.send_line(query);
 }
 
 void MyHandler::way(const osmium::Way& way) {
