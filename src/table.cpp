@@ -226,6 +226,7 @@ void Table::send_begin() {
 
 void Table::commit() {
     send_query("COMMIT");
+    m_begin = false;
 }
 
 void Table::intermediate_commit() {
@@ -234,7 +235,6 @@ void Table::intermediate_commit() {
     }
     assert(m_begin);
     commit();
-    m_begin = false;
 }
 
 void Table::send_query(const char* query) {

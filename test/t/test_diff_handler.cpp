@@ -12,6 +12,7 @@
 #include <diff_handler1.hpp>
 #include <table.hpp>
 #include <columns.hpp>
+#include "expire_tiles_factory.hpp"
 
 TEST_CASE("inserting new way works") {
     static constexpr int buffer_size = 10 * 1000 * 1000;
@@ -47,7 +48,10 @@ TEST_CASE("inserting new way works") {
     Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
     Table ways_table ("ways", config, way_linear_columns);
     Table relations_table("relations", config, relation_columns);
-    DiffHandler1 handler( nodes_table, untagged_nodes_table, ways_table, relations_table, config);
+    ExpireTilesFactory expire_tiles_factory;
+    config.m_expiry_type = "";
+    ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
+    DiffHandler1 handler( nodes_table, untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
 
     std::string ways_table_copy_buffer;
     handler.insert_way(way, ways_table_copy_buffer);

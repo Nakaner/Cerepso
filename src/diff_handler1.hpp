@@ -9,6 +9,7 @@
 #define APPEND_HANDLER_HPP_
 //#include <sstream>
 #include "postgres_handler.hpp"
+#include "expire_tiles.hpp"
 
 enum class TypeProgress {POINT, WAY, RELATION};
 
@@ -24,6 +25,8 @@ private:
      * additional table for relations which is not inherited from PostgresHandler
      */
     Table& m_relations_table;
+
+    ExpireTiles* m_expire_tiles;
 
     /**
      * buffers for insert via COPY
@@ -62,17 +65,20 @@ private:
     void write_new_ways();
 
 public:
-    DiffHandler1(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table) :
+    DiffHandler1(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table,
+            ExpireTiles* expire_tiles) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
-            m_relations_table(relations_table) { }
+            m_relations_table(relations_table),
+            m_expire_tiles(expire_tiles) { }
 
     /**
      * constructor for testing purposes, will not establish database connections
      */
-    DiffHandler1(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table, Config& config) :
+    DiffHandler1(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table, Config& config,
+            ExpireTiles* expire_tiles) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
-        m_relations_table(relations_table)
-        { }
+        m_relations_table(relations_table),
+        m_expire_tiles(expire_tiles) { }
 
     ~DiffHandler1();
 

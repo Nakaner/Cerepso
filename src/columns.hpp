@@ -36,6 +36,10 @@ struct Config {
     bool m_id_index = true;
     bool m_usernames = true;
     std::string m_location_handler = "sparse_mmap_array";
+    std::string m_expire_tiles = "";
+    std::string m_expiry_type = "dummy";
+    int m_min_zoom = 0;
+    int m_max_zoom = 0;
 };
 
 typedef std::pair<const std::string, const std::string> Column;

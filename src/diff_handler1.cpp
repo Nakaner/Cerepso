@@ -14,6 +14,8 @@
 #include <osmium/osm/relation.hpp>
 
 DiffHandler1::~DiffHandler1() {
+    m_expire_tiles->output_and_destroy();
+    delete m_expire_tiles;
     m_relations_table.start_copy();
     m_relations_table.send_line(m_relations_table_copy_buffer);
     m_relations_table.end_copy();
@@ -28,6 +30,7 @@ void DiffHandler1::node(const osmium::Node& node) {
         m_nodes_table.delete_object(node.id());
     }
     if (node.deleted()) { // we are finish now
+        //TODO support expiry mark for deleted nodes
         return;
     }
     if (!node.location().valid()) {
@@ -39,6 +42,7 @@ void DiffHandler1::node(const osmium::Node& node) {
     else {
         prepare_node_query(node, m_untagged_nodes_table_copy_buffer);
     }
+    m_expire_tiles->expire_from_point(node.location());
 }
 
 void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_copy_buffer) {
@@ -72,6 +76,7 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
             //TODO clean up memory
             throw osmium::geometry_error("Too few points for way " +  way.id());
         }
+        m_expire_tiles->expire_from_coord_sequence(coord_sequence);
         std::unique_ptr<geos::geom::Geometry> linestring (gf.createLineString(coord_sequence));
         geos::io::WKBWriter wkb_writer;
         std::stringstream stream(std::ios_base::out);
@@ -115,6 +120,7 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
                     coord = m_nodes_table.get_point(member.ref());
                 }
                 if (coord) {
+                    m_expire_tiles->expire_from_point(coord->x, coord->y);
                     std::unique_ptr<geos::geom::Point> point (gf.createPoint(*(coord.get())));
                     geometries->push_back(point.release());
                 }
@@ -123,6 +129,9 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
             else if ((member.type() == osmium::item_type::way)) {
                 std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), gf);
                 if (linestring) {
+                    geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
+                    m_expire_tiles->expire_from_coord_sequence(coord_sequence);
+                    delete coord_sequence;
                     geometries->push_back(linestring.release());
                 }
                 object_types.push_back(osmium::item_type::way);
@@ -175,22 +184,26 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
 }
 
 void DiffHandler1::write_new_nodes() {
-    m_nodes_table.start_copy();
-    m_nodes_table.send_line(m_nodes_table_copy_buffer);
-    m_nodes_table.end_copy();
-    m_nodes_table.intermediate_commit();
-    m_untagged_nodes_table.start_copy();
-    m_untagged_nodes_table.send_line(m_untagged_nodes_table_copy_buffer);
-    m_untagged_nodes_table.end_copy();
-    m_untagged_nodes_table.intermediate_commit();
+    // don't try to write a empty string via COPY (happens if diff contains no nodes)
+    if (m_nodes_table_copy_buffer.length() > 0) {
+        m_nodes_table.start_copy();
+        m_nodes_table.send_line(m_nodes_table_copy_buffer);
+        m_nodes_table.end_copy();
+    }
+    if (m_untagged_nodes_table_copy_buffer.length() > 0) {
+        m_untagged_nodes_table.start_copy();
+        m_untagged_nodes_table.send_line(m_untagged_nodes_table_copy_buffer);
+        m_untagged_nodes_table.end_copy();
+    }
     m_progress = TypeProgress::WAY;
 }
 
 void DiffHandler1::write_new_ways() {
-    m_ways_linear_table.start_copy();
-    m_ways_linear_table.send_line(m_ways_table_copy_buffer);
-    m_ways_linear_table.end_copy();
-    m_ways_linear_table.intermediate_commit();
+    if (m_ways_table_copy_buffer.length() > 0) {
+        m_ways_linear_table.start_copy();
+        m_ways_linear_table.send_line(m_ways_table_copy_buffer);
+        m_ways_linear_table.end_copy();
+    }
     m_progress = TypeProgress::RELATION;
 }
 

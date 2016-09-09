@@ -58,6 +58,12 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
     }
     PostgresHandler::add_metadata_to_stringstream(query, node, m_config);
     query.append("SRID=4326;");
-    query.append(wkb_factory.create_point(node).c_str());
+    std::string wkb = "010400000000000000"; // POINT EMPTY
+    try {
+        wkb = wkb_factory.create_point(node);
+    } catch (osmium::geometry_error& e) {
+        std::cerr << e.what() << "\n";
+    }
+    query.append(wkb);
     query.push_back('\n');
 }
