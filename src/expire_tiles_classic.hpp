@@ -39,7 +39,7 @@ public:
 
     void expire_from_point(double lon, double lat);
 
-    void expire_from_coord_sequence(geos::geom::CoordinateSequence* coords);
+    void expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords);
 
     // output the list of expired tiles to a file. note that this
     // consumes the list of expired tiles destructively.

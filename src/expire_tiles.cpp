@@ -10,6 +10,17 @@
 #include <osmium/geom/util.hpp>
 #include "expire_tiles.hpp"
 
+TileCoordinate::TileCoordinate(double x, double y) : x(x), y(y) {};
+
+void TileCoordinate::swap(TileCoordinate& other) {
+    double temp = other.x;
+    other.x = x;
+    x = temp;
+    temp = other.y;
+    other.y = y;
+    y = temp;
+}
+
 
 ExpireTiles::ExpireTiles(Config& config) :
         m_config(config) {}
@@ -20,6 +31,18 @@ void ExpireTiles::coords_to_tile(double *tilex, double *tiley,
 
     *tilex = map_width * (0.5 + lon / EARTH_CIRCUMFERENCE);
     *tiley = map_width * (0.5 - lat / EARTH_CIRCUMFERENCE);
+}
+
+TileCoordinate ExpireTiles::coords_to_tile(double lon, double lat, int map_width) {
+    if (lat > 85.07) {
+        lat = 85.07;
+    } else if (lat < -85.07) {
+        lat = -85.07;
+    }
+    double merc_x = lon * EARTH_CIRCUMFERENCE / 360.0;
+    double merc_y = log(tan(osmium::geom::PI/4.0 + osmium::geom::deg_to_rad(lat) / 2.0)) * EARTH_CIRCUMFERENCE/(osmium::geom::PI*2);
+    TileCoordinate tile (map_width * (0.5 + merc_x / EARTH_CIRCUMFERENCE),  map_width * (0.5 - merc_y / EARTH_CIRCUMFERENCE));
+    return tile;
 }
 
 void ExpireTiles::latlon2merc(double *lat, double *lon) {

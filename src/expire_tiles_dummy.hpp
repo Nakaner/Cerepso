@@ -21,16 +21,16 @@ public:
 
     ~ExpireTilesDummy() {}
 
-    void expire_from_point(osmium::Location location) {}
+    void expire_from_point(osmium::Location) {}
 
-    void expire_from_point(double lon, double lat) {}
+    void expire_from_point(double, double) {}
 
-    void expire_from_coord_sequence(geos::geom::CoordinateSequence* coords) {}
+    void expire_from_coord_sequence(const geos::geom::CoordinateSequence*) {}
 
     // output the list of expired tiles to a file.s
     void output_and_destroy() {}
 
-    void expire_tile(int x, int y) {}
+    void expire_tile(int, int) {}
 };
 
 

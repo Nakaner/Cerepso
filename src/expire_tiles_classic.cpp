@@ -213,7 +213,7 @@ void ExpireTilesClassic::expire_from_point(double lon, double lat) {
     expire_tile(norm_x, min_tile_y);
 }
 
-void ExpireTilesClassic::expire_from_coord_sequence(geos::geom::CoordinateSequence* coords) {
+void ExpireTilesClassic::expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords) {
     if (m_config.m_min_zoom < 0 || !coords || coords->getSize() == 0)
         return;
 

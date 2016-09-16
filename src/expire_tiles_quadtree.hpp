@@ -25,7 +25,43 @@ private:
 
     void expire_tile(int x, int y);
 
+    /**
+     * Expire all tiles "used" by a vertical line.
+     * All parameters have to be Web Mercator tile numbers, i.e. (15.5, 56.5) is the middle of tile (15, 56).
+     *
+     * @param x x-coordinate
+     * @param y1 y-coordinate of southern point
+     * @param y2 y-coordinate of northern point
+     */
+    void expire_vertical_line(double x, double y1, double y2);
+
+    /**
+     * Expire all tiles covered by this bounding box.
+     * All parameters have to be Web Mercator tile numbers, i.e. (15.5, 56.5) is the middle of tile (15, 56).
+     *
+     * @param x1 x-coordinate of south-west corner
+     * @param y1 y-coordinate of south-west corner
+     * @param x2 x-coordinate of north-east corner
+     * @param y2 y-coordinate of north-east corner
+     */
+    void expire_bbox(double x1, double y1, double x2, double y2);
+
 public:
+    /**
+     * Expire all tiles covered by this line segment
+     *
+     * All parameters have to be Web Mercator tile numbers, i.e. (15.5, 56.5) is the middle of tile (15, 56).
+     * The line must not cross crosses the international date line (lon=±180°).
+     * Begin and end of the line segment must not be swapped because this method does not check
+     * the order of the vertices beforehand.
+     *
+     * @param x1 x coordinate of start node
+     * @param y1 y coordinate of start node
+     * @param x2 x coordinate of end node
+     * @param y2 x coordinate of end node
+     */
+    void expire_line_segment(double x1, double y1, double x2, double y2);
+
     /**
      * convert a quadtree coordinate into x and y coordinate using bitshifts
      *
@@ -67,7 +103,24 @@ public:
 
     void expire_from_point(double lon, double lat);
 
-    void expire_from_coord_sequence(geos::geom::CoordinateSequence* coords) {}
+    /**
+     * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
+     *
+     * @param coords CoordinateSequence with all vertices of the line. Coordinates are expected as
+     * longitude and latitude (WGS84/EPSG:4326).
+     */
+    void expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords);
+
+    /**
+     * Expire all tiles crossed by this line segment. This method has special rules if the
+     * line segment crosses the 180th meridian.
+     *
+     * @param lon1 longitude of the beginning
+     * @param lat1 latitude of the beginning
+     * @param lon2 longitude of the end
+     * @param lat2 latitude of the end
+     */
+    void expire_line_segment_180secure(double lon1, double lat1, double lon2, double lat2);
 
     // output the list of expired tiles to a file.s
     void output_and_destroy();
