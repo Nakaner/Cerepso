@@ -38,8 +38,8 @@ struct Config {
     std::string m_location_handler = "sparse_mmap_array";
     std::string m_expire_tiles = "";
     std::string m_expiry_type = "dummy";
-    int m_min_zoom = 0;
-    int m_max_zoom = 0;
+    int m_min_zoom = 9;
+    int m_max_zoom = 15;
 };
 
 typedef std::pair<const std::string, const std::string> Column;
