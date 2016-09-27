@@ -12,7 +12,7 @@ ExpireTiles* ExpireTilesFactory::create_expire_tiles(Config& config) {
         return this->create_classic(config);
     }
     else if (config.m_expiry_type == "quadtree") {
-        return this->create_classic(config);
+        return this->create_qt(config);
     }
     return this->create_dummy(config);
 }
