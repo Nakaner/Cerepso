@@ -8,6 +8,7 @@
 #ifndef APPEND_HANDLER_HPP_
 #define APPEND_HANDLER_HPP_
 //#include <sstream>
+#include <geos/geom/GeometryFactory.h>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
 
@@ -42,6 +43,8 @@ private:
 //     */
 //    std::vector<osmium::object_id_type> m_delete_nodes;
 
+    geos::geom::GeometryFactory m_geom_factory;
+
     /**
      * maximum size of copy buffer
      */
@@ -63,6 +66,19 @@ private:
      * write all ways which have to be written to the database
      */
     void write_new_ways();
+
+    /**
+     * Search in both table holding the nodes for the node in question and return it as instance of geos::geom::Coordinate.
+     *
+     * This method looks both into nodes and untagged_nodes table.
+     *
+     * @param id OSM ID of the node
+     *
+     * @throws std::runtime_error if it is not found in any table
+     *
+     * @returns unique_ptr to the Coordinate instance
+     */
+    std::unique_ptr<const geos::geom::Coordinate> get_point_from_tables(osmium::object_id_type id);
 
 public:
     DiffHandler1(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table,

@@ -8,9 +8,10 @@
  */
 
 #include <osmium/geom/util.hpp>
+#include <geos/geom/Geometry.h>
 #include "expire_tiles.hpp"
 
-TileCoordinate::TileCoordinate(double x, double y) : x(x), y(y) {};
+TileCoordinate::TileCoordinate(double x, double y) : x(x), y(y) {}
 
 void TileCoordinate::swap(TileCoordinate& other) {
     double temp = other.x;
@@ -63,4 +64,12 @@ int ExpireTiles::normalise_tile_x_coord(int x) {
 
 void ExpireTiles::expire_from_point(osmium::Location location) {
     expire_from_point(location.lon(), location.lat());
+}
+
+void ExpireTiles::expire_from_geos_linestring(std::unique_ptr<geos::geom::Geometry> geom_ptr) {
+    if (geom_ptr->getGeometryTypeId() == geos::geom::GeometryTypeId::GEOS_LINESTRING) {
+        std::unique_ptr<geos::geom::CoordinateSequence> coords (geom_ptr->getCoordinates());
+        expire_from_coord_sequence(coords.get());
+    }
+    //TODO else case
 }

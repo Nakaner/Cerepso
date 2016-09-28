@@ -7,6 +7,7 @@
 
 #include "columns.hpp"
 #include <osmium/osm/location.hpp>
+#include <geos/geom/Geometry.h>
 #include <geos/geom/CoordinateArraySequence.h>
 
 #ifndef EXPIRE_TILES_HPP_
@@ -50,6 +51,13 @@ public:
     virtual void expire_from_point(const double lon, const double lat) = 0;
 
     virtual void expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords) = 0;
+
+    /**
+     * Expire all tiles crossed by the line (given as WKB hex string).
+     *
+     * @param wkb unique_ptr to a GEOS Geometry, it must be a Linestring
+     */
+    void expire_from_geos_linestring(std::unique_ptr<geos::geom::Geometry> geom_ptr);
 
     // output the list of expired tiles to a file.s
     virtual void output_and_destroy() = 0;

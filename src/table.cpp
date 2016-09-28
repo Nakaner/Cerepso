@@ -361,6 +361,10 @@ std::unique_ptr<geos::geom::Geometry> Table::get_linestring(const osmium::object
     geom_stream.str(PQgetvalue(result, 0, 0));
     linestring = std::unique_ptr<geos::geom::Geometry>(wkb_reader.readHEX(geom_stream));
     PQclear(result);
+    if (linestring->getGeometryTypeId() != geos::geom::GeometryTypeId::GEOS_LINESTRING) {
+        // if we got no linestring, we will return a unique_ptr which manages nothing (i.e. nullptr equivalent)
+        linestring.reset();
+    }
     return linestring;
 }
 

@@ -16,23 +16,22 @@
 DiffHandler1::~DiffHandler1() {
     m_expire_tiles->output_and_destroy();
     delete m_expire_tiles;
-//    m_relations_table.start_copy();
-//    m_relations_table.send_line(m_relations_table_copy_buffer);
-    if (m_relations_table.get_copy()) {
-        m_relations_table.end_copy();
-    }
+    m_relations_table.start_copy();
+    m_relations_table.send_line(m_relations_table_copy_buffer);
+    m_relations_table.end_copy();
 }
 
 void DiffHandler1::node(const osmium::Node& node) {
     // if node has version 1, we don't have to check if it already exists
     if (node.version() > 1) {
+        // expire tiles where the node has been before
+        std::unique_ptr<const geos::geom::Coordinate> coord = get_point_from_tables(node.id());
+        m_expire_tiles->expire_from_point(coord->x, coord->y);
         // delete old node, try first untagged nodes table
-        //TODO add untagged_nodes table
         m_untagged_nodes_table.delete_object(node.id());
         m_nodes_table.delete_object(node.id());
     }
     if (node.deleted()) { // we are finish now
-        //TODO support expiry mark for deleted nodes
         return;
     }
     if (!node.location().valid()) {
@@ -47,11 +46,23 @@ void DiffHandler1::node(const osmium::Node& node) {
     m_expire_tiles->expire_from_point(node.location());
 }
 
+std::unique_ptr<const geos::geom::Coordinate> DiffHandler1::get_point_from_tables(osmium::object_id_type id) {
+    // first check untagged nodes because most nodes do not have tags
+    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(id);
+    if (!coord) { //node not found in untagged_nodes table
+        coord = m_nodes_table.get_point(id);
+    }
+    if (!coord) { // node not found
+        throw std::runtime_error((boost::format("Node %1% not found. \n") % id).str());
+    }
+    return coord;
+}
+
 void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_copy_buffer) {
     try {
         char idbuffer[20];
         sprintf(idbuffer, "%ld", way.id());
-        //TODO Rewrite this part. Diff import should have to passes, one to delete old object, one to reimport the new ones.
+        //TODO Rewrite this part. Diff import should have two passes, one to delete old object, one to reimport the new ones.
         std::string copy_buffer;
         copy_buffer.append(idbuffer, strlen(idbuffer));
         add_tags(copy_buffer, way);
@@ -61,16 +72,9 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
         for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
             geos::geom::GeometryFactory gf;
             try {
-                // first check untagged nodes because most nodes do not have tags
-                std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(i->ref());
-                if (!coord) {
-                    coord = m_nodes_table.get_point(i->ref());
-                }
+                std::unique_ptr<const geos::geom::Coordinate> coord = get_point_from_tables(i->ref());
                 if (coord) {
                     coord_sequence->add(*(coord.get()));
-                }
-                else {
-                    throw std::runtime_error((boost::format("Node %1% not found. \n") % i->ref()).str());
                 }
             } catch (std::runtime_error& e) {
                 std::cerr << e.what();
@@ -114,7 +118,6 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
         copy_buffer.append(idbuffer, strlen(idbuffer));
         add_tags(copy_buffer, relation);
         add_metadata_to_stringstream(copy_buffer, relation, m_config);
-        geos::geom::GeometryFactory gf;
         std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
         std::vector<osmium::object_id_type> object_ids;
         std::vector<osmium::item_type> object_types;
@@ -127,13 +130,13 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
                 }
                 if (coord) {
                     m_expire_tiles->expire_from_point(coord->x, coord->y);
-                    std::unique_ptr<geos::geom::Point> point (gf.createPoint(*(coord.get())));
+                    std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(*(coord.get())));
                     geometries->push_back(point.release());
                 }
                 object_types.push_back(osmium::item_type::node);
             }
             else if ((member.type() == osmium::item_type::way)) {
-                std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), gf);
+                std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), m_geom_factory);
                 if (linestring) {
                     geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
                     m_expire_tiles->expire_from_coord_sequence(coord_sequence);
@@ -149,7 +152,7 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
             }
         }
         // create GeometryCollection
-        geos::geom::GeometryCollection* geom_collection = gf.createGeometryCollection(geometries);
+        geos::geom::GeometryCollection* geom_collection = m_geom_factory.createGeometryCollection(geometries);
         copy_buffer.append("SRID=4326;");
         // convert to WKB
         std::stringstream query_stream;
@@ -182,7 +185,7 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
             }
         }
         copy_buffer.append("}\n");
-        m_relations_table.send_line(copy_buffer);
+        m_relations_table_copy_buffer.append(copy_buffer);
     }
     catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
@@ -218,6 +221,8 @@ void DiffHandler1::way(const osmium::Way& way) {
         write_new_nodes();
     }
     if (way.version() > 1) {
+        // expire all tiles which have been crossed by the linestring before
+        m_expire_tiles->expire_from_geos_linestring(m_ways_linear_table.get_linestring(way.id(), m_geom_factory));
         m_ways_linear_table.delete_object(way.id());
     }
     if (way.deleted()) {
@@ -234,7 +239,6 @@ void DiffHandler1::way(const osmium::Way& way) {
 void DiffHandler1::relation(const osmium::Relation& relation) {
     if (m_progress == TypeProgress::WAY) {
         write_new_ways();
-        m_relations_table.start_copy();
     }
     if (relation.version() > 1) {
         m_relations_table.delete_object(relation.id());
