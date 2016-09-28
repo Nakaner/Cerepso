@@ -102,7 +102,7 @@ void ExpireTilesQuadtree::expire_line_segment(double x1, double y1, double x2, d
 }
 
 void ExpireTilesQuadtree::expire_vertical_line(double x, double y1, double y2) {
-    assert(y1 < y2); // line in correct order and not collapsed
+    assert(y1 <= y2); // line in correct order and not collapsed
     // mark the tile of the southern end as expired
     expire_tile(static_cast<int>(x), static_cast<int>(y1));
     // mark all tiles above it as expired until we reach the northern end of the line
