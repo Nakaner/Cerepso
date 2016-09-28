@@ -16,9 +16,11 @@
 DiffHandler1::~DiffHandler1() {
     m_expire_tiles->output_and_destroy();
     delete m_expire_tiles;
-    m_relations_table.start_copy();
-    m_relations_table.send_line(m_relations_table_copy_buffer);
-    m_relations_table.end_copy();
+//    m_relations_table.start_copy();
+//    m_relations_table.send_line(m_relations_table_copy_buffer);
+    if (m_relations_table.get_copy()) {
+        m_relations_table.end_copy();
+    }
 }
 
 void DiffHandler1::node(const osmium::Node& node) {
@@ -49,9 +51,11 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
     try {
         char idbuffer[20];
         sprintf(idbuffer, "%ld", way.id());
-        ways_table_copy_buffer.append(idbuffer, strlen(idbuffer));
-        add_tags(ways_table_copy_buffer, way);
-        add_metadata_to_stringstream(ways_table_copy_buffer, way, m_config);
+        //TODO Rewrite this part. Diff import should have to passes, one to delete old object, one to reimport the new ones.
+        std::string copy_buffer;
+        copy_buffer.append(idbuffer, strlen(idbuffer));
+        add_tags(copy_buffer, way);
+        add_metadata_to_stringstream(copy_buffer, way, m_config);
         geos::geom::GeometryFactory gf;
         geos::geom::CoordinateSequence* coord_sequence = gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2);
         for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
@@ -74,26 +78,27 @@ void DiffHandler1::insert_way(const osmium::Way& way, std::string& ways_table_co
         }
         if (coord_sequence->size() < 2) {
             //TODO clean up memory
-            throw osmium::geometry_error("Too few points for way " +  way.id());
+            throw osmium::geometry_error((boost::format("Too few points for way %1%.") % way.id()).str());
         }
         m_expire_tiles->expire_from_coord_sequence(coord_sequence);
         std::unique_ptr<geos::geom::Geometry> linestring (gf.createLineString(coord_sequence));
         geos::io::WKBWriter wkb_writer;
         std::stringstream stream(std::ios_base::out);
         wkb_writer.writeHEX(*(linestring.get()), stream);
-        ways_table_copy_buffer.append("SRID=4326;");
-        ways_table_copy_buffer.append(stream.str());
-        add_separator_to_stringstream(ways_table_copy_buffer);
-        ways_table_copy_buffer.append("{");
+        copy_buffer.append("SRID=4326;");
+        copy_buffer.append(stream.str());
+        add_separator_to_stringstream(copy_buffer);
+        copy_buffer.append("{");
         for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
             if (i != way.nodes().begin()) {
-                ways_table_copy_buffer.append(", ");
+                copy_buffer.append(", ");
             }
             sprintf(idbuffer, "%ld", i->ref());
-            ways_table_copy_buffer.append(idbuffer, strlen(idbuffer));
+            copy_buffer.append(idbuffer, strlen(idbuffer));
         }
-        ways_table_copy_buffer.append("}");
-        ways_table_copy_buffer.push_back('\n');
+        copy_buffer.append("}");
+        copy_buffer.push_back('\n');
+        ways_table_copy_buffer.append(copy_buffer);
         //TODO clean up memory
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
@@ -104,10 +109,11 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
     try {
         char idbuffer[20];
         sprintf(idbuffer, "%ld", relation.id());
-//        std::string relations_table_copy_buffer;
-        m_relations_table_copy_buffer.append(idbuffer, strlen(idbuffer));
-        add_tags(m_relations_table_copy_buffer, relation);
-        add_metadata_to_stringstream(m_relations_table_copy_buffer, relation, m_config);
+        //TODO Rewrite this part. Diff import should have to passes, one to delete old object, one to reimport the new ones.
+        std::string copy_buffer;
+        copy_buffer.append(idbuffer, strlen(idbuffer));
+        add_tags(copy_buffer, relation);
+        add_metadata_to_stringstream(copy_buffer, relation, m_config);
         geos::geom::GeometryFactory gf;
         std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
         std::vector<osmium::object_id_type> object_ids;
@@ -144,42 +150,42 @@ void DiffHandler1::insert_relation(const osmium::Relation& relation) {
         }
         // create GeometryCollection
         geos::geom::GeometryCollection* geom_collection = gf.createGeometryCollection(geometries);
-        m_relations_table_copy_buffer.append("SRID=4326;");
+        copy_buffer.append("SRID=4326;");
         // convert to WKB
         std::stringstream query_stream;
         geos::io::WKBWriter wkb_writer;
         wkb_writer.writeHEX(*geom_collection, query_stream);
-        m_relations_table_copy_buffer.append(query_stream.str());
+        copy_buffer.append(query_stream.str());
         delete geom_collection;
-        add_separator_to_stringstream(m_relations_table_copy_buffer);
-        m_relations_table_copy_buffer.push_back('{');
+        add_separator_to_stringstream(copy_buffer);
+        copy_buffer.push_back('{');
         for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
             if (id != object_ids.begin()) {
-                m_relations_table_copy_buffer.append(", ");
+                copy_buffer.append(", ");
             }
             sprintf(idbuffer, "%ld", *id);
-            m_relations_table_copy_buffer.append(idbuffer);
+            copy_buffer.append(idbuffer);
         }
-        m_relations_table_copy_buffer.push_back('}');
-        add_separator_to_stringstream(m_relations_table_copy_buffer);
-        m_relations_table_copy_buffer.push_back('{');
+        copy_buffer.push_back('}');
+        add_separator_to_stringstream(copy_buffer);
+        copy_buffer.push_back('{');
         for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
             if (type != object_types.begin()) {
-                m_relations_table_copy_buffer.append(", ");
+                copy_buffer.append(", ");
             }
             if (*type == osmium::item_type::node) {
-                m_relations_table_copy_buffer.push_back('n');
+                copy_buffer.push_back('n');
             } else if (*type == osmium::item_type::way) {
-                m_relations_table_copy_buffer.push_back('w');
+                copy_buffer.push_back('w');
             } else if (*type == osmium::item_type::relation) {
-                m_relations_table_copy_buffer.push_back('r');
+                copy_buffer.push_back('r');
             }
         }
-        m_relations_table_copy_buffer.append("}\n");
-//        m_relations_table.send_line(relations_table_copy_buffer);
+        copy_buffer.append("}\n");
+        m_relations_table.send_line(copy_buffer);
     }
     catch (osmium::geometry_error& e) {
-
+        std::cerr << e.what() << "\n";
     }
 }
 
@@ -217,13 +223,18 @@ void DiffHandler1::way(const osmium::Way& way) {
     if (way.deleted()) {
         return;
     }
-    insert_way(way, m_ways_table_copy_buffer);
+    try {
+        insert_way(way, m_ways_table_copy_buffer);
+    } catch (osmium::geometry_error& err) {
+        std::cerr << err.what();
+    }
 }
 
 
 void DiffHandler1::relation(const osmium::Relation& relation) {
     if (m_progress == TypeProgress::WAY) {
         write_new_ways();
+        m_relations_table.start_copy();
     }
     if (relation.version() > 1) {
         m_relations_table.delete_object(relation.id());

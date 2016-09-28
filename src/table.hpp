@@ -156,6 +156,12 @@ public:
     void end_copy();
 
     /**
+     * get current state of connection
+     * Is it in copy mode or not?
+     */
+    bool get_copy();
+
+    /**
      * Send any SQL query.
      *
      * This query will not return anything, i.e. it is useful for INSERT and DELETE operations.

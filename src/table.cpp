@@ -219,6 +219,10 @@ void Table::end_copy() {
     PQclear(result);
 }
 
+bool Table::get_copy() {
+    return m_copy_mode;
+}
+
 void Table::send_begin() {
     send_query("BEGIN");
     m_begin = true;
