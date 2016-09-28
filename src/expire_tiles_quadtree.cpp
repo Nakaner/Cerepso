@@ -12,6 +12,7 @@
 #include <fstream>
 #include <cstring>
 #include <assert.h>
+#include <set>
 
 void ExpireTilesQuadtree::expire_from_point(double lon, double lat) {
     // convert latlon into Mercator coordinates and these into tile coordinates
@@ -162,13 +163,17 @@ void ExpireTilesQuadtree::output_and_destroy() {
         fprintf(stderr, "Failed to open expired tiles file (%s).  Tile expiry list will not be written!\n", strerror(errno));
         return;
     }
+    std::set<int64_t> expired_tiles;
     // iterate over all expired tiles
     for (std::map<int, bool>::iterator it = m_dirty_tiles.begin(); it != m_dirty_tiles.end(); it++) {
         // loop over all requested zoom levels (from maximum to minimum zoom level)
         for (int dz = 0; dz <= m_config.m_max_zoom - m_config.m_min_zoom; dz++) {
             int64_t qt_new = it->first >> (dz*2);
-            xy_coord_t xy = quadtree_to_xy(qt_new, m_config.m_max_zoom-dz);
-            fprintf(outfile, "%i/%i/%i\n", m_config.m_max_zoom-dz, xy.x, xy.y);
+            if (expired_tiles.insert(qt_new).second) {
+                // expired_tiles.insert(qt_new).second is true if the tile has not been written to the list yet
+                xy_coord_t xy = quadtree_to_xy(qt_new, m_config.m_max_zoom-dz);
+                fprintf(outfile, "%i/%i/%i\n", m_config.m_max_zoom-dz, xy.x, xy.y);
+            }
         }
     }
     if (outfile) {
