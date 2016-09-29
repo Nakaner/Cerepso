@@ -116,6 +116,7 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
         query.push_back(')');
         send_query(query.c_str());
     }
+    create_prepared_statements();
     if (!m_config.m_append) {
         start_copy();
     }
@@ -140,6 +141,28 @@ Table::~Table() {
         }
         PQfinish(m_database_connection);
     }
+}
+
+void Table::create_prepared_statements() {
+    // create delete statement
+    std::string query = (boost::format("DELETE FROM %1% WHERE osm_id = $1") % m_name).str();
+    create_prepared_statement("delete_statement", query, 1);
+    if (m_columns.get_type() == TableType::POINT || m_columns.get_type() == TableType::UNTAGGED_POINT) {
+        query = (boost::format("SELECT ST_X(geom), ST_Y(geom) FROM %1% WHERE osm_id = $1") % m_name).str();
+        create_prepared_statement("get_point", query, 1);
+    } else if (m_columns.get_type() == TableType::WAYS_LINEAR) {
+        query = (boost::format("SELECT geom FROM %1% WHERE osm_id = $1") % m_name).str();
+        create_prepared_statement("get_linestring", query, 1);
+    }
+}
+
+void Table::create_prepared_statement(const char* name, std::string query, int params_count) {
+    PGresult *result = PQprepare(m_database_connection, name, query.c_str(), params_count, NULL);
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        PQclear(result);
+        throw std::runtime_error((boost::format("%1% failed: %2%\n") % query % PQerrorMessage(m_database_connection)).str());
+    }
+    PQclear(result);
 }
 
 void Table::order_by_geohash() {
@@ -311,7 +334,11 @@ void Table::delete_from_list(std::vector<osmium::object_id_type>& list) {
 
 void Table::delete_object(const osmium::object_id_type id) {
     assert(!m_copy_mode);
-    PGresult *result = PQexec(m_database_connection, (boost::format("DELETE FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
+    char const *paramValues[1];
+    char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "delete_statement", 1, paramValues, nullptr, nullptr, 0);
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
         throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
@@ -324,7 +351,11 @@ std::unique_ptr<geos::geom::Coordinate> Table::get_point(const osmium::object_id
     assert(!m_copy_mode);
     assert(!m_begin);
     std::unique_ptr<geos::geom::Coordinate> coord;
-    PGresult *result = PQexec(m_database_connection, (boost::format("SELECT ST_X(geom), ST_Y(geom) FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
+    char const *paramValues[1];
+    char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "get_point", 1, paramValues, nullptr, nullptr, 0);
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
@@ -345,7 +376,11 @@ std::unique_ptr<geos::geom::Geometry> Table::get_linestring(const osmium::object
     assert(!m_copy_mode);
     assert(!m_begin);
     std::unique_ptr<geos::geom::Geometry> linestring;
-    PGresult *result = PQexec(m_database_connection, (boost::format("SELECT geom FROM %1% WHERE osm_id = %2%") % m_name % id).str().c_str());
+    char const *paramValues[1];
+    char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "get_linestring", 1, paramValues, nullptr, nullptr, 0);
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);

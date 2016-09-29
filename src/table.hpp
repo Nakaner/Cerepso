@@ -53,6 +53,18 @@ private:
      */
     static const int BUFFER_SEND_SIZE = 10000;
 
+    /**
+     * create all necessary prepared statements for this table
+     *
+     * This method chooses the suitable prepared statements which are dependend from the table type (point vs. way vs. …).
+     */
+    void create_prepared_statements();
+
+    /**
+     * create a prepared statement
+     */
+    void create_prepared_statement(const char* name, std::string query, int params_count);
+
     /*
      * send COMMIT to table
      *
