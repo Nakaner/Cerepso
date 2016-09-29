@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <cmath>
 #include <assert.h>
 #include <set>
 
@@ -20,6 +21,11 @@ void ExpireTilesQuadtree::expire_from_point(double lon, double lat) {
     // we currently only expire the tile not its neighbours if the point is near the edge of the tile
     int norm_x = normalise_tile_x_coord(static_cast<int>(tc.x));
     expire_tile(norm_x, static_cast<int>(tc.y));
+}
+
+double ExpireTilesQuadtree::segment_length(double lon1, double lat1, double lon2, double lat2) {
+    double degrad = 3.14159265358979323846/180; // conversion to radiant
+    return acos(sin(lat1 * degrad) * sin(lat2 * degrad) + cos(lat1 * degrad) * cos(lat2 * degrad) * cos((lon2  - lon1) * degrad)) * 6371000;
 }
 
 void ExpireTilesQuadtree::expire_line_segment_180secure(double lon1, double lat1, double lon2, double lat2) {
@@ -52,6 +58,20 @@ void ExpireTilesQuadtree::expire_line_segment_180secure(double lon1, double lat1
 }
 
 void ExpireTilesQuadtree::expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords) {
+    // check if distance between beginning and end is too large
+    // We don't calculate the exact distance by summing up all segments.
+    // This might return wrong results for U-shaped lines but it's faster.
+    //TODO check if exact calculation based on shere is too slow.
+    //HARDCODED 20 km
+    if (segment_length(coords->getX(0), coords->getY(0), coords->getX(coords->getSize()-1), coords->getY(coords->getSize()-1)) > 20000) {
+        // If the line crosses 180th meridian, following expression will return false.
+        if (std::abs(coords->getX(0) - coords->getX(coords->getSize()-1)) > 1) {
+            // expire only the tiles where the nodes are, not all tiles intersected by the line
+            for (size_t i=0; i <= coords->getSize()-1; i++) {
+                expire_from_point(coords->getX(i), coords->getY(i));
+            }
+        }
+    }
     for (size_t i=0; i <= coords->getSize()-2; i++) {
         expire_line_segment_180secure(coords->getX(i), coords->getY(i), coords->getX(i+1), coords->getY(i+1));
     }

@@ -46,6 +46,11 @@ private:
      */
     void expire_bbox(double x1, double y1, double x2, double y2);
 
+    /**
+     * Get length on sphere of a segment.
+     */
+    double segment_length(double lon1, double lat1, double lon2, double lat2);
+
 public:
     /**
      * Expire all tiles covered by this line segment
