@@ -66,7 +66,7 @@ void ExpireTiles::expire_from_point(osmium::Location location) {
     expire_from_point(location.lon(), location.lat());
 }
 
-void ExpireTiles::expire_from_geos_linestring(std::unique_ptr<geos::geom::Geometry> geom_ptr) {
+void ExpireTiles::expire_from_geos_linestring(geos::geom::Geometry* geom_ptr) {
     if (geom_ptr->getGeometryTypeId() == geos::geom::GeometryTypeId::GEOS_LINESTRING) {
         std::unique_ptr<geos::geom::CoordinateSequence> coords (geom_ptr->getCoordinates());
         expire_from_coord_sequence(coords.get());

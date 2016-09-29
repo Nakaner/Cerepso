@@ -57,7 +57,7 @@ public:
      *
      * @param wkb unique_ptr to a GEOS Geometry, it must be a Linestring
      */
-    void expire_from_geos_linestring(std::unique_ptr<geos::geom::Geometry> geom_ptr);
+    void expire_from_geos_linestring(geos::geom::Geometry* geom_ptr);
 
     // output the list of expired tiles to a file.s
     virtual void output_and_destroy() = 0;
