@@ -9,7 +9,7 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/way.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
-#include <diff_handler1.hpp>
+#include <diff_handler2.hpp>
 #include <table.hpp>
 #include <columns.hpp>
 #include "expire_tiles_factory.hpp"
@@ -51,7 +51,7 @@ TEST_CASE("inserting new way works") {
     ExpireTilesFactory expire_tiles_factory;
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-    DiffHandler1 handler( nodes_table, untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
+    DiffHandler2 handler( nodes_table, untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
 
     std::string ways_table_copy_buffer;
     handler.insert_way(way, ways_table_copy_buffer);

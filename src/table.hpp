@@ -65,13 +65,6 @@ private:
      */
     void create_prepared_statement(const char* name, std::string query, int params_count);
 
-    /*
-     * send COMMIT to table
-     *
-     * This method is intended to be called from the destructor of this class.
-     */
-    void commit();
-
     /**
      * create index on geometry column
      */
@@ -88,8 +81,6 @@ private:
      * See docs/usage.md for details.
      */
     void order_by_geohash();
-
-    void send_begin();
 
     /**
      * get ID of geometry column, first column is 0
@@ -172,6 +163,21 @@ public:
      * Is it in copy mode or not?
      */
     bool get_copy();
+
+    /**
+     * send BEGIN to table
+     *
+     * This method can be called both from inside the class and from outside (if you want to get your changes persistend after
+     * you sent them all to the database.
+     */
+    void send_begin();
+
+    /*
+     * send COMMIT to table
+     *
+     * This method is intended to be called from the destructor of this class.
+     */
+    void commit();
 
     /**
      * Send any SQL query.

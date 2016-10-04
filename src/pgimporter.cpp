@@ -11,6 +11,7 @@
 #include <osmium/visitor.hpp>
 #include "myhandler.hpp"
 #include "diff_handler1.hpp"
+#include "diff_handler2.hpp"
 #include "columns.hpp"
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
@@ -140,28 +141,51 @@ int main(int argc, char* argv[]) {
     Table ways_linear_table ("ways", config, way_linear_columns);
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
-        osmium::io::Reader reader(config.m_osm_file, osmium::osm_entity_bits::nwr);
+        osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
         Table relations_table("relations", config, relation_other_columns);
+        // send BEGIN to all tables
+        relations_table.send_begin();
+        nodes_table.send_begin();
+        untagged_nodes_table.send_begin();
+        ways_linear_table.send_begin();
+
         ExpireTilesFactory expire_tiles_factory;
         if (config.m_expire_tiles == "") {
             config.m_expiry_type = "";
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-        DiffHandler1 append_handler(config, nodes_table, untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
-        while (osmium::memory::Buffer buffer = reader.read()) {
+        DiffHandler1 append_handler1(config, nodes_table, untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
+        while (osmium::memory::Buffer buffer = reader1.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
-                    append_handler.node(static_cast<const osmium::Node&>(*it));
+                    append_handler1.node(static_cast<const osmium::Node&>(*it));
                 }
                 else if (it->type_is_in(osmium::osm_entity_bits::way)) {
-                    append_handler.way(static_cast<const osmium::Way&>(*it));
+                    append_handler1.way(static_cast<const osmium::Way&>(*it));
                 }
                 else if (it->type_is_in(osmium::osm_entity_bits::relation)) {
-                    append_handler.relation(static_cast<const osmium::Relation&>(*it));
+                    append_handler1.relation(static_cast<const osmium::Relation&>(*it));
                 }
             }
         }
-        reader.close();
+        reader1.close();
+
+        osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
+        DiffHandler2 append_handler2(config, nodes_table, untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
+        while (osmium::memory::Buffer buffer = reader2.read()) {
+            for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
+                if (it->type_is_in(osmium::osm_entity_bits::node)) {
+                    append_handler2.node(static_cast<const osmium::Node&>(*it));
+                }
+                else if (it->type_is_in(osmium::osm_entity_bits::way)) {
+                    append_handler2.way(static_cast<const osmium::Way&>(*it));
+                }
+                else if (it->type_is_in(osmium::osm_entity_bits::relation)) {
+                    append_handler2.relation(static_cast<const osmium::Relation&>(*it));
+                }
+            }
+        }
+        reader2.close();
     } else {
         const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
         auto location_index = map_factory.create_map(config.m_location_handler);

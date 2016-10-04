@@ -124,8 +124,11 @@ Table::Table(const char* table_name, Config& config, Columns& columns) :
 
 Table::~Table() {
     if (m_name != "") {
-        if (!m_config.m_append) {
+        if (m_copy_mode) {
             end_copy();
+        }
+        if (m_begin) {
+            commit();
         }
         if (m_config.m_geom_indexes && !m_config.m_append) {
             if (m_columns.get_type() != TableType::UNTAGGED_POINT
@@ -349,7 +352,7 @@ void Table::delete_object(const osmium::object_id_type id) {
 std::unique_ptr<geos::geom::Coordinate> Table::get_point(const osmium::object_id_type id) {
     assert(m_database_connection);
     assert(!m_copy_mode);
-    assert(!m_begin);
+//    assert(!m_begin);
     std::unique_ptr<geos::geom::Coordinate> coord;
     char const *paramValues[1];
     char buffer[64];
@@ -374,7 +377,7 @@ std::unique_ptr<geos::geom::Coordinate> Table::get_point(const osmium::object_id
 std::unique_ptr<geos::geom::Geometry> Table::get_linestring(const osmium::object_id_type id, geos::geom::GeometryFactory& geometry_factory) {
     assert(m_database_connection);
     assert(!m_copy_mode);
-    assert(!m_begin);
+//    assert(!m_begin);
     std::unique_ptr<geos::geom::Geometry> linestring;
     char const *paramValues[1];
     char buffer[64];

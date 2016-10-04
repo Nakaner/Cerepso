@@ -52,3 +52,11 @@ globe, Europe, 41640924 kB RAM (pgimporter)+, 1:29:08,
 
 globe, planet, no BEGIN/COMMIT before COPY, 67812140 kB RAM, 10:50, (no order by ST_GeoHash, no import of usernames)
 
+
+Diff Import
+==========
+Baden-Württemberg, diff, 2016-08-02, 728 kB gzip compressed XML, 22.1 sec., 46668 kB RAM
+Baden-Württemberg, diff, 2016-08-02–2016-09-26, 9:13, 39.0 kB, diff handler with two passes, unbuffered writing, prepared statements
+
+
+
