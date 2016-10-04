@@ -56,7 +56,7 @@ globe, planet, no BEGIN/COMMIT before COPY, 67812140 kB RAM, 10:50, (no order by
 Diff Import
 ==========
 Baden-Württemberg, diff, 2016-08-02, 728 kB gzip compressed XML, 22.1 sec., 46668 kB RAM
-Baden-Württemberg, diff, 2016-08-02–2016-09-26, 9:13, 39.0 kB, diff handler with two passes, unbuffered writing, prepared statements
-
+Baden-Württemberg, diff, 2016-08-02–2016-09-26, 9:13, 39.0 kB RAM, diff handler with two passes, unbuffered writing, prepared statements
+Baden-Württemberg, dto., 11:04, 60.2 kB RAM, diff handler with only one pass, caching of all inserts via COPY until whole diff is read, prepared statements
 
 
