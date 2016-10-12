@@ -82,6 +82,8 @@ public:
 
     ~DiffHandler2();
 
+    friend void end_copy_nodes_tables(DiffHandler2&);
+
     void node(const osmium::Node& node);
 
     void way(const osmium::Way& way);
