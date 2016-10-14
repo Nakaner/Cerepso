@@ -1,5 +1,5 @@
-Command Line Options
-====================
+
+/*! \page usage Command Line Options
 
 Important
 -----------
@@ -36,3 +36,5 @@ and `--max-zoom=ZOOM` for the zoom interval you want.
 In addition to osm2pgsql's method, pgimporter also provides another implementation. Use `-e quadtree` to select it. It converts
 internally the ZXY addresses to quadtree addresses (as used by Bing), stores them in a map. This implementation is good to
 analyze the spatial distribution of changes in OSM.
+ */
+
