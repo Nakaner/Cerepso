@@ -17,7 +17,6 @@
 #include <osmium/osm/way.hpp>
 #include <osmium/osm/area.hpp>
 #include <osmium/area/assembler.hpp>
-//#include <osmium/area/multipolygon_collector.hpp>
 #include <osmium/io/any_input.hpp>
 #include <iostream>
 #include <getopt.h>
@@ -27,8 +26,27 @@
 using index_type = osmium::index::map::Map<osmium::unsigned_object_id_type, osmium::Location>;
 using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
 
+/**
+ * @mainpage
+ * pgimporter is a tool to import OSM data into a PostgreSQL database (with
+ * PostGIS and hstore extension) and to keep the database up to date with
+ * minutely, hourly or daily diff files provided by OSM itself or third parties
+ * like Geofabrik.
+ *
+ * pgimporter is inspired by osm2pgsql and tries to be as compatible as possible
+ * with it but removes some "dirty hacks". See differences-from-osm2pgsql for details.
+ * Small parts of osm2pgsql source code and almost all database optimization techniques
+ * have been reused by pgimporter.
+ *
+ * pgimporter makes much use of the Osmium library for reading OSM data and building
+ * geometries.
+ *
+ * Its written in C++11 and available under GPLv2.
+ */
+
 
 int main(int argc, char* argv[]) {
+    // parsing command line arguments
     static struct option long_options[] = {
             {"help",   no_argument, 0, 'h'},
             {"debug",  no_argument, 0, 'D'},
@@ -126,10 +144,12 @@ int main(int argc, char* argv[]) {
         config.m_osm_file =  argv[optind];
     }
 
-
+    // set up location handler
     const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
     auto location_index = map_factory.create_map(config.m_location_handler);
     location_handler_type location_handler(*location_index);
+
+    // column definitions
     Columns node_columns(config, TableType::POINT);
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
     Columns way_linear_columns(config, TableType::WAYS_LINEAR);
