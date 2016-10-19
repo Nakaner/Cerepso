@@ -34,7 +34,7 @@ namespace test_utils {
         object.set_version("1");
         object.set_changeset("5");
         object.set_uid("140");
-        object.set_timestamp("2016-01-05T01:22:45Z");
+        object.set_timestamp(osmium::Timestamp("2016-01-05T01:22:45Z"));
     }
 
     osmium::Node& create_new_node(osmium::memory::Buffer& buffer, osmium::object_id_type id, double lon, double lat,
