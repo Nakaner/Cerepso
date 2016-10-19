@@ -13,11 +13,22 @@
 #include "expire_tiles_dummy.hpp"
 
 /**
- * Factory creating layers inherited from OutputLayer.
+ * \brief Factory for an implementation of ExpireTiles
  */
 
 class ExpireTilesFactory {
 public:
+    /**
+     * \brief Return the implementation you request.
+     *
+     * Following implementations are available:
+     * * `classic`, very similar to osm2pgsql
+     * * `quadtree`, new implementation which also supports relations and expires the tiles of all way and
+     *   node members if something has changed of the relation
+     * * `dummy` does not create an expiry lis, use it if don't need such a list
+     *
+     * \param config program configuration, Config::m_expiry_type is important
+     */
     ExpireTiles* create_expire_tiles(Config& config);
 
 private:

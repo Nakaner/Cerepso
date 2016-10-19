@@ -9,7 +9,8 @@
 #define DUMMY_EXPIRE_HPP_
 
 /**
- * @brief Dummy class for creating tile expiry lists. Used if no expiry list should be created.
+ * \brief Dummy class for creating tile expiry lists. Used if no expiry list should be created.
+ *
  * All public methods just do nothing.
  * This class implements the Null Object Pattern.
  */
@@ -27,7 +28,6 @@ public:
 
     void expire_from_coord_sequence(const geos::geom::CoordinateSequence*) {}
 
-    // output the list of expired tiles to a file.s
     void output_and_destroy() {}
 
     void expire_tile(int, int) {}

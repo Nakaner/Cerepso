@@ -23,8 +23,11 @@
 #include "myhandler.hpp"
 
 /**
- * The RelationCollector collects all relations which are not covered by MultipolygonCollector.
- * It writes ge
+ * \brief The RelationCollector collects all relations.
+ *
+ * It is used during the first pass of pgimporter
+ * to read all relations, their tags and reference from the input file. At the second pass it collects
+ * all ways and nodes which are referenced by the collected relations.
  */
 class RelationCollector: public osmium::relations::Collector<RelationCollector,
     true, true, false> {
@@ -32,8 +35,11 @@ class RelationCollector: public osmium::relations::Collector<RelationCollector,
     typedef typename osmium::relations::Collector<RelationCollector, true, true, true> collector_type;
 
 private:
+    /// reference to program configuration
     Config& m_config;
     osmium::memory::Buffer m_output_buffer;
+
+    /// \brief database connection for the relations table
     Table m_database_table;
     osmium::geom::GEOSFactory<> m_geos_factory;
     geos::geom::GeometryFactory m_geos_geom_factory;
@@ -41,16 +47,16 @@ private:
     static constexpr size_t initial_output_buffer_size = 1024 * 1024;
     static constexpr size_t max_buffer_size_for_flush = 100 * 1024;
 
-    /** Helper to retrieve relation member */
+    /** \brief Helper method to retrieve relation members from osmium::handler::Handler#m_members_buffer as osmium::Node& */
     osmium::Node& get_member_node(size_t offset) const;
 
-    /** Helper to retrieve relation member */
-    osmium::Way& get_member_way(size_t offset) const ;
+    /** \brief Helper method to retrieve relation members from osmium::handler::Handler#m_members_buffer as osmium::Way& */
+    osmium::Way& get_member_way(size_t offset) const;
 
-    /** Helper to retrieve relation member */
-    osmium::Relation& get_member_relation(size_t offset) const ;
+    /** \brief Helper method to retrieve relation members from osmium::handler::Handler#m_members_buffer as osmium::Relation& */
+    osmium::Relation& get_member_relation(size_t offset) const;
 
-    /** Helper method. Returns true if the member will likely miss in the data source file.
+    /** \brief Helper method. Returns true if the member will likely miss in the data source file.
      *
      *  If the member has an offset of 0 in the buffer and the relation is not contained
      *  completely in the data source file, the member will likely not be contained in the
@@ -59,6 +65,8 @@ private:
      *  If the member has an offset of 0 in the buffer and the relation is contained
      *  completely in the data source file, the member will be contained in the data
      *  source file.
+     *
+     *  \todo implement; necessary to support partial relations of extracts
      */
     bool member_missing(const osmium::RelationMember& member, bool complete);
 
@@ -68,25 +76,42 @@ public:
     explicit RelationCollector(Config& config, Columns& node_columns);
 
     /**
-     * This method decides which relations we're interested in, and
+     * \brief This method decides which relations we're interested in, and
      * instructs Osmium to collect their members for us.
      *
-     * @return opposite of MultipolygonCollector::keep_relation()
+     * This method is derived from osmium::handler::Handler.
+     *
+     * \return always `true` because we do not filter out any relations
      */
     bool keep_relation(const osmium::Relation& relation) const;
+
     /**
-     * Tells Osmium which members to keep for a relation of interest.
+     * \brief Tells Osmium which members to keep for a relation of interest.
+     *
+     * This method is derived from osmium::handler::Handler.
+     *
+     * \return always `true` because we do not filter out any members
      */
     bool keep_member(const osmium::relations::RelationMeta& relation_meta, const osmium::RelationMember& member) const;
+
     /**
-     * Called by Osmium when a relation has been fully read (i.e. all
+     * \brief Called by Osmium when a relation has been fully read (i.e. all
      * members are present)
+     *
+     * This method is required by Osmium.
      */
     void complete_relation(osmium::relations::RelationMeta& relation_meta);
+
     /**
+     * \brief Process incomplete relations (some members missing).
+     *
      * Called after all relations have been read, to processs those that
      * were not fully read. We cannot assume that all members will be present
-     * for all relations.
+     * for all relations (happens if we read an extract instead of the planet dump).
+     *
+     * This method is required by Osmium.
+     *
+     * \todo implement; necessary to support partial relations of extracts
      */
     void handle_incomplete_relations();
 

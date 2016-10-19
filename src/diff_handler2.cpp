@@ -68,7 +68,7 @@ void DiffHandler2::insert_way(const osmium::Way& way, std::string& copy_buffer) 
         }
     }
     if (coord_sequence->size() < 2) {
-        //TODO clean up memory
+        /// \todo clean up memory
         throw osmium::geometry_error((boost::format("Too few points for way %1%.") % way.id()).str());
     }
     m_expire_tiles->expire_from_coord_sequence(coord_sequence);
@@ -89,14 +89,13 @@ void DiffHandler2::insert_way(const osmium::Way& way, std::string& copy_buffer) 
     }
     copy_buffer.append("}");
     copy_buffer.push_back('\n');
-    //TODO clean up memory
+    /// \todo clean up memory
 }
 
 void DiffHandler2::insert_relation(const osmium::Relation& relation) {
     try {
         char idbuffer[20];
         sprintf(idbuffer, "%ld", relation.id());
-        //TODO Rewrite this part. Diff import should have to passes, one to delete old object, one to reimport the new ones.
         std::string copy_buffer;
         copy_buffer.append(idbuffer, strlen(idbuffer));
         add_tags(copy_buffer, relation);
@@ -130,7 +129,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
             }
             else if ((member.type() == osmium::item_type::relation)) {
                 // We do not add the geometry of this relation to the GeometryCollection.
-                // TODO support one level of nested relations
+                /// \todo support one level of nested relations
                 object_types.push_back(osmium::item_type::relation);
             }
         }

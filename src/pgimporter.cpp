@@ -27,7 +27,7 @@ using index_type = osmium::index::map::Map<osmium::unsigned_object_id_type, osmi
 using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
 
 /**
- * @mainpage
+ * \mainpage
  * pgimporter is a tool to import OSM data into a PostgreSQL database (with
  * PostGIS and hstore extension) and to keep the database up to date with
  * minutely, hourly or daily diff files provided by OSM itself or third parties

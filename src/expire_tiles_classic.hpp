@@ -13,6 +13,13 @@
 #ifndef EXPIRE_TILES_CLASSIC_HPP_
 #define EXPIRE_TILES_CLASSIC_HPP_
 
+/**
+ * \brief This class implements the tile expiry algorithm of osm2pgsql.
+ *
+ * The code has only been slightly modified after being copied from osm2pgsql.
+ * Therefore it has no unit tests and serves just backward compatability (with
+ * all bugs if there are any ;-)).
+ */
 class ExpireTilesClassic : public ExpireTiles {
 public:
     struct Tile {
@@ -41,11 +48,13 @@ public:
 
     void expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords);
 
-    // output the list of expired tiles to a file. note that this
-    // consumes the list of expired tiles destructively.
+    /**
+     * \brief Output the list of expired tiles to a file. Note that this consumes the list of expired tiles destructively.
+     */
     void output_and_destroy();
 
 private:
+    /// dirty tile tree
     Tile* m_dirty;
     double tile_width;
 
@@ -53,8 +62,9 @@ private:
 
     void expire_tile(int x, int y);
 
-    // output the list of expired tiles using a `tile_output`
-    // functor. this consumes the list of expired tiles destructively.
+    /**
+     * \brief Output the list of expired tiles using a `tile_output` functor. this consumes the list of expired tiles destructively.
+     */
     void output_and_destroy(tile_output *output);
 };
 

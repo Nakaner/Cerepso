@@ -1,5 +1,5 @@
 /*
- * append_handler.hpp
+ * diff_handler1.hpp
  *
  *  Created on: 11.07.2016
  *      Author: michael
@@ -7,21 +7,21 @@
 
 #ifndef APPEND_HANDLER_HPP_
 #define APPEND_HANDLER_HPP_
-//#include <sstream>
 #include <geos/geom/GeometryFactory.h>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
 
 /**
- * Diff handler for table imported using MyHandler class.
+ * \brief Diff handler for table imported using MyHandler class, pass 1.
  *
- * This handler deletes all objects with version > 1 from the tables. Another handler will import them again.
+ * This handler deletes all objects with version > 1 from the tables. Another handler will import them again in a second pass.
  */
 
 class DiffHandler1 : public PostgresHandler {
 private:
+
     /**
-     * additional table for relations which is not inherited from PostgresHandler
+     * \brief additional table for relations which is not inherited from PostgresHandler
      */
     Table& m_relations_table;
 
@@ -30,15 +30,13 @@ private:
     geos::geom::GeometryFactory m_geom_factory;
 
     /**
-     * Search in both table holding the nodes for the node in question and return it as instance of geos::geom::Coordinate.
+     * \brief Search in both table holding the nodes for the node in question and return it as instance of geos::geom::Coordinate.
      *
-     * This method looks both into nodes and untagged_nodes table.
+     * \param id OSM ID of the node
      *
-     * @param id OSM ID of the node
+     * \throws std::runtime_error if it is not found in any table
      *
-     * @throws std::runtime_error if it is not found in any table
-     *
-     * @returns unique_ptr to the Coordinate instance
+     * \returns unique_ptr to the Coordinate instance
      */
     std::unique_ptr<const geos::geom::Coordinate> get_point_from_tables(osmium::object_id_type id);
 
@@ -50,7 +48,7 @@ public:
             m_expire_tiles(expire_tiles) { }
 
     /**
-     * constructor for testing purposes, will not establish database connections
+     * \brief Constructor for testing purposes, will not establish database connections.
      */
     DiffHandler1(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table, Config& config,
             ExpireTiles* expire_tiles) :
@@ -60,12 +58,15 @@ public:
 
     ~DiffHandler1() {};
 
+
     void node(const osmium::Node& node);
+
 
     void way(const osmium::Way& way);
 
     void relation(const osmium::Relation& area);
 
+    /// Handler not used but has to implemented because it is a full virtual method.
     void area(const osmium::Area& area) {};
 };
 

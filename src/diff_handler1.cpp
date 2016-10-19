@@ -1,5 +1,5 @@
 /*
- * append_handler.cpp
+ * diff_handler1.cpp
  *
  *  Created on: 11.07.2016
  *      Author: michael
