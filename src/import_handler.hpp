@@ -10,32 +10,48 @@
 
 #include "postgres_handler.hpp"
 
+/**
+ * \brief Handler for nodes and ways to be imported into the database.
+ *
+ * To import relations into the database, use RelationCollector class.
+ */
 
 class ImportHandler : public PostgresHandler {
 public:
     ImportHandler() = delete;
 
-//    /**
-//     * constructor for normal usage
-//     */
-//    MyHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns)
-//        : PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns) { }
+    /**
+     * \brief constructor for normal usage
+     *
+     * This constructor takes references to the program configuration and the instances of Table class.
+     */
     ImportHandler(Config& config,  Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table) {}
 
-//    /**
-//     * constructor for testing purposes, will not establish database connections
-//     */
+    /**
+     * \brief Constructor for testing purposes, will not establish database connections
+     *
+     * This constructor takes references to the program configuration and the instances of Table class.
+     */
     ImportHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config) { }
 
     ~ImportHandler() {
     }
 
+    /**
+     * \osmiumcallback
+     */
     void node(const osmium::Node& node);
 
+    /**
+     * \osmiumcallback
+     */
     void way(const osmium::Way& way);
 
+    /**
+     * \osmiumcallback
+     */
     void area(const osmium::Area& area) {};
 };
 
