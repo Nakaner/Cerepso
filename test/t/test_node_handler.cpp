@@ -7,9 +7,9 @@
 
 #include "catch.hpp"
 #include "object_builder_utilities.hpp"
-#include <myhandler.hpp>
 #include <table.hpp>
 #include <columns.hpp>
+#include "../../src/import_handler.hpp"
 
 int count_occurence_of_substring(std::string& string, char to_find) {
     int count = 0;
@@ -39,7 +39,7 @@ TEST_CASE("node handler produces good lines for COPY") {
     Table nodes_table ("nodes", config, node_columns);
     Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
     Table ways_table ("ways", config, way_columns);
-    MyHandler handler(nodes_table, untagged_nodes_table, ways_table, config);
+    ImportHandler handler(nodes_table, untagged_nodes_table, ways_table, config);
 
     std::string query_str;
     handler.prepare_node_query(node, query_str);

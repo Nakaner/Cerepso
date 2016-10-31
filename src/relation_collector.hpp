@@ -19,8 +19,8 @@
 #include <osmium/area/assembler.hpp>
 #include <osmium/relations/detail/member_meta.hpp>
 #include "columns.hpp"
+#include "import_handler.hpp"
 #include "table.hpp"
-#include "myhandler.hpp"
 
 /**
  * \brief The RelationCollector collects all relations.

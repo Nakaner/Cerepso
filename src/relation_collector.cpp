@@ -84,7 +84,7 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
         std::stringstream query_stream;
         m_geos_wkb_writer.writeHEX(*geom_collection, query_stream);
         query.append(query_stream.str());
-        MyHandler::add_separator_to_stringstream(query);
+        ImportHandler::add_separator_to_stringstream(query);
         query.push_back('{');
         for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
             if (id != object_ids.begin()) {
@@ -94,7 +94,7 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
             query.append(idbuffer);
         }
         query.push_back('}');
-        MyHandler::add_separator_to_stringstream(query);
+        ImportHandler::add_separator_to_stringstream(query);
         query.push_back('{');
         for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
             if (type != object_types.begin()) {

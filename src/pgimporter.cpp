@@ -9,7 +9,6 @@
 #include <osmium/index/map/dense_mmap_array.hpp>
 #include <osmium/handler/node_locations_for_ways.hpp>
 #include <osmium/visitor.hpp>
-#include "myhandler.hpp"
 #include "diff_handler1.hpp"
 #include "diff_handler2.hpp"
 #include "columns.hpp"
@@ -22,6 +21,7 @@
 #include <getopt.h>
 #include "relation_collector.hpp"
 #include "expire_tiles_factory.hpp"
+#include "import_handler.hpp"
 
 using index_type = osmium::index::map::Map<osmium::unsigned_object_id_type, osmium::Location>;
 using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
@@ -221,7 +221,7 @@ int main(int argc, char* argv[]) {
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        MyHandler handler(config, nodes_table, untagged_nodes_table, ways_linear_table);
+        ImportHandler handler(config, nodes_table, untagged_nodes_table, ways_linear_table);
         osmium::apply(reader2, location_handler, handler, rel_collector.handler());
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;

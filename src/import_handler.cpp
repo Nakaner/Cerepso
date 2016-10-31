@@ -1,15 +1,16 @@
 /*
- * myhandler.cpp
+ * import_handler.cpp
  *
  *  Created on: 20.06.2016
  *      Author: michael
  */
 
-#include "myhandler.hpp"
+#include "import_handler.hpp"
+
 #include <osmium/osm/tag.hpp>
 #include <sstream>
 
-void MyHandler::node(const osmium::Node& node) {
+void ImportHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
@@ -23,7 +24,7 @@ void MyHandler::node(const osmium::Node& node) {
     }
 }
 
-void MyHandler::way(const osmium::Way& way) {
+void ImportHandler::way(const osmium::Way& way) {
     if (way.nodes().size() < 3) {
         // degenerated way (none or only one node)
         //TODO add logging

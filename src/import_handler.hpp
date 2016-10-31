@@ -1,35 +1,35 @@
 /*
- * myhandler.hpp
+ * import_handler.hpp
  *
  *  Created on: 20.06.2016
  *      Author: michael
  */
 
-#ifndef MYHANDLER_HPP_
-#define MYHANDLER_HPP_
+#ifndef IMPORTHANDLER_HPP_
+#define IMPORTHANDLER_HPP_
 
 #include "postgres_handler.hpp"
 
 
-class MyHandler : public PostgresHandler {
+class ImportHandler : public PostgresHandler {
 public:
-    MyHandler() = delete;
+    ImportHandler() = delete;
 
 //    /**
 //     * constructor for normal usage
 //     */
 //    MyHandler(Config& config, Columns& node_columns, Columns& untagged_nodes_columns, Columns& way_linear_columns)
 //        : PostgresHandler(config, node_columns, untagged_nodes_columns, way_linear_columns) { }
-    MyHandler(Config& config,  Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
+    ImportHandler(Config& config,  Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table) {}
 
 //    /**
 //     * constructor for testing purposes, will not establish database connections
 //     */
-    MyHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config) :
+    ImportHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config) { }
 
-    ~MyHandler() {
+    ~ImportHandler() {
     }
 
     void node(const osmium::Node& node);
@@ -41,4 +41,4 @@ public:
 
 
 
-#endif /* MYHANDLER_HPP_ */
+#endif /* IMPORTHANDLER_HPP_ */
