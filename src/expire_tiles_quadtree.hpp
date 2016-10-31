@@ -18,8 +18,14 @@ struct xy_coord_t {
     xy_coord_t() : xy_coord_t(0, 0) {}
 };
 
+/**
+ * \brief Quadtree implementation of ExpireTiles
+ *
+ * This is an replacement for ExpireTilesClassic.
+ */
 class ExpireTilesQuadtree : public ExpireTiles {
 private:
+    /// Map of tiles marked as dirty
     std::map<int, bool> m_dirty_tiles;
     std::unique_ptr<std::ostream> m_outstream;
 
