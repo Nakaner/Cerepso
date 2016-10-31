@@ -12,7 +12,7 @@
 #include "expire_tiles.hpp"
 
 /**
- * \brief Diff handler for table imported using MyHandler class, pass 1.
+ * \brief Diff handler for table imported using ImportHandler class, pass 1.
  *
  * This handler deletes all objects with version > 1 from the tables. Another handler will import them again in a second pass.
  */
