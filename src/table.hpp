@@ -8,12 +8,13 @@
 #ifndef TABLE_HPP_
 #define TABLE_HPP_
 
-#include <libpq-fe.h>
 #include <boost/format.hpp>
-#include "columns.hpp"
 #include <sstream>
+#include <libpq-fe.h>
 #include <osmium/osm/types.hpp>
 #include <geos/geom/Point.h>
+#include "columns.hpp"
+#include "config.hpp"
 
 /**
  * \brief This class manages connection to a database table. We have one connection per table,

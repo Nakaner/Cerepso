@@ -11,8 +11,8 @@
 #include <osmium/osm/way.hpp>
 #include <osmium/osm/area.hpp>
 #include <osmium/geom/wkb.hpp>
-#include "table.hpp"
 #include <memory>
+#include "table.hpp"
 
 #ifndef POSTGRES_HANDLER_HPP_
 #define POSTGRES_HANDLER_HPP_

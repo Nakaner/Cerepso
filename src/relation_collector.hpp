@@ -18,7 +18,6 @@
 #include <osmium/relations/collector.hpp>
 #include <osmium/area/assembler.hpp>
 #include <osmium/relations/detail/member_meta.hpp>
-#include "columns.hpp"
 #include "import_handler.hpp"
 #include "table.hpp"
 

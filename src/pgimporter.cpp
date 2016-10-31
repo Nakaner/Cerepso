@@ -5,23 +5,19 @@
  *      Author: michael
  */
 
+#include <iostream>
+#include <getopt.h>
 #include <osmium/index/map/sparse_mmap_array.hpp>
 #include <osmium/index/map/dense_mmap_array.hpp>
 #include <osmium/handler/node_locations_for_ways.hpp>
 #include <osmium/visitor.hpp>
-#include "diff_handler1.hpp"
-#include "diff_handler2.hpp"
-#include "columns.hpp"
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
-#include <osmium/osm/area.hpp>
-#include <osmium/area/assembler.hpp>
 #include <osmium/io/any_input.hpp>
-#include <iostream>
-#include <getopt.h>
+#include "diff_handler1.hpp"
+#include "diff_handler2.hpp"
 #include "relation_collector.hpp"
 #include "expire_tiles_factory.hpp"
-#include "import_handler.hpp"
 
 using index_type = osmium::index::map::Map<osmium::unsigned_object_id_type, osmium::Location>;
 using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;

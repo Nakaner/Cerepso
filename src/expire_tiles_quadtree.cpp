@@ -7,13 +7,13 @@
  *  This file contains code from osm2pgsql/expire_tiles.cpp
  */
 
-#include "expire_tiles_quadtree.hpp"
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <cmath>
 #include <assert.h>
 #include <set>
+#include "expire_tiles_quadtree.hpp"
 
 void ExpireTilesQuadtree::expire_from_point(double lon, double lat) {
     // convert latlon into Mercator coordinates and these into tile coordinates

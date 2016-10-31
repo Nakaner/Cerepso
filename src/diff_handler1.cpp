@@ -5,13 +5,13 @@
  *      Author: michael
  */
 
-#include "diff_handler1.hpp"
 #include <geos/geom/CoordinateArraySequenceFactory.h>
 #include <geos/geom/CoordinateArraySequence.h>
 #include <geos/geom/GeometryFactory.h>
 #include <geos/io/WKBWriter.h>
 #include <geos/geom/LineString.h>
 #include <osmium/osm/relation.hpp>
+#include "diff_handler1.hpp"
 
 
 void DiffHandler1::node(const osmium::Node& node) {

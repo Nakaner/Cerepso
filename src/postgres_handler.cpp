@@ -6,9 +6,8 @@
  */
 
 
-#include "postgres_handler.hpp"
-#include <osmium/osm/tag.hpp>
 #include <sstream>
+#include "postgres_handler.hpp"
 
 void PostgresHandler::add_separator_to_stringstream(std::string& ss) {
     ss.push_back('\t');

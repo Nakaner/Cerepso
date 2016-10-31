@@ -5,10 +5,9 @@
  *      Author: michael
  */
 
-#include "import_handler.hpp"
-
 #include <osmium/osm/tag.hpp>
 #include <sstream>
+#include "import_handler.hpp"
 
 void ImportHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {

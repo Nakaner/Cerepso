@@ -5,10 +5,10 @@
  *      Author: michael
  */
 
-#include "columns.hpp"
 #include <osmium/osm/location.hpp>
 #include <geos/geom/Geometry.h>
 #include <geos/geom/CoordinateArraySequence.h>
+#include "config.hpp"
 
 #ifndef EXPIRE_TILES_HPP_
 #define EXPIRE_TILES_HPP_

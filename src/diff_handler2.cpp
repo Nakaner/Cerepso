@@ -5,13 +5,13 @@
  *      Author: michael
  */
 
-#include "diff_handler2.hpp"
 #include <geos/geom/CoordinateArraySequenceFactory.h>
 #include <geos/geom/CoordinateArraySequence.h>
 #include <geos/geom/GeometryFactory.h>
 #include <geos/io/WKBWriter.h>
 #include <geos/geom/LineString.h>
 #include <osmium/osm/relation.hpp>
+#include "diff_handler2.hpp"
 
 DiffHandler2::~DiffHandler2() {
     m_expire_tiles->output_and_destroy();
