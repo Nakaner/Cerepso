@@ -22,8 +22,22 @@
  */
 class ExpireTilesClassic : public ExpireTiles {
 public:
+
+    /**
+     * \brief Node of the tree structure of tiles managed by ExpireTilesClassic
+     */
     struct Tile {
+        /**
+         * This members stores the information wether there are subtiles. If an entry of the
+         * array is 1, the subtile exists and can be accessed via
+         * \link Tile#complete ExpireTilesClassic::Tile::complete \endlink.
+         * If an entry is 0, there are no subtiles in the tree.
+         */
         int complete[2][2];
+
+        /**
+         * pointers to the four subtiles of this tile
+         */
         struct Tile* subtiles[2][2];
     };
 
