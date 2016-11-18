@@ -53,29 +53,34 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     std::vector<osmium::item_type> object_types;
     try {
         for (const auto& member : relation.members()) {
-            //if (!member_missing(member, complete)) { // only if member was present in file
-                if ((member.type() == osmium::item_type::way)) {
-                    osmium::Way& way = this->get_member_way(this->get_offset(member.type(), member.ref()));
-                    std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
-                    geometries->push_back(linestring.release());
-                    object_ids.push_back(member.ref());
-                    object_types.push_back(osmium::item_type::way);
-                }
-                else if ((member.type() == osmium::item_type::node)) {
-                    osmium::Node& node =this->get_member_node(this->get_offset(member.type(), member.ref()));
-                    std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
-                    geometries->push_back(point.release());
-                    object_ids.push_back(member.ref());
-                    object_types.push_back(osmium::item_type::node);
-                }
-                else if ((member.type() == osmium::item_type::relation)) {
-                    osmium::Relation& relation =this->get_member_relation(this->get_offset(member.type(), member.ref()));
-                    // We do not add the geometry of this relation to the GeometryCollection.
-                    // TODO support one level of nested relations
-                    object_ids.push_back(member.ref());
-                    object_types.push_back(osmium::item_type::relation);
-                }
-            //}
+            // get the offset and check the availability, needs libosmium >= 2.10.2
+            std::pair<bool, size_t> available_and_offset;
+            available_and_offset = this->get_availability_and_offset(member.type(), member.ref());
+            if (!available_and_offset.first) {
+                // object is not available in the input OSM file, therefore we skip it
+                continue;
+            }
+            if ((member.type() == osmium::item_type::way)) {
+                osmium::Way& way = this->get_member_way(available_and_offset.second);
+                std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
+                geometries->push_back(linestring.release());
+                object_ids.push_back(member.ref());
+                object_types.push_back(osmium::item_type::way);
+            }
+            else if ((member.type() == osmium::item_type::node)) {
+                osmium::Node& node = this->get_member_node(available_and_offset.second);
+                std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
+                geometries->push_back(point.release());
+                object_ids.push_back(member.ref());
+                object_types.push_back(osmium::item_type::node);
+            }
+            else if ((member.type() == osmium::item_type::relation)) {
+                osmium::Relation& relation =this->get_member_relation(available_and_offset.second);
+                // We do not add the geometry of this relation to the GeometryCollection.
+                // TODO support one level of nested relations
+                object_ids.push_back(member.ref());
+                object_types.push_back(osmium::item_type::relation);
+            }
         }
         // create GeometryCollection
         geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(geometries);
