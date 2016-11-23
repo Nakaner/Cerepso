@@ -24,7 +24,7 @@ void ImportHandler::node(const osmium::Node& node) {
 }
 
 void ImportHandler::way(const osmium::Way& way) {
-    if (way.nodes().size() < 3) {
+    if (way.nodes().size() < 2) {
         // degenerated way (none or only one node)
         //TODO add logging
         return;
