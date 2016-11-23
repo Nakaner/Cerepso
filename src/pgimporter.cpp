@@ -140,11 +140,6 @@ int main(int argc, char* argv[]) {
         config.m_osm_file =  argv[optind];
     }
 
-    // set up location handler
-    const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
-    auto location_index = map_factory.create_map(config.m_location_handler);
-    location_handler_type location_handler(*location_index);
-
     // column definitions
     Columns node_columns(config, TableType::POINT);
     Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
