@@ -67,6 +67,7 @@
  * relations table has additional columns about their members:
  * * `member_ids` bigint[] – array containing IDs of all members
  * * `member_types` char[] – array containing either `n`, `w` or `r`
+ * * `member_roles text[] – array containing the roles of the members
  * 
  * 
  * 

@@ -52,8 +52,13 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
     std::vector<osmium::object_id_type> object_ids;
     std::vector<osmium::item_type> object_types;
+    std::vector<std::string> object_roles;
     try {
+        std::vector<osmium::item_type> object_types;
         for (const auto& member : relation.members()) {
+            object_ids.push_back(member.ref());
+            object_roles.push_back(member.role());
+            object_types.push_back(member.type());
             // get the offset and check the availability, needs libosmium >= 2.10.2
             std::pair<bool, size_t> available_and_offset;
             available_and_offset = this->get_availability_and_offset(member.type(), member.ref());
@@ -65,22 +70,16 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
                 osmium::Way& way = this->get_member_way(available_and_offset.second);
                 std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
                 linestrings->push_back(linestring.release());
-                object_ids.push_back(member.ref());
-                object_types.push_back(osmium::item_type::way);
             }
             else if ((member.type() == osmium::item_type::node)) {
                 osmium::Node& node = this->get_member_node(available_and_offset.second);
                 std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
                 points->push_back(point.release());
-                object_ids.push_back(member.ref());
-                object_types.push_back(osmium::item_type::node);
             }
             else if ((member.type() == osmium::item_type::relation)) {
 //                osmium::Relation& relation =this->get_member_relation(available_and_offset.second);
                 // We do not add the geometry of this relation to the GeometryCollection.
                 // TODO support one level of nested relations
-                object_ids.push_back(member.ref());
-                object_types.push_back(osmium::item_type::relation);
             }
         }
         // create GeometryCollection
@@ -122,6 +121,17 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
             } else if (*type == osmium::item_type::relation) {
                 query.push_back('r');
             }
+        }
+        query.push_back('}');
+        ImportHandler::add_separator_to_stringstream(query);
+        query.push_back('{');
+        for (std::vector<std::string>::const_iterator role = object_roles.begin(); role < object_roles.end(); role++) {
+            if (role != object_roles.begin()) {
+                query.append(", ");
+            }
+            query.push_back('\'');
+            query.append(*role);
+            query.push_back('\'');
         }
         query.append("}\n");
         m_database_table.send_line(query);

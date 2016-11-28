@@ -104,8 +104,11 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
         std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
         std::vector<osmium::object_id_type> object_ids;
         std::vector<osmium::item_type> object_types;
+        std::vector<std::string> object_roles;
         for (const auto& member : relation.members()) {
             object_ids.push_back(member.ref());
+            object_roles.push_back(member.role());
+            object_types.push_back(member.type());
             if ((member.type() == osmium::item_type::node)) {
                 std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(member.ref());
                 if (!coord) {
@@ -116,7 +119,6 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
                     std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(*(coord.get())));
                     points->push_back(point.release());
                 }
-                object_types.push_back(osmium::item_type::node);
             }
             else if ((member.type() == osmium::item_type::way)) {
                 std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), m_geom_factory);
@@ -126,12 +128,10 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
                     delete coord_sequence;
                     linestrings->push_back(linestring.release());
                 }
-                object_types.push_back(osmium::item_type::way);
             }
             else if ((member.type() == osmium::item_type::relation)) {
                 // We do not add the geometry of this relation to the GeometryCollection.
                 /// \todo support one level of nested relations
-                object_types.push_back(osmium::item_type::relation);
             }
         }
         // create GeometryCollection
@@ -176,6 +176,17 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
             } else if (*type == osmium::item_type::relation) {
                 copy_buffer.push_back('r');
             }
+        }
+        copy_buffer.push_back('}');
+        add_separator_to_stringstream(copy_buffer);
+        copy_buffer.push_back('{');
+        for (std::vector<std::string>::const_iterator role = object_roles.begin(); role < object_roles.end(); role++) {
+            if (role != object_roles.begin()) {
+                copy_buffer.append(", ");
+            }
+            copy_buffer.push_back('\'');
+            copy_buffer.append(*role);
+            copy_buffer.push_back('\'');
         }
         copy_buffer.append("}\n");
         m_relations_table.send_line(copy_buffer);

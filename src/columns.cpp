@@ -47,6 +47,7 @@ Columns::Columns(Config& config, TableType type):
         m_columns.push_back(std::make_pair("geom_lines", "geometry(MultiLineString,4326)"));
         m_columns.push_back(std::make_pair("member_ids", "bigint[]"));
         m_columns.push_back(std::make_pair("member_types", "char[]"));
+        m_columns.push_back(std::make_pair("member_roles", "text[]"));
     }
 }
 
