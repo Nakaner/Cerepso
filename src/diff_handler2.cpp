@@ -184,9 +184,9 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
             if (role != object_roles.begin()) {
                 copy_buffer.append(", ");
             }
-            copy_buffer.push_back('\'');
+            copy_buffer.push_back('"');
             copy_buffer.append(*role);
-            copy_buffer.push_back('\'');
+            copy_buffer.push_back('"');
         }
         copy_buffer.append("}\n");
         m_relations_table.send_line(copy_buffer);

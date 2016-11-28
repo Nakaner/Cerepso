@@ -129,9 +129,9 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
             if (role != object_roles.begin()) {
                 query.append(", ");
             }
-            query.push_back('\'');
+            query.push_back('"');
             query.append(*role);
-            query.push_back('\'');
+            query.push_back('"');
         }
         query.append("}\n");
         m_database_table.send_line(query);
