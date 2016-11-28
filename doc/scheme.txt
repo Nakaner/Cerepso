@@ -56,12 +56,11 @@
  * </tr>
  * </table>
  *
- * All geometry columns are called way, they have following types:
- * * `nodes`: Point(2)
- * * `untagged_nodes`: Point(2)
- * * `ways`: LineString(2)
- * * `osm_relation_other`: GeometryCollection(2)
- * 
+ * Of course, the database tables have geometry columns. Here they are:
+ * * `geom` of type Point for the `nodes` and `untagged_nodes` table
+ * * `geom` of type LineString for the `ways` table
+ * * `geom_points` of type MultiPoint and `geom_lines` of type MultiLineString for the `relations` table
+ *
  * ways table has additional columns about their members:
  * * `way_nodes` bigint[]
  * 

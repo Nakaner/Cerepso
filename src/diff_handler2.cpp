@@ -100,7 +100,8 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
         copy_buffer.append(idbuffer, strlen(idbuffer));
         add_tags(copy_buffer, relation);
         add_metadata_to_stringstream(copy_buffer, relation, m_config);
-        std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
+        std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
+        std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
         std::vector<osmium::object_id_type> object_ids;
         std::vector<osmium::item_type> object_types;
         for (const auto& member : relation.members()) {
@@ -113,7 +114,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
                 if (coord) {
                     m_expire_tiles->expire_from_point(coord->x, coord->y);
                     std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(*(coord.get())));
-                    geometries->push_back(point.release());
+                    points->push_back(point.release());
                 }
                 object_types.push_back(osmium::item_type::node);
             }
@@ -123,7 +124,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
                     geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
                     m_expire_tiles->expire_from_coord_sequence(coord_sequence);
                     delete coord_sequence;
-                    geometries->push_back(linestring.release());
+                    linestrings->push_back(linestring.release());
                 }
                 object_types.push_back(osmium::item_type::way);
             }
@@ -134,14 +135,24 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
             }
         }
         // create GeometryCollection
-        geos::geom::GeometryCollection* geom_collection = m_geom_factory.createGeometryCollection(geometries);
+        geos::geom::MultiPoint* multipoints = m_geom_factory.createMultiPoint(points);
+        geos::geom::MultiLineString* multilinestrings = m_geom_factory.createMultiLineString(linestrings);
+        // add multipoints to query string
         copy_buffer.append("SRID=4326;");
         // convert to WKB
         std::stringstream query_stream;
         geos::io::WKBWriter wkb_writer;
-        wkb_writer.writeHEX(*geom_collection, query_stream);
+        wkb_writer.writeHEX(*multipoints, query_stream);
         copy_buffer.append(query_stream.str());
-        delete geom_collection;
+        delete multipoints;
+        add_separator_to_stringstream(copy_buffer);
+        // add multilinestrings to query string
+        copy_buffer.append("SRID=4326;");
+        // convert to WKB
+        query_stream.str("");
+        wkb_writer.writeHEX(*multilinestrings, query_stream);
+        copy_buffer.append(query_stream.str());
+        delete multilinestrings;
         add_separator_to_stringstream(copy_buffer);
         copy_buffer.push_back('{');
         for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {

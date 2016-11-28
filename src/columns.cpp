@@ -43,7 +43,8 @@ Columns::Columns(Config& config, TableType type):
 //        m_columns.push_back(std::make_pair("member_types", "char[]"));
         break;
     case TableType::RELATION_OTHER :
-        m_columns.push_back(std::make_pair("geom", "geometry(GeometryCollection,4326)"));
+        m_columns.push_back(std::make_pair("geom_points", "geometry(MultiPoint,4326)"));
+        m_columns.push_back(std::make_pair("geom_lines", "geometry(MultiLineString,4326)"));
         m_columns.push_back(std::make_pair("member_ids", "bigint[]"));
         m_columns.push_back(std::make_pair("member_types", "char[]"));
     }

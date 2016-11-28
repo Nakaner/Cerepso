@@ -48,7 +48,8 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
     PostgresHandler::add_tags(query, relation);
     PostgresHandler::add_metadata_to_stringstream(query, relation, m_config);
 
-    std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
+    std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
+    std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
     std::vector<osmium::object_id_type> object_ids;
     std::vector<osmium::item_type> object_types;
     try {
@@ -63,19 +64,19 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
             if ((member.type() == osmium::item_type::way)) {
                 osmium::Way& way = this->get_member_way(available_and_offset.second);
                 std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
-                geometries->push_back(linestring.release());
+                linestrings->push_back(linestring.release());
                 object_ids.push_back(member.ref());
                 object_types.push_back(osmium::item_type::way);
             }
             else if ((member.type() == osmium::item_type::node)) {
                 osmium::Node& node = this->get_member_node(available_and_offset.second);
                 std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
-                geometries->push_back(point.release());
+                points->push_back(point.release());
                 object_ids.push_back(member.ref());
                 object_types.push_back(osmium::item_type::node);
             }
             else if ((member.type() == osmium::item_type::relation)) {
-                osmium::Relation& relation =this->get_member_relation(available_and_offset.second);
+//                osmium::Relation& relation =this->get_member_relation(available_and_offset.second);
                 // We do not add the geometry of this relation to the GeometryCollection.
                 // TODO support one level of nested relations
                 object_ids.push_back(member.ref());
@@ -83,11 +84,20 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
             }
         }
         // create GeometryCollection
-        geos::geom::GeometryCollection* geom_collection = m_geos_geom_factory.createGeometryCollection(geometries);
+        geos::geom::MultiPoint* multipoints = m_geos_geom_factory.createMultiPoint(points);
+        geos::geom::MultiLineString* multilinestrings = m_geos_geom_factory.createMultiLineString(linestrings);
+        // add multipoint to query
         query.append("SRID=4326;");
         // convert to WKB
         std::stringstream query_stream;
-        m_geos_wkb_writer.writeHEX(*geom_collection, query_stream);
+        m_geos_wkb_writer.writeHEX(*multipoints, query_stream);
+        query.append(query_stream.str());
+        ImportHandler::add_separator_to_stringstream(query);
+        // add multilinestring to query
+        query.append("SRID=4326;");
+        // convert to WKB
+        query_stream.str("");
+        m_geos_wkb_writer.writeHEX(*multilinestrings, query_stream);
         query.append(query_stream.str());
         ImportHandler::add_separator_to_stringstream(query);
         query.push_back('{');
@@ -115,7 +125,8 @@ void RelationCollector::complete_relation(osmium::relations::RelationMeta& relat
         }
         query.append("}\n");
         m_database_table.send_line(query);
-        delete geom_collection;
+        delete multipoints;
+        delete multilinestrings;
     } catch (osmium::geometry_error& e) {
         std::cerr << e.what() << "\n";
     }
