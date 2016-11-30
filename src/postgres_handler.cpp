@@ -76,7 +76,7 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
     add_metadata_to_stringstream(query, relation, config);
     std::vector<osmium::object_id_type> object_ids;
     std::vector<osmium::item_type> object_types;
-    std::vector<std::string> object_roles;
+    std::vector<const char*> object_roles;
     for (const auto& member : relation.members()) {
         object_ids.push_back(member.ref());
         object_roles.push_back(member.role());
@@ -116,12 +116,12 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
     query.push_back('}');
     add_separator_to_stringstream(query);
     query.push_back('{');
-    for (std::vector<std::string>::const_iterator role = object_roles.begin(); role < object_roles.end(); role++) {
-        if (role != object_roles.begin()) {
+    for (std::vector<const char*>::const_iterator it = object_roles.begin(); it < object_roles.end(); it++) {
+        if (it != object_roles.begin()) {
             query.append(", ");
         }
         query.push_back('"');
-        query.append(*role);
+        Table::escape4array(*it, query);
         query.push_back('"');
     }
     query.append("}\n");

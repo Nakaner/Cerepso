@@ -132,6 +132,19 @@ public:
     /**
      * \brief Escape a string from an insecure source and append it to another string.
      *
+     * Use this method if you want to insert a string into a PostgreSQL array but have to escape certain characters to
+     * prevent SQL injections.
+     *
+     * This method is based on osm2pgsql/middle-pgsql.cpp, char *escape_tag(char *ptr, const std::string &in, bool escape).
+     *
+     * \param source C string which should be escaped
+     * \param destination string where the escaped string will be appended
+     */
+    static void escape4array(const char* source, std::string& destination);
+
+    /**
+     * \brief Escape a string from an insecure source and append it to another string.
+     *
      * Use this method if you want to insert a string into the database but have to escape certain characters to
      * prevent SQL injections.
      *
