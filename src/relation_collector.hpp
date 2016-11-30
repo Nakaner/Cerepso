@@ -69,6 +69,25 @@ private:
      */
     bool member_missing(const osmium::RelationMember& member, bool complete);
 
+    /**
+     * \brief process a relation
+     *
+     * This method will insert the relation into the database
+     *
+     * \param relation reference to Relation object
+     */
+    void process_relation(const osmium::Relation& relation);
+
+    /**
+     * \brief Build the query string which will be inserted into the database using SQL COPY.
+     *
+     * \param relation reference to Relation object
+     * \param query_str reference to a string which will be inserted into the database
+     *
+     * \throws osmium::geometry_error
+     */
+    void build_relation_query(const osmium::Relation& relation, std::string& query);
+
 public:
 
     RelationCollector() = delete;

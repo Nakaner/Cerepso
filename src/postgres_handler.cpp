@@ -66,3 +66,63 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
     query.append(wkb);
     query.push_back('\n');
 }
+
+/*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,
+        std::stringstream& mulitpoint_wkb, std::stringstream& multilinestring_wkb, Config& config) {
+    static char idbuffer[20];
+    sprintf(idbuffer, "%ld", relation.id());
+    query.append(idbuffer);
+    add_tags(query, relation);
+    add_metadata_to_stringstream(query, relation, config);
+    std::vector<osmium::object_id_type> object_ids;
+    std::vector<osmium::item_type> object_types;
+    std::vector<std::string> object_roles;
+    for (const auto& member : relation.members()) {
+        object_ids.push_back(member.ref());
+        object_roles.push_back(member.role());
+        object_types.push_back(member.type());
+    }
+    // add multipoint to query
+    query.append("SRID=4326;");
+    query.append(mulitpoint_wkb.str());
+    add_separator_to_stringstream(query);
+    // add multilinestring to query
+    query.append("SRID=4326;");
+    query.append(multilinestring_wkb.str());
+    add_separator_to_stringstream(query);
+    query.push_back('{');
+    for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
+        if (id != object_ids.begin()) {
+            query.append(", ");
+        }
+        sprintf(idbuffer, "%ld", *id);
+        query.append(idbuffer);
+    }
+    query.push_back('}');
+    add_separator_to_stringstream(query);
+    query.push_back('{');
+    for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
+        if (type != object_types.begin()) {
+            query.append(", ");
+        }
+        if (*type == osmium::item_type::node) {
+            query.push_back('n');
+        } else if (*type == osmium::item_type::way) {
+            query.push_back('w');
+        } else if (*type == osmium::item_type::relation) {
+            query.push_back('r');
+        }
+    }
+    query.push_back('}');
+    add_separator_to_stringstream(query);
+    query.push_back('{');
+    for (std::vector<std::string>::const_iterator role = object_roles.begin(); role < object_roles.end(); role++) {
+        if (role != object_roles.begin()) {
+            query.append(", ");
+        }
+        query.push_back('"');
+        query.append(*role);
+        query.push_back('"');
+    }
+    query.append("}\n");
+}
