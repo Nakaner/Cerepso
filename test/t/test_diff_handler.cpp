@@ -20,32 +20,7 @@ void end_copy_nodes_tables(DiffHandler2& handler) {
 }
 
 TEST_CASE("inserting new way works") {
-    static constexpr int buffer_size = 10 * 1000 * 1000;
-    osmium::memory::Buffer node_buffer(buffer_size);
-    osmium::memory::Buffer way_buffer(buffer_size);
-    std::map<std::string, std::string> node_tags;
-    osmium::Node& node1 = test_utils::create_new_node(node_buffer, 1, 9.0, 50.1, node_tags);
-    osmium::Node& node2 = test_utils::create_new_node(node_buffer, 2, 9.1, 50.0,  node_tags);
-    osmium::Node& node3 = test_utils::create_new_node(node_buffer, 3, 9.2, 49.8, node_tags);
-
-    osmium::object_id_type current_id = 1;
-    osmium::builder::WayBuilder way_builder(way_buffer);
-    static_cast<osmium::Way&>(way_builder.object()).set_id(1);
-    test_utils::set_dummy_osm_object_attributes(static_cast<osmium::OSMObject&>(way_builder.object()));
-    way_builder.add_user("foo");
-    osmium::builder::WayNodeListBuilder wnl_builder(way_buffer, &way_builder);
-    const osmium::NodeRef nd_ref1 (1, osmium::Location(9.0, 50.1));
-    const osmium::NodeRef nd_ref2 (2, osmium::Location(9.1, 50.0));
-    const osmium::NodeRef nd_ref3 (3, osmium::Location(9.2, 49.8));
-    std::map<std::string, std::string> way_tags;
-    way_tags.insert(std::pair<std::string, std::string>("highway", "trunk"));
-    way_tags.insert(std::pair<std::string, std::string>("ref", "B 9"));
-    wnl_builder.add_node_ref(nd_ref1);
-    wnl_builder.add_node_ref(nd_ref2);
-    wnl_builder.add_node_ref(nd_ref3);
-    test_utils::add_tags(way_buffer, way_builder, way_tags);
-    way_buffer.commit();
-
+    // set up handler and database connection
     //TODO clean up by providing a simpler constructor of MyHandler
     Config config;
     Columns node_columns(config, TableType::POINT);
@@ -61,17 +36,47 @@ TEST_CASE("inserting new way works") {
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     DiffHandler2 handler(nodes_table, untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
 
-    // insert necessary nodes
+    // build OSM objects and call the callback methods of the handler
+    static constexpr int buffer_size = 10 * 1000 * 1000;
+    osmium::memory::Buffer node_buffer(buffer_size);
+    osmium::memory::Buffer way_buffer(buffer_size);
+    std::map<std::string, std::string> node_tags;
+    // build and insert necessary nodes
+    osmium::Node& node1 = test_utils::create_new_node(node_buffer, 1, 9.0, 50.1, node_tags);
     handler.node(node1);
+    node_buffer.commit();
+    osmium::Node& node2 = test_utils::create_new_node(node_buffer, 2, 9.1, 50.0,  node_tags);
     handler.node(node2);
+    node_buffer.commit();
+    osmium::Node& node3 = test_utils::create_new_node(node_buffer, 3, 9.2, 49.8, node_tags);
     handler.node(node3);
-    std::cout << "WOOORKS\n";
+    node_buffer.commit();
+
+    osmium::object_id_type current_id = 1;
+    osmium::builder::WayBuilder way_builder(way_buffer);
+    osmium::Way& way = static_cast<osmium::Way&>(way_builder.object());
+    way.set_id(1);
+    test_utils::set_dummy_osm_object_attributes(way);
+    way_builder.set_user("");
+    std::map<std::string, std::string> way_tags;
+    way_tags.insert(std::pair<std::string, std::string>("highway", "trunk"));
+    way_tags.insert(std::pair<std::string, std::string>("ref", "B 9"));
+    test_utils::add_tags(way_buffer, &way_builder, way_tags);
+    {
+        osmium::builder::WayNodeListBuilder wnl_builder(way_buffer, &way_builder);
+        const osmium::NodeRef nd_ref1 (1, osmium::Location(9.0, 50.1));
+        const osmium::NodeRef nd_ref2 (2, osmium::Location(9.1, 50.0));
+        const osmium::NodeRef nd_ref3 (3, osmium::Location(9.2, 49.8));
+        wnl_builder.add_node_ref(nd_ref1);
+        wnl_builder.add_node_ref(nd_ref2);
+        wnl_builder.add_node_ref(nd_ref3);
+    }
+
     end_copy_nodes_tables(handler);
     std::string ways_table_copy_buffer;
     handler.insert_way(way_builder.object(), ways_table_copy_buffer);
 
     SECTION("check if last char is \\n") {
-//        std::cout << handler.m_ways_table_copy_buffer << std::endl;
         REQUIRE(ways_table_copy_buffer.back() == '\n');
     }
 }

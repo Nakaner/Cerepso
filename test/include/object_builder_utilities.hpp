@@ -18,13 +18,14 @@
 #include <osmium/osm/node.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
+#include <iostream>
 
 using tagmap = std::map<std::string, std::string>;
 
 namespace test_utils {
 
-    void add_tags(osmium::memory::Buffer& buffer, osmium::builder::Builder& builder, tagmap& tags) {
-        osmium::builder::TagListBuilder tl_builder(buffer, &builder);
+    void add_tags(osmium::memory::Buffer& buffer, osmium::builder::Builder* builder, tagmap& tags) {
+        osmium::builder::TagListBuilder tl_builder(buffer, builder);
         for (tagmap::const_iterator it = tags.begin(); it != tags.end(); it++) {
             tl_builder.add_tag(it->first, it->second);
         }
@@ -39,16 +40,14 @@ namespace test_utils {
 
     osmium::Node& create_new_node(osmium::memory::Buffer& buffer, osmium::object_id_type id, double lon, double lat,
             tagmap& tags) {
-        osmium::builder::NodeBuilder node_builder(buffer);
-        static_cast<osmium::Node&>(node_builder.object()).set_id(id);
-        osmium::Node& node = static_cast<osmium::Node&>(node_builder.object());
-        set_dummy_osm_object_attributes(static_cast<osmium::OSMObject&>(node_builder.object()));
-        node_builder.add_user("foo");
         osmium::Location location (lon, lat);
+        osmium::builder::NodeBuilder node_builder(buffer);
+        osmium::Node& node = static_cast<osmium::Node&>(node_builder.object());
+        node.set_id(id);
+        set_dummy_osm_object_attributes(node);
+        node_builder.set_user("");
         node.set_location(location);
-        add_tags(buffer, node_builder, tags);
-
-        buffer.commit();
+        add_tags(buffer, &node_builder, tags);
         return node_builder.object();
     }
 
