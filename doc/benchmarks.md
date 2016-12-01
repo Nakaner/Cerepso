@@ -56,6 +56,8 @@ globe, planet original from planet.osm.org of 2016-08-29, 7:06 (no order by ST_G
 
 globe, planet original from planet.osm.org of 2016-08-29, 7:06 (no order by ST_GeoHash, no import of usernames, no geometry index on table untagged_nodes); Cerepso needed 47828968 kB RAM (+ Postgres usage)
 
+similar but on commit d4e4627, needs 8:34, 68549560 kB RAM
+
 
 Diff Import
 ==========
