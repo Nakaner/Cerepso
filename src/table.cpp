@@ -231,10 +231,9 @@ void Table::create_geom_index() {
             time_t ts = time(NULL);
             std::cerr << "Creating geometry index on table " << m_name << " …";
             std::stringstream query;
-            query << "CREATE INDEX " << m_name << "_index" << " ON " << m_name << " USING GIST (" << it->first << ")";
+            query << "CREATE INDEX " << m_name << "_index_" << it->first << " ON " << m_name << " USING GIST (" << it->first << ")";
             send_query(query.str().c_str());
             std::cerr << " took " << static_cast<int>(time(NULL) - ts) << " seconds." << std::endl;
-            break;
         }
     }
 }
