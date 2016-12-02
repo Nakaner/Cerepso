@@ -8,11 +8,16 @@ Import indexes on all tables except untagged nodes: 6:39 min on Baden-Württembe
 
 Ordering by ST_GeoHash, except untagged nodes, and creation of an geometry indes: 11:46 min on Baden-Württemberg
 
+osm2pgsql
+=========
+
 Comparison osm2pgsql, default settings with `--slim`: 38:55 min, 686 MB RAM
 
 Comparison osm2pgsql, default settings with `--slim --multi-geometry`: 35:42 min, 683 MB RAM
 
 Comparison osm2pgsql, default settings with `--slim --multi-geometry --exclude-invalid-polygon`: 39:27, 688 MB RAM
+
+osm2pgsql, globe, planet 2016-08-29, `--create --number-processes 5 --style (OpenRailwayMap) --merc --exclude-invalid-polygon --unlogged --cache-strategy dense --hstore --hstore-match-only --cache 54000` 2:40, almost all RAM
 
 
 Buffered vs. Unbuffered Writing to Database
