@@ -92,19 +92,11 @@ void DiffHandler2::insert_way(const osmium::Way& way, std::string& copy_buffer) 
     /// \todo clean up memory
 }
 
-void DiffHandler2::insert_relation(const osmium::Relation& relation) {
+void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string& copy_buffer) {
     try {
-        char idbuffer[20];
-        sprintf(idbuffer, "%ld", relation.id());
-        std::string copy_buffer;
-        copy_buffer.append(idbuffer, strlen(idbuffer));
-        add_tags(copy_buffer, relation);
-        add_metadata_to_stringstream(copy_buffer, relation, m_config);
-        std::vector<geos::geom::Geometry*>* geometries = new std::vector<geos::geom::Geometry*>();
-        std::vector<osmium::object_id_type> object_ids;
-        std::vector<osmium::item_type> object_types;
+        std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
+        std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
         for (const auto& member : relation.members()) {
-            object_ids.push_back(member.ref());
             if ((member.type() == osmium::item_type::node)) {
                 std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(member.ref());
                 if (!coord) {
@@ -113,9 +105,8 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
                 if (coord) {
                     m_expire_tiles->expire_from_point(coord->x, coord->y);
                     std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(*(coord.get())));
-                    geometries->push_back(point.release());
+                    points->push_back(point.release());
                 }
-                object_types.push_back(osmium::item_type::node);
             }
             else if ((member.type() == osmium::item_type::way)) {
                 std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), m_geom_factory);
@@ -123,50 +114,27 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation) {
                     geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
                     m_expire_tiles->expire_from_coord_sequence(coord_sequence);
                     delete coord_sequence;
-                    geometries->push_back(linestring.release());
+                    linestrings->push_back(linestring.release());
                 }
-                object_types.push_back(osmium::item_type::way);
             }
-            else if ((member.type() == osmium::item_type::relation)) {
-                // We do not add the geometry of this relation to the GeometryCollection.
-                /// \todo support one level of nested relations
-                object_types.push_back(osmium::item_type::relation);
-            }
+            // We do not add the geometry of this relation to the GeometryCollection.
+            /// \todo support one level of nested relations
         }
         // create GeometryCollection
-        geos::geom::GeometryCollection* geom_collection = m_geom_factory.createGeometryCollection(geometries);
-        copy_buffer.append("SRID=4326;");
+        geos::geom::MultiPoint* multipoints = m_geom_factory.createMultiPoint(points);
+        geos::geom::MultiLineString* multilinestrings = m_geom_factory.createMultiLineString(linestrings);
+        // add multipoints to query string
         // convert to WKB
-        std::stringstream query_stream;
+        std::stringstream multipoint_stream;
         geos::io::WKBWriter wkb_writer;
-        wkb_writer.writeHEX(*geom_collection, query_stream);
-        copy_buffer.append(query_stream.str());
-        delete geom_collection;
-        add_separator_to_stringstream(copy_buffer);
-        copy_buffer.push_back('{');
-        for (std::vector<osmium::object_id_type>::const_iterator id = object_ids.begin(); id < object_ids.end(); id++) {
-            if (id != object_ids.begin()) {
-                copy_buffer.append(", ");
-            }
-            sprintf(idbuffer, "%ld", *id);
-            copy_buffer.append(idbuffer);
-        }
-        copy_buffer.push_back('}');
-        add_separator_to_stringstream(copy_buffer);
-        copy_buffer.push_back('{');
-        for (std::vector<osmium::item_type>::const_iterator type = object_types.begin(); type < object_types.end(); type++) {
-            if (type != object_types.begin()) {
-                copy_buffer.append(", ");
-            }
-            if (*type == osmium::item_type::node) {
-                copy_buffer.push_back('n');
-            } else if (*type == osmium::item_type::way) {
-                copy_buffer.push_back('w');
-            } else if (*type == osmium::item_type::relation) {
-                copy_buffer.push_back('r');
-            }
-        }
-        copy_buffer.append("}\n");
+        wkb_writer.writeHEX(*multipoints, multipoint_stream);
+        delete multipoints;
+        // add multilinestrings to query string
+        // convert to WKB
+        std::stringstream multilinestring_stream;
+        wkb_writer.writeHEX(*multilinestrings, multilinestring_stream);
+        delete multilinestrings;
+        PostgresHandler::prepare_relation_query(relation, copy_buffer, multipoint_stream, multilinestring_stream, m_config);
         m_relations_table.send_line(copy_buffer);
     }
     catch (osmium::geometry_error& e) {
@@ -199,7 +167,8 @@ void DiffHandler2::relation(const osmium::Relation& relation) {
     if (relation.deleted()) {
         return;
     }
-    insert_relation(relation);
+    std::string copy_buffer;
+    insert_relation(relation, copy_buffer);
 }
 
 void DiffHandler2::write_new_nodes() {

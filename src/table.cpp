@@ -43,6 +43,34 @@ void Table::escape4hstore(const char* source, std::string& destination) {
     destination.push_back('"');
 }
 
+void Table::escape4array(const char* source, std::string& destination) {
+    /**
+    * based on osm2pgsql/middle-pgsql.cpp, char *escape_tag(char *ptr, const std::string &in, bool escape)
+    */
+    for (size_t i = 0; i < strlen(source); ++i) {
+        switch(source[i]) {
+            case '\\':
+                destination.append("\\\\\\\\");
+                break;
+            case '\"':
+                destination.append("\\\\\"");
+                break;
+            case '\n':
+                destination.append("\\\\n");
+                break;
+            case '\r':
+                destination.append("\\\\r");
+                break;
+            case '\t':
+                destination.append("\\\\t");
+                break;
+            default:
+                destination.push_back(source[i]);
+                break;
+        }
+    }
+}
+
 void Table::escape(const char* source, std::string& destination) {
     /**
     * copied (and modified) from osm2pgsql/pgsql.cpp, void escape(const std::string &src, std::string &dst)
@@ -203,10 +231,9 @@ void Table::create_geom_index() {
             time_t ts = time(NULL);
             std::cerr << "Creating geometry index on table " << m_name << " …";
             std::stringstream query;
-            query << "CREATE INDEX " << m_name << "_index" << " ON " << m_name << " USING GIST (" << it->first << ")";
+            query << "CREATE INDEX " << m_name << "_index_" << it->first << " ON " << m_name << " USING GIST (" << it->first << ")";
             send_query(query.str().c_str());
             std::cerr << " took " << static_cast<int>(time(NULL) - ts) << " seconds." << std::endl;
-            break;
         }
     }
 }

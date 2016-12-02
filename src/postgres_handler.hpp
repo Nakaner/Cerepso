@@ -9,6 +9,7 @@
 #include <osmium/handler.hpp>
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
+#include <osmium/osm/relation.hpp>
 #include <osmium/osm/area.hpp>
 #include <osmium/geom/wkb.hpp>
 #include <memory>
@@ -53,6 +54,19 @@ public:
      *              It is possible that one string contains multiple lines (e.g. for buffered writing).
      */
     void prepare_node_query(const osmium::Node& node, std::string& query);
+
+    /**
+     * \brief Build the line which will be inserted via `COPY` into the database.
+     *
+     * \param relation Reference to the relation object
+     * \param query Reference to the string where the line should be appended.
+     *              It is possible that one string contains multiple lines (e.g. for buffered writing).
+     * \param multipoint_wkb string containing the value of the geom_points column as WKB HEX string
+     * \parem multilinestring_wkb string containing the value of the geom_lines column as WKB HEX string
+     * \param config reference to program configuration
+     */
+    static void prepare_relation_query(const osmium::Relation& relation, std::string& query, std::stringstream& mulitpoint_wkb,
+            std::stringstream& multilinestring_wkb, Config& config);
 
     /**
      * \brief Node handler has derived from osmium::handler::Handler.

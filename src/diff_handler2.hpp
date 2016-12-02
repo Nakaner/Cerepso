@@ -89,6 +89,8 @@ public:
 
     friend void end_copy_nodes_tables(DiffHandler2&);
 
+    friend void end_copy_ways_tables(DiffHandler2&);
+
     void node(const osmium::Node& node);
 
     void way(const osmium::Way& way);
@@ -104,8 +106,11 @@ public:
      * \brief Append a line to a given string for insertion of relation into its table via COPY.
      *
      * This method has been extracted out of relation(const osmium::Relation& relation) to be easier to test.
+     *
+     * \param relation reference to the relation object
+     * \param copy_buffer string whose content will be inserted into the database
      */
-    void insert_relation(const osmium::Relation& relation);
+    void insert_relation(const osmium::Relation& relation, std::string& copy_buffer);
 
     void relation(const osmium::Relation& area);
 
