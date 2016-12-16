@@ -96,6 +96,8 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
     try {
         std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
         std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
+        // check if this relation should trigger a tile expiration
+        bool trigger_tile_expiry = m_config.expire_this_relation(relation.tags());
         for (const auto& member : relation.members()) {
             if ((member.type() == osmium::item_type::node)) {
                 std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(member.ref());
@@ -103,7 +105,9 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
                     coord = m_nodes_table.get_point(member.ref());
                 }
                 if (coord) {
-                    m_expire_tiles->expire_from_point(coord->x, coord->y);
+                    if (trigger_tile_expiry) {
+                        m_expire_tiles->expire_from_point(coord->x, coord->y);
+                    }
                     std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(*(coord.get())));
                     points->push_back(point.release());
                 }
@@ -111,9 +115,11 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
             else if ((member.type() == osmium::item_type::way)) {
                 std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), m_geom_factory);
                 if (linestring) {
-                    geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
-                    m_expire_tiles->expire_from_coord_sequence(coord_sequence);
-                    delete coord_sequence;
+                    if (trigger_tile_expiry) {
+                        geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
+                        m_expire_tiles->expire_from_coord_sequence(coord_sequence);
+                        delete coord_sequence;
+                    }
                     linestrings->push_back(linestring.release());
                 }
             }

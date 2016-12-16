@@ -40,6 +40,34 @@ using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
  * Its written in C++11 and available under GPLv2.
  */
 
+/**
+ * \brief print program usage instructions and terminate the program
+ *
+ * \param argv command line argument array (from main method)
+ * \param message error message to output (optional)
+ */
+void print_help(char* argv[], std::string message = "") {
+    if (message != "") {
+        std::cerr << message << "\n";
+    }
+    std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
+    "  -a, --append                     this is a diff import\n" \
+    "  -d, --database-name              database name\n" \
+    "  -e FILE, --expire-tiles=FILE     write an expiry_tile list to FILE\n" \
+    "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
+    "  --expire-relations=SETTING       expiration setting for relations: NONE, ALL, NO_ROUTES\n" \
+    "  -g, --no-geom-indexes            don't create any geometry indexes\n" \
+    "  -G, --all-geom-indexes           create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
+    "                                   overrides -g"
+    "  -I, --no-id-index                don't create an index on osm_id columns\n" \
+    "  --min-zoom=ZOOM                  minimum zoom for expire_tile list\n" \
+    "  --max-zoom=ZOOM                  maximum zoom for expire_tile list\n" \
+    "  -l, --location-handler=HANDLER   use HANDLER as location handler\n" \
+    "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
+    "  -u, --no-usernames               don't insert user names into the database\n" << std::endl;
+    exit(1);
+}
+
 
 int main(int argc, char* argv[]) {
     // parsing command line arguments
@@ -49,6 +77,7 @@ int main(int argc, char* argv[]) {
             {"database",  required_argument, 0, 'd'},
             {"expire-tiles",  required_argument, 0, 'e'},
             {"expiry-generator",  required_argument, 0, 'E'},
+            {"expire-relations", required_argument, 0, 202},
             {"no-geom-indexes", no_argument, 0, 'g'},
             {"all-geom-indexes", no_argument, 0, 'G'},
             {"min-zoom",  required_argument, 0, 200},
@@ -110,6 +139,21 @@ int main(int argc, char* argv[]) {
             case 201:
                 config.m_max_zoom = atoi(optarg);
                 break;
+            case 202:
+                if (optarg) {
+                    if (!strcmp(optarg, "ALL")) {
+                        config.m_expire_options = Config::ExpireRelationsOptions::ALL;
+                        break;
+                    } else if (!strcmp(optarg, "NONE")) {
+                        config.m_expire_options = Config::ExpireRelationsOptions::NO_RELATIONS;
+                        break;
+                    } else if (!strcmp(optarg, "NO_ROUTES")) {
+                        config.m_expire_options = Config::ExpireRelationsOptions::NO_ROUTE_RELATIONS;
+                        break;
+                    }
+                }
+                print_help(argv, "ERROR option --expire-relations: Wrong parameter.");
+                break;
             default:
                 exit(1);
         }
@@ -121,21 +165,7 @@ int main(int argc, char* argv[]) {
 
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
-        std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
-        "  -a, --append                     this is a diff import\n" \
-        "  -d, --database-name              database name\n" \
-        "  -e FILE, --expire-tiles=FILE     write an expiry_tile list to FILE\n" \
-        "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
-        "  -g, --no-geom-indexes            don't create any geometry indexes\n" \
-        "  -G, --all-geom-indexes           create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
-        "                                   overrides -g"
-        "  -I, --no-id-index                don't create an index on osm_id columns\n" \
-        "  --min-zoom=ZOOM                  minimum zoom for expire_tile list\n" \
-        "  --max-zoom=ZOOM                  maximum zoom for expire_tile list\n" \
-        "  -l, --location-handler=HANDLER   use HANDLER as location handler\n" \
-        "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
-        "  -u, --no-usernames               don't insert user names into the database\n" << std::endl;
-        exit(1);
+        print_help(argv, "ERROR: wrong arguments.");
     } else {
         config.m_osm_file =  argv[optind];
     }

@@ -8,6 +8,8 @@
 #ifndef CONFIG_HPP_
 #define CONFIG_HPP_
 
+#include <osmium/osm/tag.hpp>
+
 /**
  * \brief program configuration
  *
@@ -15,7 +17,8 @@
  * The configuration has been provided by the user using the command line
  * arguments.
  */
-struct Config {
+class Config {
+public:
     /// debug modus enabled
     bool m_debug = false;
 
@@ -100,6 +103,38 @@ struct Config {
 
     /// maximum zoom level for tile expiry
     int m_max_zoom = 15;
+
+    /**
+     * available options for tile expiry settings regarding relations
+     */
+    enum class ExpireRelationsOptions : char {
+        NO_RELATIONS = 0,
+        ALL = 1,
+        NO_ROUTE_RELATIONS = 2
+    };
+
+    /// setting for the tile expiry of relations
+    ExpireRelationsOptions m_expire_options = ExpireRelationsOptions::ALL;
+
+    /**
+     * \brief Return true if a relations should trigger a tile expiration or not.
+     *
+     * \param tags reference of the TagList instance of the relation to be checked
+     *
+     * \returns true if the relation should trigger a tile expiration
+     */
+    bool expire_this_relation(const osmium::TagList& tags) {
+        if (m_expire_options == ExpireRelationsOptions::NO_RELATIONS) {
+            return false;
+        } else if (m_expire_options == ExpireRelationsOptions::ALL) {
+            return true;
+        }
+        const char* type = tags.get_value_by_key("type");
+        if (type && !strcmp(type, "route")) {
+            return false;
+        }
+        return true;
+    }
 };
 
 #endif /* CONFIG_HPP_ */
