@@ -63,6 +63,8 @@ globe, planet original from planet.osm.org of 2016-08-29, 7:06 (no order by ST_G
 
 similar but on commit d4e4627, needs 8:34, 68549560 kB RAM
 
+similar but on commit 801f47b, needs 7:11, 68440016 kB RAM
+
 
 Diff Import
 ==========
