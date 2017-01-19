@@ -3,7 +3,7 @@
  * Tables and Columns
  * ------------------
  * 
- * pgimporter uses a database schema which is inspired by osm2pgsql.
+ * Cerepso uses a database schema which is inspired by osm2pgsql.
  * 
  * There are following tables:
  * * nodes

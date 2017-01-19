@@ -24,7 +24,7 @@
 /**
  * \brief The RelationCollector collects all relations.
  *
- * It is used during the first pass of pgimporter
+ * It is used during the first pass of Cerepso
  * to read all relations, their tags and reference from the input file. At the second pass it collects
  * all ways and nodes which are referenced by the collected relations.
  */
@@ -82,7 +82,7 @@ private:
      * \brief Build the query string which will be inserted into the database using SQL COPY.
      *
      * \param relation reference to Relation object
-     * \param query_str reference to a string which will be inserted into the database
+     * \param query reference to a string which will be inserted into the database
      *
      * \throws osmium::geometry_error
      */

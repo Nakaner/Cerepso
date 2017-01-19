@@ -85,7 +85,7 @@ public:
      * \brief Output the list of expired tiles to a file.
      *
      * This method writes the expiry log formatted like osm2pgsql's log to the file specified by
-     * member of \link Config#m_expire_tiles m_config::m_expire_tiles \endlink.
+     * member of \link CerepsoConfig#m_expire_tiles m_config::m_expire_tiles \endlink.
      */
     virtual void output_and_destroy() = 0;
 

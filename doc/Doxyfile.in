@@ -32,7 +32,7 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = "pgimporter"
+PROJECT_NAME           = "Cerepso"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -230,7 +230,7 @@ TAB_SIZE               = 8
 
 ALIASES                = virtual="Must be implemented by derived classes."
 ALIASES                += osmiumcallback="\brief callback function called by Osmium\n\nSee the [Osmium manual](http://docs.osmcode.org/libosmium-manual/#handlers) for more information."
-ALIASES                += notForAppendMode="This setting is ignored if pgimporter runs in append modew."
+ALIASES                += notForAppendMode="This setting is ignored if Cerepso runs in append modew."
 ALIASES                += unsupported="\todo This has not been implemented yet."
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only).

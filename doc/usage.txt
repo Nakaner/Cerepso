@@ -29,11 +29,11 @@ needs an index on this columns for fast access.
 Tile Expiry
 -----------
 
-pgimporter implements the tile expiry methods of osm2pgsql (they are just copied and should work exactly the same way).
+Cerepso implements the tile expiry methods of osm2pgsql (they are just copied and should work exactly the same way).
 Use `-E FILE` or `-expire-tiles=FILE` and `-e classic` or `--expiry-method=classic` to get this behaviour. Use `--min-zoom=ZOOM`
 and `--max-zoom=ZOOM` for the zoom interval you want.
 
-In addition to osm2pgsql's method, pgimporter also provides another implementation. Use `-e quadtree` to select it. It converts
+In addition to osm2pgsql's method, Cerepso also provides another implementation. Use `-e quadtree` to select it. It converts
 internally the ZXY addresses to quadtree addresses (as used by Bing), stores them in a map. This implementation is good to
 analyze the spatial distribution of changes in OSM.
  */

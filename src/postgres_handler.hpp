@@ -62,10 +62,10 @@ public:
      * \param query Reference to the string where the line should be appended.
      *              It is possible that one string contains multiple lines (e.g. for buffered writing).
      * \param multipoint_wkb string containing the value of the geom_points column as WKB HEX string
-     * \parem multilinestring_wkb string containing the value of the geom_lines column as WKB HEX string
+     * \param multilinestring_wkb string containing the value of the geom_lines column as WKB HEX string
      * \param config reference to program configuration
      */
-    static void prepare_relation_query(const osmium::Relation& relation, std::string& query, std::stringstream& mulitpoint_wkb,
+    static void prepare_relation_query(const osmium::Relation& relation, std::string& query, std::stringstream& multipoint_wkb,
             std::stringstream& multilinestring_wkb, CerepsoConfig& config);
 
     /**

@@ -68,7 +68,7 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
 }
 
 /*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,
-        std::stringstream& mulitpoint_wkb, std::stringstream& multilinestring_wkb, CerepsoConfig& config) {
+        std::stringstream& multipoint_wkb, std::stringstream& multilinestring_wkb, CerepsoConfig& config) {
     static char idbuffer[20];
     sprintf(idbuffer, "%ld", relation.id());
     query.append(idbuffer);
@@ -84,7 +84,7 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
     }
     // add multipoint to query
     query.append("SRID=4326;");
-    query.append(mulitpoint_wkb.str());
+    query.append(multipoint_wkb.str());
     add_separator_to_stringstream(query);
     // add multilinestring to query
     query.append("SRID=4326;");

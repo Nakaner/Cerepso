@@ -52,12 +52,12 @@ globe, Germany 2850 MB PBF, kB RAM, 42:09
 
 Unbuffered
 ----------
-globe, Europe, 41640924 kB RAM (pgimporter)+, 1:29:08,
+globe, Europe, 41640924 kB RAM (Cerepso)+, 1:29:08,
   details europe-4455683967af64ab9aacf39cafbb77acbd046fdd.log
 
 globe, planet, no BEGIN/COMMIT before COPY, 67812140 kB RAM, 10:50, (no order by ST_GeoHash, no import of usernames)
 
-globe, planet original from planet.osm.org of 2016-08-29, 7:06 (no order by ST_GeoHash, no import of usernames), 47800808 kB RAM (only pgimporter!), 7:06
+globe, planet original from planet.osm.org of 2016-08-29, 7:06 (no order by ST_GeoHash, no import of usernames), 47800808 kB RAM (only Cerepso!), 7:06
 
 globe, planet original from planet.osm.org of 2016-08-29, 7:06 (no order by ST_GeoHash, no import of usernames, no geometry index on table untagged_nodes); Cerepso needed 47828968 kB RAM (+ Postgres usage)
 
