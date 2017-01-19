@@ -50,6 +50,9 @@ endif()
 find_package(PostgreSQL REQUIRED)
 include_directories(${PostgreSQL_INCLUDE_DIRS})
 
+find_package(PostgresDriver REQUIRED)
+include_directories(${POSTGRESDRIVERS_INCLUDE_DIRS})
+
 
 #-----------------------------------------------------------------------------
 #

@@ -7,8 +7,8 @@
 
 #include "catch.hpp"
 #include "object_builder_utilities.hpp"
-#include <table.hpp>
-#include <columns.hpp>
+#include <postgres_table.hpp>
+#include <postgres_drivers/columns.hpp>
 #include "../../src/import_handler.hpp"
 
 int count_occurence_of_substring(std::string& string, char to_find) {
@@ -32,13 +32,13 @@ TEST_CASE("node handler produces good lines for COPY") {
     osmium::Node& node = test_utils::create_new_node(node_buffer, 1, 9.1, 49.1, tags);
 
     //TODO clean up by providing a simpler constructor of MyHandler
-    Config config;
-    Columns node_columns(config, TableType::POINT);
-    Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
-    Columns way_columns(config, TableType::WAYS_LINEAR);
-    Table nodes_table ("nodes", config, node_columns);
-    Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
-    Table ways_table ("ways", config, way_columns);
+    CerepsoConfig config;
+    postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
+    postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
+    postgres_drivers::Columns way_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
+    PostgresTable nodes_table ("nodes", config, node_columns);
+    PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    PostgresTable ways_table ("ways", config, way_columns);
     ImportHandler handler(nodes_table, untagged_nodes_table, ways_table, config);
 
     std::string query_str;

@@ -25,7 +25,7 @@ public:
      *
      * This constructor takes references to the program configuration and the instances of Table class.
      */
-    ImportHandler(Config& config,  Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
+    ImportHandler(CerepsoConfig& config,  PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table) {}
 
     /**
@@ -33,7 +33,7 @@ public:
      *
      * This constructor takes references to the program configuration and the instances of Table class.
      */
-    ImportHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config) :
+    ImportHandler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config) { }
 
     ~ImportHandler() {

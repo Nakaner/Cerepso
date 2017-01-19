@@ -16,7 +16,7 @@
  */
 class ExpireTilesDummy : public ExpireTiles {
 public:
-    ExpireTilesDummy(Config& config) : ExpireTiles(config) {}
+    ExpireTilesDummy(CerepsoConfig& config) : ExpireTiles(config) {}
 
     ExpireTilesDummy() = delete;
 

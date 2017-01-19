@@ -13,10 +13,10 @@ void PostgresHandler::add_separator_to_stringstream(std::string& ss) {
     ss.push_back('\t');
 }
 
-void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, Config& config) {
-    if (config.m_usernames) {
+void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, CerepsoConfig& config) {
+    if (config.m_driver_config.m_usernames) {
         add_separator_to_stringstream(ss);
-        Table::escape(object.user(), ss);
+        PostgresTable::escape(object.user(), ss);
     }
     add_separator_to_stringstream(ss);
     static char idbuffer[20];
@@ -40,9 +40,9 @@ void PostgresHandler::add_tags(std::string& query, const osmium::OSMObject& obje
         if (!first_tag) {
             query.push_back(',');
         }
-        Table::escape4hstore(tag.key(), query);
+        PostgresTable::escape4hstore(tag.key(), query);
         query.append("=>");
-        Table::escape4hstore(tag.value(), query);
+        PostgresTable::escape4hstore(tag.value(), query);
         first_tag = false;
     }
 }
@@ -68,7 +68,7 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
 }
 
 /*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,
-        std::stringstream& mulitpoint_wkb, std::stringstream& multilinestring_wkb, Config& config) {
+        std::stringstream& mulitpoint_wkb, std::stringstream& multilinestring_wkb, CerepsoConfig& config) {
     static char idbuffer[20];
     sprintf(idbuffer, "%ld", relation.id());
     query.append(idbuffer);
@@ -121,7 +121,7 @@ void PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
             query.append(", ");
         }
         query.push_back('"');
-        Table::escape4array(*it, query);
+        PostgresTable::escape4array(*it, query);
         query.push_back('"');
     }
     query.append("}\n");

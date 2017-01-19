@@ -7,8 +7,8 @@
 
 #include "catch.hpp"
 #include "object_builder_utilities.hpp"
-#include <table.hpp>
-#include <columns.hpp>
+#include <postgres_table.hpp>
+#include <postgres_drivers/columns.hpp>
 #include <diff_handler2.hpp>
 #include <expire_tiles_factory.hpp>
 
@@ -19,15 +19,15 @@ void end_copy_ways_tables(DiffHandler2& handler) {
 TEST_CASE("check if preparing a query to insert a relation works") {
     static constexpr int buffer_size = 10 * 1000 * 1000;
 
-    Config config;
-    Columns node_columns(config, TableType::POINT);
-    Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
-    Columns way_linear_columns(config, TableType::WAYS_LINEAR);
-    Columns relation_columns(config, TableType::RELATION_OTHER);
-    Table nodes_table ("nodes", config, node_columns);
-    Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
-    Table ways_table ("ways", config, way_linear_columns);
-    Table relations_table("relations", config, relation_columns);
+    CerepsoConfig config;
+    postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
+    postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
+    postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
+    postgres_drivers::Columns relation_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
+    PostgresTable nodes_table ("nodes", config, node_columns);
+    PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    PostgresTable ways_table ("ways", config, way_linear_columns);
+    PostgresTable relations_table("relations", config, relation_columns);
 
     // create some nodes and add them to the location handler
     osmium::memory::Buffer buffer(buffer_size);

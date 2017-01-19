@@ -8,7 +8,8 @@
 #include <osmium/osm/location.hpp>
 #include <geos/geom/Geometry.h>
 #include <geos/geom/CoordinateArraySequence.h>
-#include "config.hpp"
+
+#include "cerepsoconfig.hpp"
 
 #ifndef EXPIRE_TILES_HPP_
 #define EXPIRE_TILES_HPP_
@@ -40,7 +41,7 @@ public:
  */
 class ExpireTiles {
 public:
-    ExpireTiles(Config& config);
+    ExpireTiles(CerepsoConfig& config);
 
     ExpireTiles() = delete;
 
@@ -89,7 +90,7 @@ public:
     virtual void output_and_destroy() = 0;
 
 protected:
-    Config& m_config;
+    CerepsoConfig& m_config;
 
     /// number of tiles in x direction to cover the world (1 at zoom 0, 2 at zoom 1, …)
     int map_width;

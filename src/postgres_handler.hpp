@@ -13,7 +13,7 @@
 #include <osmium/osm/area.hpp>
 #include <osmium/geom/wkb.hpp>
 #include <memory>
-#include "table.hpp"
+#include "postgres_table.hpp"
 
 #ifndef POSTGRES_HANDLER_HPP_
 #define POSTGRES_HANDLER_HPP_
@@ -36,7 +36,7 @@ public:
      * \todo Move the static methods into either a separate namespace or create a class for the table scheme which is the
      * base class for all the handlers.
      * */
-    static void add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, Config& config);
+    static void add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, CerepsoConfig& config);
 
     /**
      * \brief Add a TAB at the end of the string.
@@ -66,7 +66,7 @@ public:
      * \param config reference to program configuration
      */
     static void prepare_relation_query(const osmium::Relation& relation, std::string& query, std::stringstream& mulitpoint_wkb,
-            std::stringstream& multilinestring_wkb, Config& config);
+            std::stringstream& multilinestring_wkb, CerepsoConfig& config);
 
     /**
      * \brief Node handler has derived from osmium::handler::Handler.
@@ -92,14 +92,14 @@ public:
 
 protected:
     osmium::geom::WKBFactory<> wkb_factory;
-    Config& m_config;
+    CerepsoConfig& m_config;
     /// reference to nodes table
-    Table& m_nodes_table;
+    PostgresTable& m_nodes_table;
     /// reference to table of untagged nodes
-    Table& m_untagged_nodes_table;
+    PostgresTable& m_untagged_nodes_table;
     /// reference to table of all ways
-    Table& m_ways_linear_table;
-    PostgresHandler(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table) :
+    PostgresTable& m_ways_linear_table;
+    PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table) :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
             m_config(config),
             m_nodes_table(nodes_table),
@@ -110,7 +110,7 @@ protected:
     /**
      * \brief constructor for testing purposes, will not establish database connections
      */
-    PostgresHandler(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Config& config)  :
+    PostgresHandler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config)  :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
             m_config(config),
             m_nodes_table(nodes_table),

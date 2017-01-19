@@ -8,7 +8,7 @@
 #include "relation_collector.hpp"
 #include "postgres_handler.hpp"
 
-RelationCollector::RelationCollector(Config& config, Columns& node_columns) :
+RelationCollector::RelationCollector(CerepsoConfig& config,  postgres_drivers::Columns& node_columns) :
     m_config(config),
     m_output_buffer(initial_output_buffer_size, osmium::memory::Buffer::auto_grow::yes),
     m_database_table("relations", config, node_columns)

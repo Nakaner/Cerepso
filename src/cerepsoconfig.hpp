@@ -5,10 +5,11 @@
  *      Author: michael
  */
 
-#ifndef CONFIG_HPP_
-#define CONFIG_HPP_
+#ifndef CEREPSOCONFIG_HPP_
+#define CEREPSOCONFIG_HPP_
 
 #include <osmium/osm/tag.hpp>
+#include <postgres_drivers/columns.hpp>
 
 /**
  * \brief program configuration
@@ -17,25 +18,12 @@
  * The configuration has been provided by the user using the command line
  * arguments.
  */
-class Config {
+class CerepsoConfig {
 public:
-    /// debug modus enabled
-    bool m_debug = false;
+    postgres_drivers::Config m_driver_config;
 
     /// OSM file to read (Osmium will detect the file format based on the file name extension
     std::string m_osm_file = "";
-
-    /// name of the database to write to
-    std::string m_database_name = "pgimportertest";
-
-    /// store tags as hstore \unsupported
-    bool tags_hstore = true;
-
-    /**
-     * Import metadata of OSM objects into the database.
-     * This increase the size of the database very much.     *
-     */
-    bool metadata = true;
 
     /**
      * create geometry index on untagged_nodes table
@@ -72,11 +60,6 @@ public:
      * \notForAppendMode
      */
     bool m_id_index = true;
-
-    /**
-     * Import user names in addition to user IDs. Please note that this increases the size of your database by about 100 GB!
-     */
-    bool m_usernames = true;
 
     /**
      * Selected location handler (by Osmium). See the [Osmium Concepts Manual](http://docs.osmcode.org/osmium-concepts-manual/#indexes)
@@ -137,4 +120,4 @@ public:
     }
 };
 
-#endif /* CONFIG_HPP_ */
+#endif /* CEREPSOCONFIG_HPP_ */

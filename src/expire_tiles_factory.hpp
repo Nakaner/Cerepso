@@ -29,12 +29,12 @@ public:
      *
      * \param config program configuration, Config::m_expiry_type is important
      */
-    ExpireTiles* create_expire_tiles(Config& config);
+    ExpireTiles* create_expire_tiles(CerepsoConfig& config);
 
 private:
-    ExpireTilesClassic* create_classic(Config& config);
-    ExpireTilesQuadtree* create_qt(Config& config);
-    ExpireTilesDummy* create_dummy(Config& config);
+    ExpireTilesClassic* create_classic(CerepsoConfig& config);
+    ExpireTilesQuadtree* create_qt(CerepsoConfig& config);
+    ExpireTilesDummy* create_dummy(CerepsoConfig& config);
 };
 
 

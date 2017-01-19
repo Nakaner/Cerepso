@@ -19,7 +19,7 @@
 #include <osmium/area/assembler.hpp>
 #include <osmium/relations/detail/member_meta.hpp>
 #include "import_handler.hpp"
-#include "table.hpp"
+#include "postgres_table.hpp"
 
 /**
  * \brief The RelationCollector collects all relations.
@@ -35,11 +35,11 @@ class RelationCollector: public osmium::relations::Collector<RelationCollector,
 
 private:
     /// reference to program configuration
-    Config& m_config;
+    CerepsoConfig& m_config;
     osmium::memory::Buffer m_output_buffer;
 
     /// \brief database connection for the relations table
-    Table m_database_table;
+    PostgresTable m_database_table;
     osmium::geom::GEOSFactory<> m_geos_factory;
     geos::geom::GeometryFactory m_geos_geom_factory;
     geos::io::WKBWriter m_geos_wkb_writer;
@@ -91,7 +91,7 @@ private:
 public:
 
     RelationCollector() = delete;
-    explicit RelationCollector(Config& config, Columns& node_columns);
+    explicit RelationCollector(CerepsoConfig& config, postgres_drivers::Columns& node_columns);
 
     /**
      * \brief This method decides which relations we're interested in, and

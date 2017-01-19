@@ -124,7 +124,7 @@ public:
      */
     int quadtree_upscale(int qt_old, int zoom_steps, int offset = 0);
 
-    ExpireTilesQuadtree(Config& config) : ExpireTiles(config) {
+    ExpireTilesQuadtree(CerepsoConfig& config) : ExpireTiles(config) {
         if (config.m_min_zoom < 0) {
             return;
         }

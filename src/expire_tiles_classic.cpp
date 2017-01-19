@@ -11,7 +11,7 @@
 #include <osmium/geom/util.hpp>
 #include "expire_tiles_classic.hpp"
 
-ExpireTilesClassic::ExpireTilesClassic(Config& config) : ExpireTiles(config),
+ExpireTilesClassic::ExpireTilesClassic(CerepsoConfig& config) : ExpireTiles(config),
         m_dirty(nullptr) {
     if (config.m_min_zoom < 0) {
         return;

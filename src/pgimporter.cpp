@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
             {"no-usernames", no_argument, 0, 'u'},
             {0, 0, 0, 0}
         };
-    Config config;
+    CerepsoConfig config;
     while (true) {
         int c = getopt_long(argc, argv, "hDd:e:E:IoagGl:u", long_options, 0);
         if (c == -1) {
@@ -101,10 +101,10 @@ int main(int argc, char* argv[]) {
                 //print_help();
                 exit(0);
             case 'D':
-                config.m_debug = true;
+                config.m_driver_config.m_debug = true;
                 break;
             case 'd':
-                config.m_database_name = optarg;
+                config.m_driver_config.m_database_name = optarg;
                 break;
             case 'e':
                 config.m_expire_tiles = optarg;
@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
                 config.m_location_handler = optarg;
                 break;
             case 'u':
-                config.m_usernames = false;
+                config.m_driver_config.m_usernames = false;
                 break;
             case 200:
                 config.m_min_zoom = atoi(optarg);
@@ -142,13 +142,13 @@ int main(int argc, char* argv[]) {
             case 202:
                 if (optarg) {
                     if (!strcmp(optarg, "ALL")) {
-                        config.m_expire_options = Config::ExpireRelationsOptions::ALL;
+                        config.m_expire_options = CerepsoConfig::ExpireRelationsOptions::ALL;
                         break;
                     } else if (!strcmp(optarg, "NONE")) {
-                        config.m_expire_options = Config::ExpireRelationsOptions::NO_RELATIONS;
+                        config.m_expire_options = CerepsoConfig::ExpireRelationsOptions::NO_RELATIONS;
                         break;
                     } else if (!strcmp(optarg, "NO_ROUTES")) {
-                        config.m_expire_options = Config::ExpireRelationsOptions::NO_ROUTE_RELATIONS;
+                        config.m_expire_options = CerepsoConfig::ExpireRelationsOptions::NO_ROUTE_RELATIONS;
                         break;
                     }
                 }
@@ -171,19 +171,19 @@ int main(int argc, char* argv[]) {
     }
 
     // column definitions
-    Columns node_columns(config, TableType::POINT);
-    Columns untagged_nodes_columns(config, TableType::UNTAGGED_POINT);
-    Columns way_linear_columns(config, TableType::WAYS_LINEAR);
-    Columns relation_other_columns(config, TableType::RELATION_OTHER);
+    postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
+    postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
+    postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
+    postgres_drivers::Columns relation_other_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
 
     time_t ts = time(NULL);
-    Table nodes_table ("nodes", config, node_columns);
-    Table untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
-    Table ways_linear_table ("ways", config, way_linear_columns);
+    PostgresTable nodes_table ("nodes", config, node_columns);
+    PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    PostgresTable ways_linear_table ("ways", config, way_linear_columns);
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        Table relations_table("relations", config, relation_other_columns);
+        PostgresTable relations_table("relations", config, relation_other_columns);
         // send BEGIN to all tables
         relations_table.send_begin();
         nodes_table.send_begin();

@@ -7,10 +7,10 @@
  */
 #include "catch.hpp"
 #include <expire_tiles_quadtree.hpp>
-#include <columns.hpp>
+#include <postgres_drivers/columns.hpp>
 
 TEST_CASE("convert quadtree IDs to XY coordinates") {
-    Config config;
+    CerepsoConfig config;
     ExpireTilesQuadtree etq(config);
     SECTION("zoom level 0") {
         int qt = 0b0;

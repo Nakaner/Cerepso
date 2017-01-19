@@ -10,7 +10,7 @@
 #include <iostream>
 #include "catch.hpp"
 #include <expire_tiles_quadtree.hpp>
-#include <columns.hpp>
+#include <postgres_drivers/columns.hpp>
 
 using stringvector_t = std::vector<std::string>;
 
@@ -59,7 +59,7 @@ void cleanup(std::string& filename) {
 }
 
 TEST_CASE("Expire Tiles Quadtree") {
-    Config config;
+    CerepsoConfig config;
     config.m_expire_tiles = "/tmp/etq-test.list";
     if (file_exists(config.m_expire_tiles)) {
         // This test should only run if it can create the file if it does not exist already because we will delete it at the end.

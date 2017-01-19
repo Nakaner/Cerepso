@@ -52,7 +52,7 @@ public:
         virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) = 0;
     };
 
-    ExpireTilesClassic(Config& config);
+    ExpireTilesClassic(CerepsoConfig& config);
 
     ExpireTilesClassic() = delete;
 

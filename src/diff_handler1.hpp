@@ -23,7 +23,7 @@ private:
     /**
      * \brief additional table for relations which is not inherited from PostgresHandler
      */
-    Table& m_relations_table;
+    PostgresTable& m_relations_table;
 
     ExpireTiles* m_expire_tiles;
 
@@ -41,8 +41,8 @@ private:
     std::unique_ptr<const geos::geom::Coordinate> get_point_from_tables(osmium::object_id_type id);
 
 public:
-    DiffHandler1(Config& config, Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table,
-            ExpireTiles* expire_tiles) :
+    DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table,
+            PostgresTable& relations_table, ExpireTiles* expire_tiles) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
             m_relations_table(relations_table),
             m_expire_tiles(expire_tiles) { }
@@ -50,8 +50,8 @@ public:
     /**
      * \brief Constructor for testing purposes, will not establish database connections.
      */
-    DiffHandler1(Table& nodes_table, Table& untagged_nodes_table, Table& ways_table, Table& relations_table, Config& config,
-            ExpireTiles* expire_tiles) :
+    DiffHandler1(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table,
+            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
         m_relations_table(relations_table),
         m_expire_tiles(expire_tiles) { }

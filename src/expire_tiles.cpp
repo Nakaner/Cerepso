@@ -23,7 +23,7 @@ void TileCoordinate::swap(TileCoordinate& other) {
 }
 
 
-ExpireTiles::ExpireTiles(Config& config) :
+ExpireTiles::ExpireTiles(CerepsoConfig& config) :
         m_config(config) {}
 
 void ExpireTiles::coords_to_tile(double *tilex, double *tiley,
