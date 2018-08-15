@@ -63,9 +63,13 @@ void print_help(char* argv[], std::string message = "") {
     "  -I, --no-id-index                don't create an index on osm_id columns\n" \
     "  --min-zoom=ZOOM                  minimum zoom for expire_tile list\n" \
     "  --max-zoom=ZOOM                  maximum zoom for expire_tile list\n" \
+    "  --metadata=OPTARG                import specified metadata fields. Permitted values are \"none\", \"all\" and\n" \
+    "                                   one or many of the following values concatenated by \"+\": version,\n" \
+    "                                   timestamp, user, uid, changeset.\n" \
+    "                                   Valid examples: \"none\" (no metadata), \"all\" (all fields),\n" \
+    "                                   \"version+timestamp\" (only version and timestamp).\n" \
     "  -l, --location-handler=HANDLER   use HANDLER as location handler\n" \
-    "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
-    "  -u, --no-usernames               don't insert user names into the database\n" << std::endl;
+    "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n\n";
     exit(1);
 }
 
@@ -83,20 +87,21 @@ int main(int argc, char* argv[]) {
             {"all-geom-indexes", no_argument, 0, 'G'},
             {"min-zoom",  required_argument, 0, 200},
             {"max-zoom",  required_argument, 0, 201},
+            {"metadata",  required_argument, 0, 'm'},
             {"no-order-by-geohash", no_argument, 0, 'o'},
             {"append", no_argument, 0, 'a'},
             {"no-id-index", no_argument, 0, 'I'},
             {"location-handler", required_argument, 0, 'l'},
-            {"no-usernames", no_argument, 0, 'u'},
             {0, 0, 0, 0}
         };
     CerepsoConfig config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:e:E:IoagGl:u", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:e:E:IoagGl:m:u", long_options, 0);
         if (c == -1) {
             break;
         }
 
+        std::string opts;
         switch (c) {
             case 'h':
                 //print_help();
@@ -131,8 +136,9 @@ int main(int argc, char* argv[]) {
             case 'l':
                 config.m_location_handler = optarg;
                 break;
-            case 'u':
-                config.m_driver_config.m_usernames = false;
+            case 'm':
+                opts = optarg;
+                config.m_driver_config.metadata = osmium::metadata_options(opts);
                 break;
             case 200:
                 config.m_min_zoom = atoi(optarg);

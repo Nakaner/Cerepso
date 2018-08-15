@@ -14,22 +14,30 @@ void PostgresHandler::add_separator_to_stringstream(std::string& ss) {
 }
 
 void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, CerepsoConfig& config) {
-    if (config.m_driver_config.m_usernames) {
+    static char idbuffer[20];
+    if (config.m_driver_config.metadata.user()) {
         add_separator_to_stringstream(ss);
         PostgresTable::escape(object.user(), ss);
     }
-    add_separator_to_stringstream(ss);
-    static char idbuffer[20];
-    sprintf(idbuffer, "%u", object.uid());
-    ss.append(idbuffer);
-    add_separator_to_stringstream(ss);
-    sprintf(idbuffer, "%u", object.version());
-    ss.append(idbuffer);
-    add_separator_to_stringstream(ss);
-    ss.append(object.timestamp().to_iso());
-    add_separator_to_stringstream(ss);
-    sprintf(idbuffer, "%u", object.changeset());
-    ss.append(idbuffer);
+    if (config.m_driver_config.metadata.uid()) {
+        add_separator_to_stringstream(ss);
+        sprintf(idbuffer, "%u", object.uid());
+        ss.append(idbuffer);
+    }
+    if (config.m_driver_config.metadata.version()) {
+        add_separator_to_stringstream(ss);
+        sprintf(idbuffer, "%u", object.version());
+        ss.append(idbuffer);
+    }
+    if (config.m_driver_config.metadata.timestamp()) {
+        add_separator_to_stringstream(ss);
+        ss.append(object.timestamp().to_iso());
+    }
+    if (config.m_driver_config.metadata.changeset()) {
+        add_separator_to_stringstream(ss);
+        sprintf(idbuffer, "%u", object.changeset());
+        ss.append(idbuffer);
+    }
     add_separator_to_stringstream(ss);
 }
 

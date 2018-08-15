@@ -8,6 +8,7 @@
 #ifndef CEREPSOCONFIG_HPP_
 #define CEREPSOCONFIG_HPP_
 
+#include <osmium/osm/metadata_options.hpp>
 #include <osmium/osm/tag.hpp>
 #include <postgres_drivers/columns.hpp>
 
@@ -60,6 +61,11 @@ public:
      * \notForAppendMode
      */
     bool m_id_index = true;
+
+    /**
+     *
+     */
+    osmium::metadata_options m_metadata = osmium::metadata_options{"none"};
 
     /**
      * Selected location handler (by Osmium). See the [Osmium Concepts Manual](http://docs.osmcode.org/osmium-concepts-manual/#indexes)
