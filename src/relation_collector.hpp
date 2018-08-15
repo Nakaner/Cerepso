@@ -15,7 +15,7 @@
 #include <osmium/osm/relation.hpp>
 #include <osmium/osm/tag.hpp>
 #include <osmium/osm/way.hpp>
-#include <osmium/relations/collector.hpp>
+#include <osmium/relations/relations_manager.hpp>
 #include <osmium/area/assembler.hpp>
 #include <osmium/relations/detail/member_meta.hpp>
 #include "import_handler.hpp"
@@ -28,10 +28,10 @@
  * to read all relations, their tags and reference from the input file. At the second pass it collects
  * all ways and nodes which are referenced by the collected relations.
  */
-class RelationCollector: public osmium::relations::Collector<RelationCollector,
+class RelationCollector: public osmium::relations::RelationsManager<RelationCollector,
     true, true, false> {
 
-    typedef typename osmium::relations::Collector<RelationCollector, true, true, true> collector_type;
+    typedef typename osmium::relations::RelationsManager<RelationCollector, true, true, true> collector_type;
 
 private:
     /// reference to program configuration
@@ -45,15 +45,6 @@ private:
     geos::io::WKBWriter m_geos_wkb_writer;
     static constexpr size_t initial_output_buffer_size = 1024 * 1024;
     static constexpr size_t max_buffer_size_for_flush = 100 * 1024;
-
-    /** \brief Helper method to retrieve relation members from osmium::handler::Handler#m_members_buffer as osmium::Node& */
-    osmium::Node& get_member_node(size_t offset) const;
-
-    /** \brief Helper method to retrieve relation members from osmium::handler::Handler#m_members_buffer as osmium::Way& */
-    osmium::Way& get_member_way(size_t offset) const;
-
-    /** \brief Helper method to retrieve relation members from osmium::handler::Handler#m_members_buffer as osmium::Relation& */
-    osmium::Relation& get_member_relation(size_t offset) const;
 
     /** \brief Helper method. Returns true if the member will likely miss in the data source file.
      *
@@ -101,7 +92,7 @@ public:
      *
      * \return always `true` because we do not filter out any relations
      */
-    bool keep_relation(const osmium::Relation& relation) const;
+    bool new_relation(const osmium::Relation& relation) const;
 
     /**
      * \brief Tells Osmium which members to keep for a relation of interest.
@@ -110,7 +101,7 @@ public:
      *
      * \return always `true` because we do not filter out any members
      */
-    bool keep_member(const osmium::relations::RelationMeta& relation_meta, const osmium::RelationMember& member) const;
+    bool new_member(const osmium::Relation& /*relation*/, const osmium::RelationMember& /*member*/, std::size_t /*n*/) noexcept;
 
     /**
      * \brief Called by Osmium when a relation has been fully read (i.e. all
@@ -118,7 +109,7 @@ public:
      *
      * This method is required by Osmium.
      */
-    void complete_relation(osmium::relations::RelationMeta& relation_meta);
+    void complete_relation(const osmium::Relation& relation);
 
     /**
      * \brief Process incomplete relations (some members missing).
@@ -130,6 +121,7 @@ public:
      * This method is required by Osmium.
      *
      * \todo implement; necessary to support partial relations of extracts
+     * \todo change to new RelationManager
      */
     void handle_incomplete_relations();
 

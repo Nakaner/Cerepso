@@ -234,10 +234,9 @@ int main(int argc, char* argv[]) {
         location_handler_type location_handler(*location_index);
         ts = time(NULL);
         std::cerr << "Pass 1 (relations)";
-        osmium::io::Reader reader_rel(config.m_osm_file);
         RelationCollector rel_collector(config, relation_other_columns);
-        rel_collector.read_relations(reader_rel);
-        reader_rel.close();
+        osmium::io::File input_file {config.m_osm_file};
+        osmium::relations::read_relations(input_file, rel_collector);
         std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
         ts = time(NULL);

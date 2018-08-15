@@ -14,27 +14,12 @@ RelationCollector::RelationCollector(CerepsoConfig& config,  postgres_drivers::C
     m_database_table("relations", config, node_columns)
     { }
 
-bool RelationCollector::keep_relation(const osmium::Relation& relation) const {
+bool RelationCollector::new_relation(const osmium::Relation& relation) const {
     return true;
 }
 
-bool RelationCollector::keep_member(const osmium::relations::RelationMeta& relation_meta, const osmium::RelationMember& member) const {
+bool RelationCollector::new_member(const osmium::Relation& /*relation*/, const osmium::RelationMember& /*member*/, std::size_t /*n*/) noexcept {
     return true;
-}
-
-/** Helper to retrieve relation member */
-osmium::Node& RelationCollector::get_member_node(size_t offset) const {
-    return static_cast<osmium::Node &>(this->get_member(offset));
-}
-
-/** Helper to retrieve relation member */
-osmium::Way& RelationCollector::get_member_way(size_t offset) const {
-    return static_cast<osmium::Way &>(this->get_member(offset));
-}
-
-/** Helper to retrieve relation member */
-osmium::Relation& RelationCollector::get_member_relation(size_t offset) const {
-    return static_cast<osmium::Relation&>(this->get_member(offset));
 }
 
 void RelationCollector::process_relation(const osmium::Relation& relation) {
@@ -52,20 +37,18 @@ void RelationCollector::build_relation_query(const osmium::Relation& relation, s
     std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
     for (const auto& member : relation.members()) {
         // get the offset and check the availability, needs libosmium >= 2.10.2
-        std::pair<bool, size_t> available_and_offset;
-        available_and_offset = this->get_availability_and_offset(member.type(), member.ref());
-        if (!available_and_offset.first) {
+        if (member.ref() == 0) {
             // object is not available in the input OSM file, therefore we skip it
             continue;
         }
         if ((member.type() == osmium::item_type::way)) {
-            osmium::Way& way = this->get_member_way(available_and_offset.second);
-            std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(way);
+            const osmium::Way* way = this->get_member_way(member.ref());
+            std::unique_ptr<geos::geom::LineString> linestring = m_geos_factory.create_linestring(*way);
             linestrings->push_back(linestring.release());
         }
         else if ((member.type() == osmium::item_type::node)) {
-            osmium::Node& node = this->get_member_node(available_and_offset.second);
-            std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(node);
+            const osmium::Node* node = this->get_member_node(member.ref());
+            std::unique_ptr<geos::geom::Point> point = m_geos_factory.create_point(*node);
             points->push_back(point.release());
         }
         else if ((member.type() == osmium::item_type::relation)) {
@@ -91,6 +74,6 @@ void RelationCollector::build_relation_query(const osmium::Relation& relation, s
     delete multilinestrings;
 }
 
-void RelationCollector::complete_relation(osmium::relations::RelationMeta& relation_meta) {
-    process_relation(this->get_relation(relation_meta));
+void RelationCollector::complete_relation(const osmium::Relation& relation) {
+    process_relation(relation);
 }
