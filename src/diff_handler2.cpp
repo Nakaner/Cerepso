@@ -31,14 +31,14 @@ void DiffHandler2::node(const osmium::Node& node) {
         m_nodes_table.send_line(query);
     }
     else {
-        m_untagged_nodes_table.send_line(query);
+        m_untagged_nodes_table->send_line(query);
     }
     m_expire_tiles->expire_from_point(node.location());
 }
 
 std::unique_ptr<const geos::geom::Coordinate> DiffHandler2::get_point_from_tables(osmium::object_id_type id) {
     // first check untagged nodes because most nodes do not have tags
-    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(id);
+    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table->get_point(id);
     if (!coord) { //node not found in untagged_nodes table
         coord = m_nodes_table.get_point(id);
     }
@@ -100,7 +100,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
         bool trigger_tile_expiry = m_config.expire_this_relation(relation.tags());
         for (const auto& member : relation.members()) {
             if ((member.type() == osmium::item_type::node)) {
-                std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(member.ref());
+                std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table->get_point(member.ref());
                 if (!coord) {
                     coord = m_nodes_table.get_point(member.ref());
                 }
@@ -179,7 +179,7 @@ void DiffHandler2::relation(const osmium::Relation& relation) {
 
 void DiffHandler2::write_new_nodes() {
     m_nodes_table.end_copy();
-    m_untagged_nodes_table.end_copy();
+    m_untagged_nodes_table->end_copy();
     m_ways_linear_table.start_copy();
     m_progress = TypeProgress::WAY;
 }

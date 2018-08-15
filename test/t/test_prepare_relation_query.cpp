@@ -70,7 +70,7 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     config.m_append = true;
-    DiffHandler2 handler(nodes_table, untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
     handler.node(node1);
     handler.node(node2);
     handler.node(node3);

@@ -34,7 +34,7 @@ TEST_CASE("inserting new way works") {
     ExpireTilesFactory expire_tiles_factory;
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-    DiffHandler2 handler(nodes_table, untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
 
     // build OSM objects and call the callback methods of the handler
     static constexpr int buffer_size = 10 * 1000 * 1000;

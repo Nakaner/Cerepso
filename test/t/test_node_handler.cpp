@@ -39,7 +39,7 @@ TEST_CASE("node handler produces good lines for COPY") {
     PostgresTable nodes_table ("nodes", config, node_columns);
     PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
     PostgresTable ways_table ("ways", config, way_columns);
-    ImportHandler handler(nodes_table, untagged_nodes_table, ways_table, config);
+    ImportHandler handler(nodes_table, &untagged_nodes_table, ways_table, config);
 
     std::string query_str;
     handler.prepare_node_query(node, query_str);

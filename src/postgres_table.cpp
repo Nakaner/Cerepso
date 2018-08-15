@@ -160,7 +160,6 @@ PostgresTable::~PostgresTable() {
         if (m_program_config.m_id_index && !m_program_config.m_append) {
             create_id_index();
         }
-        PQfinish(m_database_connection);
     }
 }
 

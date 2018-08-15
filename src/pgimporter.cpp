@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <getopt.h>
+#include <memory>
+#include <osmium/area/multipolygon_manager.hpp>
 #include <osmium/index/map/sparse_mmap_array.hpp>
 #include <osmium/index/map/dense_mmap_array.hpp>
 #include <osmium/handler/node_locations_for_ways.hpp>
@@ -53,6 +55,7 @@ void print_help(char* argv[], std::string message = "") {
     }
     std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
     "  -a, --append                     this is a diff import\n" \
+    "  -A, --areas                      enable area support, disables updateability\n" \
     "  -d, --database-name              database name\n" \
     "  -e FILE, --expire-tiles=FILE     write an expiry_tile list to FILE\n" \
     "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
@@ -69,7 +72,8 @@ void print_help(char* argv[], std::string message = "") {
     "                                   Valid examples: \"none\" (no metadata), \"all\" (all fields),\n" \
     "                                   \"version+timestamp\" (only version and timestamp).\n" \
     "  -l, --location-handler=HANDLER   use HANDLER as location handler\n" \
-    "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n\n";
+    "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
+    "  -O, --one                        Don't create tables and columns needed for updates.\n\n";
     exit(1);
 }
 
@@ -89,19 +93,20 @@ int main(int argc, char* argv[]) {
             {"max-zoom",  required_argument, 0, 201},
             {"metadata",  required_argument, 0, 'm'},
             {"no-order-by-geohash", no_argument, 0, 'o'},
+            {"one", no_argument, 0, 'O'},
             {"append", no_argument, 0, 'a'},
+            {"areas", no_argument, 0, 'A'},
             {"no-id-index", no_argument, 0, 'I'},
             {"location-handler", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
     CerepsoConfig config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:e:E:IoagGl:m:u", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:e:E:IoOagGl:m:u", long_options, 0);
         if (c == -1) {
             break;
         }
 
-        std::string opts;
         switch (c) {
             case 'h':
                 //print_help();
@@ -127,8 +132,16 @@ int main(int argc, char* argv[]) {
             case 'o':
                 config.m_order_by_geohash = false;
                 break;
+            case 'O':
+                config.m_driver_config.updateable = false;
+                break;
             case 'a':
                 config.m_append = true;
+                config.m_driver_config.updateable = true;
+                break;
+            case 'A':
+                config.m_areas = true;
+                config.m_driver_config.updateable = false;
                 break;
             case 'I':
                 config.m_id_index = false;
@@ -137,8 +150,7 @@ int main(int argc, char* argv[]) {
                 config.m_location_handler = optarg;
                 break;
             case 'm':
-                opts = optarg;
-                config.m_driver_config.metadata = osmium::metadata_options(opts);
+                config.m_driver_config.metadata = osmium::metadata_options(optarg);
                 break;
             case 200:
                 config.m_min_zoom = atoi(optarg);
@@ -182,11 +194,19 @@ int main(int argc, char* argv[]) {
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
     postgres_drivers::Columns relation_other_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
+    postgres_drivers::Columns areas_columns(config.m_driver_config, postgres_drivers::TableType::AREA);
 
     time_t ts = time(NULL);
     PostgresTable nodes_table ("nodes", config, node_columns);
-    PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    PostgresTable* untagged_nodes_table;
+    if (config.m_driver_config.updateable) {
+        untagged_nodes_table = new PostgresTable("untagged_nodes", config, untagged_nodes_columns);
+    }
     PostgresTable ways_linear_table ("ways", config, way_linear_columns);
+    PostgresTable* areas_table;
+    if (config.m_areas) {
+        areas_table = new PostgresTable("polygons", config, areas_columns);
+    }
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
@@ -194,7 +214,7 @@ int main(int argc, char* argv[]) {
         // send BEGIN to all tables
         relations_table.send_begin();
         nodes_table.send_begin();
-        untagged_nodes_table.send_begin();
+        untagged_nodes_table->send_begin();
         ways_linear_table.send_begin();
 
         ExpireTilesFactory expire_tiles_factory;
@@ -238,19 +258,43 @@ int main(int argc, char* argv[]) {
         const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
         auto location_index = map_factory.create_map(config.m_location_handler);
         location_handler_type location_handler(*location_index);
+        osmium::area::Assembler::config_type assembler_config;
+        osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager;
+        if (config.m_areas) {
+            mp_manager = new osmium::area::MultipolygonManager<osmium::area::Assembler>(assembler_config);
+        }
         ts = time(NULL);
         std::cerr << "Pass 1 (relations)";
         RelationCollector rel_collector(config, relation_other_columns);
         osmium::io::File input_file {config.m_osm_file};
-        osmium::relations::read_relations(input_file, rel_collector);
+        if (config.m_areas) {
+            osmium::relations::read_relations(input_file, rel_collector, *mp_manager);
+        } else {
+            osmium::relations::read_relations(input_file, rel_collector);
+        }
         std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        ImportHandler handler(config, nodes_table, untagged_nodes_table, ways_linear_table);
-        osmium::apply(reader2, location_handler, handler, rel_collector.handler());
+        ImportHandler handler(config, nodes_table, untagged_nodes_table, ways_linear_table, areas_table);
+        if (config.m_areas) {
+            osmium::apply(reader2, location_handler, handler, rel_collector.handler(),
+                    mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
+                osmium::apply(buffer, handler);
+            }));
+            delete mp_manager;
+        } else {
+            osmium::apply(reader2, location_handler, handler, rel_collector.handler());
+        }
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
+    }
+
+    if (config.m_driver_config.updateable) {
+        delete untagged_nodes_table;
+    }
+    if (config.m_areas) {
+        delete areas_table;
     }
 }

@@ -31,14 +31,14 @@ void DiffHandler1::node(const osmium::Node& node) {
             // Because this happens quite often, we will do nothing.
         }
         // delete old node, try first untagged nodes table
-        m_untagged_nodes_table.delete_object(node.id());
+        m_untagged_nodes_table->delete_object(node.id());
         m_nodes_table.delete_object(node.id());
     }
 }
 
 std::unique_ptr<const geos::geom::Coordinate> DiffHandler1::get_point_from_tables(osmium::object_id_type id) {
     // first check untagged nodes because most nodes do not have tags
-    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table.get_point(id);
+    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table->get_point(id);
     if (!coord) { //node not found in untagged_nodes table
         coord = m_nodes_table.get_point(id);
     }

@@ -41,7 +41,7 @@ private:
     std::unique_ptr<const geos::geom::Coordinate> get_point_from_tables(osmium::object_id_type id);
 
 public:
-    DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table,
+    DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, ExpireTiles* expire_tiles) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
             m_relations_table(relations_table),
@@ -50,7 +50,7 @@ public:
     /**
      * \brief Constructor for testing purposes, will not establish database connections.
      */
-    DiffHandler1(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table,
+    DiffHandler1(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
         m_relations_table(relations_table),

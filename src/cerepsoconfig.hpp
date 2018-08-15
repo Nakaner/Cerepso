@@ -56,6 +56,11 @@ public:
     bool m_append = false;
 
     /**
+     * Enable area support
+     */
+    bool m_areas = false;
+
+    /**
      * Create index on osm_id column.
      *
      * \notForAppendMode

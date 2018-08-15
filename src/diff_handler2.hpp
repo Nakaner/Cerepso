@@ -67,19 +67,19 @@ private:
     void write_new_ways();
 
 public:
-    DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table,
+    DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, ExpireTiles* expire_tiles) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
             m_relations_table(relations_table),
             m_expire_tiles(expire_tiles) {
-        m_untagged_nodes_table.start_copy();
+        m_untagged_nodes_table->start_copy();
         m_nodes_table.start_copy();
     }
 
     /**
      * \brief constructor for testing purposes, will not establish database connections
      */
-    DiffHandler2(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table,
+    DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
         m_relations_table(relations_table),

@@ -96,26 +96,32 @@ protected:
     /// reference to nodes table
     PostgresTable& m_nodes_table;
     /// reference to table of untagged nodes
-    PostgresTable& m_untagged_nodes_table;
+    PostgresTable* m_untagged_nodes_table;
     /// reference to table of all ways
     PostgresTable& m_ways_linear_table;
-    PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table) :
+    /// reference to table of polkygons
+    PostgresTable* m_areas_table;
+    PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
+            PostgresTable* areas_table = nullptr) :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
-            m_ways_linear_table(ways_table) {}
+            m_ways_linear_table(ways_table),
+            m_areas_table(areas_table) {}
 
 
     /**
      * \brief constructor for testing purposes, will not establish database connections
      */
-    PostgresHandler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config)  :
+    PostgresHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
+            PostgresTable* areas_table = nullptr)  :
             wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex),
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
-            m_ways_linear_table(ways_table) {}
+            m_ways_linear_table(ways_table),
+            m_areas_table(areas_table)  {}
 
 
     virtual ~PostgresHandler()  {}

@@ -25,16 +25,18 @@ public:
      *
      * This constructor takes references to the program configuration and the instances of Table class.
      */
-    ImportHandler(CerepsoConfig& config,  PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table) :
-        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table) {}
+    ImportHandler(CerepsoConfig& config,  PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
+            PostgresTable* areas_table = nullptr) :
+        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, areas_table) {}
 
     /**
      * \brief Constructor for testing purposes, will not establish database connections
      *
      * This constructor takes references to the program configuration and the instances of Table class.
      */
-    ImportHandler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config) { }
+    ImportHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
+            PostgresTable* areas_table = nullptr) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, areas_table) { }
 
     ~ImportHandler() {
     }
@@ -52,7 +54,7 @@ public:
     /**
      * \osmiumcallback
      */
-    void area(const osmium::Area& area) {};
+    void area(const osmium::Area& area);
 };
 
 
