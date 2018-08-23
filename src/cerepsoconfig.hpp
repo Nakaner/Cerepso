@@ -10,7 +10,7 @@
 
 #include <osmium/osm/metadata_options.hpp>
 #include <osmium/osm/tag.hpp>
-#include <postgres_drivers/columns.hpp>
+#include <postgres_drivers/config.hpp>
 
 /**
  * \brief program configuration
@@ -25,6 +25,9 @@ public:
 
     /// OSM file to read (Osmium will detect the file format based on the file name extension
     std::string m_osm_file = "";
+
+    /// Osm2pgsql style file path
+    std::string m_style_file = "default.style";
 
     /**
      * create geometry index on untagged_nodes table
@@ -59,6 +62,16 @@ public:
      * Enable area support
      */
     bool m_areas = false;
+
+    /**
+     * Support associatedStreet relations
+     */
+    bool m_associated_streets = false;
+
+    /**
+     * Add objects with tags even if they don't have any tag matching a column.
+     */
+    bool m_hstore_all = false;
 
     /**
      * Create index on osm_id column.

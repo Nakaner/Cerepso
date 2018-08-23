@@ -6,6 +6,7 @@
  */
 
 #include <osmium/osm/tag.hpp>
+#include <osmium/tags/taglist.hpp>
 #include <sstream>
 #include "import_handler.hpp"
 
@@ -13,12 +14,18 @@ void ImportHandler::node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
+    if (!m_config.m_driver_config.updateable && node.tags().empty()) {
+        return;
+    }
     std::string query;
-    if (node.tags().size() > 0) {
-        prepare_node_query(node, query);
+    bool with_tags = m_nodes_table.has_interesting_tags(node.tags());
+    if (with_tags) {
+        const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
+        std::string query = prepare_query(node, m_nodes_table, m_config, rel_tags_to_apply);
         m_nodes_table.send_line(query);
-    } else if (m_config.m_driver_config.updateable) { //no tags, usually a node of way
-        prepare_node_query(node, query);
+    }
+    else if (m_config.m_driver_config.updateable) {
+        std::string query = prepare_query(node, *m_untagged_nodes_table, m_config, nullptr);
         m_untagged_nodes_table->send_line(query);
     }
 }
@@ -35,57 +42,26 @@ void ImportHandler::way(const osmium::Way& way) {
             //TODO support partial ways
         }
     }
-    std::string query;
-    static char idbuffer[20];
-    sprintf(idbuffer, "%ld", way.id());
-    query.append(idbuffer, strlen(idbuffer));
-    add_tags(query, way);
-    add_metadata_to_stringstream(query, way, m_config);
-    std::string wkb = "010200000000000000"; // initalize with LINESTRING EMPTY
-    // If creating a linestring fails (e.g. way with four nodes at the same location), we have to use an empty linestring.
-    try {
-        wkb = wkb_factory.create_linestring(way);
-    } catch (osmium::geometry_error& e) {
-        std::cerr << e.what() << "\n";
+    // Check if there is any interesting tag.
+    if (!m_config.m_driver_config.updateable
+            && !m_ways_linear_table.has_interesting_tags(way.tags())) {
+        return;
     }
-    query.append("SRID=4326;");
-    query.append(wkb);
-    if (m_config.m_driver_config.updateable) {
-        add_separator_to_stringstream(query);
-        query.append("{");
-        for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
-            if (i != way.nodes().begin()) {
-                query.append(", ");
-            }
-            sprintf(idbuffer, "%ld", i->ref());
-            query.append(idbuffer);
-        }
-        query.push_back('}');
-    }
-    query.push_back('\n');
+    const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(way.id(), osmium::item_type::way);
+    std::string query = prepare_query(way, m_ways_linear_table, m_config, rel_tags_to_apply);
     m_ways_linear_table.send_line(query);
 }
 
 void ImportHandler::area(const osmium::Area& area) {
-    std::string query;
-    static char idbuffer[20];
+    if (!m_areas_table->has_interesting_tags(area.tags())) {
+        return;
+    }
+    const osmium::TagList* rel_tags_to_apply;
     if (area.from_way()) {
-        sprintf(idbuffer, "%ld", area.orig_id());
+        rel_tags_to_apply = get_relation_tags_to_apply(area.orig_id(), osmium::item_type::way);
     } else {
-        sprintf(idbuffer, "%ld", -area.orig_id());
+        rel_tags_to_apply = get_relation_tags_to_apply(area.orig_id(), osmium::item_type::relation);
     }
-    query.append(idbuffer, strlen(idbuffer));
-    add_tags(query, area);
-    add_metadata_to_stringstream(query, area, m_config);
-    std::string wkb = "0106000020E610000000000000"; // initalize with MULTIPOLYGON EMPTY
-    // If creating an area fails, we have to use an empty multipolygon.
-    try {
-        wkb = wkb_factory.create_multipolygon(area);
-    } catch (osmium::geometry_error& e) {
-        std::cerr << e.what() << "\n";
-    }
-    query.append("SRID=4326;");
-    query.append(wkb);
-    query.push_back('\n');
+    std::string query = prepare_query(area, *m_areas_table, m_config, rel_tags_to_apply);
     m_areas_table->send_line(query);
 }

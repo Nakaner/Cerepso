@@ -11,8 +11,9 @@
 RelationCollector::RelationCollector(CerepsoConfig& config,  postgres_drivers::Columns& node_columns) :
     m_config(config),
     m_output_buffer(initial_output_buffer_size, osmium::memory::Buffer::auto_grow::yes),
-    m_database_table("relations", config, node_columns)
-    { }
+    m_database_table("relations", config, node_columns) {
+    m_database_table.init();
+}
 
 bool RelationCollector::new_relation(const osmium::Relation& relation) const {
     return true;
@@ -69,7 +70,7 @@ void RelationCollector::build_relation_query(const osmium::Relation& relation, s
     // convert to WKB
     std::stringstream multilinestring_stream;
     m_geos_wkb_writer.writeHEX(*multilinestrings, multilinestring_stream);
-    PostgresHandler::prepare_relation_query(relation, query, multipoint_stream, multilinestring_stream, m_config);
+    PostgresHandler::prepare_relation_query(relation, query, multipoint_stream, multilinestring_stream, m_config, m_database_table);
     delete multipoints;
     delete multilinestrings;
 }

@@ -20,6 +20,7 @@
 #include "diff_handler2.hpp"
 #include "relation_collector.hpp"
 #include "expire_tiles_factory.hpp"
+#include "column_config_parser.hpp"
 
 using index_type = osmium::index::map::Map<osmium::unsigned_object_id_type, osmium::Location>;
 using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
@@ -56,11 +57,13 @@ void print_help(char* argv[], std::string message = "") {
     std::cerr << "Usage: " << argv[0] << " [OPTIONS] [INFILE]\n" \
     "  -a, --append                     this is a diff import\n" \
     "  -A, --areas                      enable area support, disables updateability\n" \
+    "  --associated-streets             Apply tags of relations of type associatedStreet to their members\n" \
     "  -d, --database-name              database name\n" \
     "  -e FILE, --expire-tiles=FILE     write an expiry_tile list to FILE\n" \
     "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
     "  --expire-relations=SETTING       expiration setting for relations: NONE, ALL, NO_ROUTES\n" \
     "  -g, --no-geom-indexes            don't create any geometry indexes\n" \
+    "  -H, --hstore-all                 Add objects with tags even if they don't have any tag matching a column.\n" \
     "  -G, --all-geom-indexes           create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
     "                                   overrides -g"
     "  -I, --no-id-index                don't create an index on osm_id columns\n" \
@@ -71,6 +74,7 @@ void print_help(char* argv[], std::string message = "") {
     "                                   timestamp, user, uid, changeset.\n" \
     "                                   Valid examples: \"none\" (no metadata), \"all\" (all fields),\n" \
     "                                   \"version+timestamp\" (only version and timestamp).\n" \
+    "  -s FILE, --style=FILE            Osm2pgsql style file (default: ./default.style)\n" \
     "  -l, --location-handler=HANDLER   use HANDLER as location handler\n" \
     "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
     "  -O, --one                        Don't create tables and columns needed for updates.\n\n";
@@ -82,11 +86,13 @@ int main(int argc, char* argv[]) {
     // parsing command line arguments
     static struct option long_options[] = {
             {"help",   no_argument, 0, 'h'},
+            {"associated-streets", no_argument, 0, 203},
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
             {"expire-tiles",  required_argument, 0, 'e'},
             {"expiry-generator",  required_argument, 0, 'E'},
             {"expire-relations", required_argument, 0, 202},
+            {"hstore", no_argument, 0, 'H'},
             {"no-geom-indexes", no_argument, 0, 'g'},
             {"all-geom-indexes", no_argument, 0, 'G'},
             {"min-zoom",  required_argument, 0, 200},
@@ -96,13 +102,14 @@ int main(int argc, char* argv[]) {
             {"one", no_argument, 0, 'O'},
             {"append", no_argument, 0, 'a'},
             {"areas", no_argument, 0, 'A'},
+            {"style", required_argument, 0, 's'},
             {"no-id-index", no_argument, 0, 'I'},
             {"location-handler", required_argument, 0, 'l'},
             {0, 0, 0, 0}
         };
     CerepsoConfig config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:e:E:IoOagGl:m:u", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:e:E:IHoOagGl:m:us:", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -143,14 +150,23 @@ int main(int argc, char* argv[]) {
                 config.m_areas = true;
                 config.m_driver_config.updateable = false;
                 break;
+            case 203:
+                config.m_associated_streets = true;
+                break;
             case 'I':
                 config.m_id_index = false;
+                break;
+            case 'H':
+                config.m_hstore_all = true;
                 break;
             case 'l':
                 config.m_location_handler = optarg;
                 break;
             case 'm':
                 config.m_driver_config.metadata = osmium::metadata_options(optarg);
+                break;
+            case 's':
+                config.m_style_file = optarg;
                 break;
             case 200:
                 config.m_min_zoom = atoi(optarg);
@@ -189,32 +205,35 @@ int main(int argc, char* argv[]) {
         config.m_osm_file =  argv[optind];
     }
 
-    // column definitions
-    postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
+    // column definitions, parse config
+    ColumnConfigParser config_parser {config};
+    config_parser.parse();
+
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
-    postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
     postgres_drivers::Columns relation_other_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
-    postgres_drivers::Columns areas_columns(config.m_driver_config, postgres_drivers::TableType::AREA);
 
     time_t ts = time(NULL);
-    PostgresTable nodes_table ("nodes", config, node_columns);
-    PostgresTable* untagged_nodes_table;
+    PostgresTable nodes_table = config_parser.make_point_table("planet_osm_");
+    nodes_table.init();
+    PostgresTable untagged_nodes_table {"untagged_nodes", config, std::move(untagged_nodes_columns)};
     if (config.m_driver_config.updateable) {
-        untagged_nodes_table = new PostgresTable("untagged_nodes", config, untagged_nodes_columns);
+        untagged_nodes_table.init();
     }
-    PostgresTable ways_linear_table ("ways", config, way_linear_columns);
-    PostgresTable* areas_table;
+    PostgresTable ways_linear_table = config_parser.make_line_table("planet_osm_");
+    ways_linear_table.init();
+    PostgresTable areas_table = config_parser.make_polygon_table("planet_osm_");
     if (config.m_areas) {
-        areas_table = new PostgresTable("polygons", config, areas_columns);
+        areas_table.init();
     }
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
         osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        PostgresTable relations_table("relations", config, relation_other_columns);
+        PostgresTable relations_table("relations", config, std::move(relation_other_columns));
+        relations_table.init();
         // send BEGIN to all tables
         relations_table.send_begin();
         nodes_table.send_begin();
-        untagged_nodes_table->send_begin();
+        untagged_nodes_table.send_begin();
         ways_linear_table.send_begin();
 
         ExpireTilesFactory expire_tiles_factory;
@@ -222,7 +241,7 @@ int main(int argc, char* argv[]) {
             config.m_expiry_type = "";
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-        DiffHandler1 append_handler1(config, nodes_table, untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
+        DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
         while (osmium::memory::Buffer buffer = reader1.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
@@ -239,7 +258,7 @@ int main(int argc, char* argv[]) {
         reader1.close();
 
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        DiffHandler2 append_handler2(config, nodes_table, untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
+        DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
         while (osmium::memory::Buffer buffer = reader2.read()) {
             for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
                 if (it->type_is_in(osmium::osm_entity_bits::node)) {
@@ -266,18 +285,27 @@ int main(int argc, char* argv[]) {
         ts = time(NULL);
         std::cerr << "Pass 1 (relations)";
         RelationCollector rel_collector(config, relation_other_columns);
+        AssociatedStreetRelationManager assoc_manager;
         osmium::io::File input_file {config.m_osm_file};
         if (config.m_areas) {
-            osmium::relations::read_relations(input_file, rel_collector, *mp_manager);
+            if (config.m_associated_streets) {
+                osmium::relations::read_relations(input_file, rel_collector, *mp_manager, assoc_manager);
+            } else {
+                osmium::relations::read_relations(input_file, rel_collector, *mp_manager);
+            }
         } else {
-            osmium::relations::read_relations(input_file, rel_collector);
+            if (config.m_associated_streets) {
+                osmium::relations::read_relations(input_file, rel_collector, assoc_manager);
+            } else {
+                osmium::relations::read_relations(input_file, rel_collector);
+            }
         }
         std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        ImportHandler handler(config, nodes_table, untagged_nodes_table, ways_linear_table, areas_table);
+        ImportHandler handler(config, nodes_table, &untagged_nodes_table, ways_linear_table, &assoc_manager, &areas_table);
         if (config.m_areas) {
             osmium::apply(reader2, location_handler, handler, rel_collector.handler(),
                     mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
@@ -289,12 +317,5 @@ int main(int argc, char* argv[]) {
         }
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
-    }
-
-    if (config.m_driver_config.updateable) {
-        delete untagged_nodes_table;
-    }
-    if (config.m_areas) {
-        delete areas_table;
     }
 }

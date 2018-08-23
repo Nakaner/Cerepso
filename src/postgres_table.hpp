@@ -12,6 +12,7 @@
 #include <sstream>
 #include <libpq-fe.h>
 #include <osmium/osm/types.hpp>
+#include <osmium/geom/wkb.hpp>
 #include <geos/geom/Point.h>
 #include <postgres_drivers/table.hpp>
 
@@ -25,6 +26,10 @@ class PostgresTable : public postgres_drivers::Table {
 private:
     /// \brief reference to program configuration
     CerepsoConfig& m_program_config;
+
+    osmium::geom::WKBFactory<> m_wkb_factory;
+
+    bool m_initialized = false;
 
     /**
      * \brief Create index on geometry column.
@@ -58,7 +63,7 @@ public:
     /**
      * \brief constructor for production, establishes database connection
      */
-    PostgresTable(const char* table_name, CerepsoConfig& config, postgres_drivers::Columns& columns);
+    PostgresTable(const char* table_name, CerepsoConfig& config, postgres_drivers::Columns columns);
 
     /**
      * \brief constructor for testing, does not establishes database connection
@@ -66,6 +71,17 @@ public:
     PostgresTable(postgres_drivers::Columns& columns, CerepsoConfig& config);
 
     ~PostgresTable();
+
+    /**
+     * Initialize table (create it in the database).
+     */
+    void init();
+
+    const CerepsoConfig& config() const;
+
+    osmium::geom::WKBFactory<>& wkb_factory();
+
+    bool has_interesting_tags(const osmium::TagList& tags);
 
     /**
      * \brief Add a key or value of an OSM tag to a hstore column and escape forbidden characters before appending.

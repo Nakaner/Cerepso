@@ -11,6 +11,7 @@
 #include <boost/iostreams/stream.hpp>
 #include <geos/io/WKBReader.h>
 #include <geos/geom/Coordinate.h>
+#include <osmium/tags/taglist.hpp>
 #include "postgres_table.hpp"
 
 void PostgresTable::escape4hstore(const char* source, std::string& destination) {
@@ -105,13 +106,17 @@ void PostgresTable::escape(const char* source, std::string& destination) {
     }
 }
 
-PostgresTable::PostgresTable( postgres_drivers::Columns& columns, CerepsoConfig& config) :
+PostgresTable::PostgresTable(postgres_drivers::Columns& columns, CerepsoConfig& config) :
         postgres_drivers::Table(columns, config.m_driver_config),
         m_program_config(config) {}
 
-PostgresTable::PostgresTable(const char* table_name, CerepsoConfig& config, postgres_drivers::Columns& columns) :
+PostgresTable::PostgresTable(const char* table_name, CerepsoConfig& config, postgres_drivers::Columns columns) :
         postgres_drivers::Table(table_name, config.m_driver_config, columns),
-        m_program_config(config) {
+        m_program_config(config),
+        m_wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex) {
+}
+
+void PostgresTable::init() {
     // delete existing table
     std::string query;
     // TODO split Table class up into two classes – one for first import, one for append mode.
@@ -124,9 +129,10 @@ PostgresTable::PostgresTable(const char* table_name, CerepsoConfig& config, post
         query.append(m_name);
         query.push_back('(');
         for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-            query.append(it->first);
-            query.push_back(' ');
-            query.append(it->second);
+            query.push_back('"');
+            query.append(it->name());
+            query.append("\" ");
+            query.append(it->pg_type());
             if (it != m_columns.end() - 1) {
                 query.append(", ");
             }
@@ -138,9 +144,26 @@ PostgresTable::PostgresTable(const char* table_name, CerepsoConfig& config, post
     if (!m_program_config.m_append) {
         start_copy();
     }
+    m_initialized = true;
+}
+
+const CerepsoConfig& PostgresTable::config() const {
+    return m_program_config;
+}
+
+osmium::geom::WKBFactory<>& PostgresTable::wkb_factory() {
+    return m_wkb_factory;
+}
+
+bool PostgresTable::has_interesting_tags(const osmium::TagList& tags) {
+    return (tags.size() > 0 && m_program_config.m_hstore_all)
+            || osmium::tags::match_any_of(tags, m_columns.filter());
 }
 
 PostgresTable::~PostgresTable() {
+    if (!m_initialized) {
+        return;
+    }
     if (m_name != "") {
         if (m_copy_mode) {
             end_copy();
@@ -168,13 +191,13 @@ void PostgresTable::order_by_geohash() {
         return;
     }
     for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-        if (it->second.compare(0, 8, "geometry") == 0) {
+        if (static_cast<char>(it->type()) >= static_cast<char>(postgres_drivers::ColumnType::GEOMETRY)) {
            time_t ts = time(NULL);
            std::cerr << " and ordering it by ST_Geohash …";
            std::stringstream query;
            //TODO add ST_Transform to EPSG:4326 once pgimporter supports other coordinate systems.
            query << "CREATE TABLE " << m_name << "_tmp" <<  " AS SELECT * from " << m_name << " ORDER BY ST_GeoHash";
-           query << "(ST_Envelope(" << it->first << "),10) COLLATE \"C\"";
+           query << "(ST_Envelope(" << it->name() << "),10) COLLATE \"C\"";
            send_query(query.str().c_str());
            query.str("");
            query << "DROP TABLE " << m_name;
@@ -194,11 +217,11 @@ void PostgresTable::create_geom_index() {
     }
     // pick out geometry column
     for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-        if (it->second.compare(0, 8, "geometry") == 0) {
+        if (static_cast<char>(it->type()) >= static_cast<char>(postgres_drivers::ColumnType::GEOMETRY)) {
             time_t ts = time(NULL);
             std::cerr << "Creating geometry index on table " << m_name << " …";
             std::stringstream query;
-            query << "CREATE INDEX " << m_name << "_index_" << it->first << " ON " << m_name << " USING GIST (" << it->first << ")";
+            query << "CREATE INDEX " << m_name << "_index_" << it->name() << " ON " << m_name << " USING GIST (" << it->name() << ")";
             send_query(query.str().c_str());
             std::cerr << " took " << static_cast<int>(time(NULL) - ts) << " seconds." << std::endl;
         }
@@ -211,7 +234,7 @@ void PostgresTable::create_id_index() {
     }
     // pick out geometry column
     for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-        if (it->first.compare(0, 8, "osm_id") == 0) {
+        if (it->name() == "osm_id") {
             time_t ts = time(NULL);
             std::cerr << "Creating ID index on table " << m_name << " …";
             std::stringstream query;

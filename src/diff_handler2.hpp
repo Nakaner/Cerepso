@@ -100,7 +100,7 @@ public:
      *
      * This method has been extracted out of way(const osmium::Way& way) to be easier to test.
      */
-    void insert_way(const osmium::Way& way, std::string& copy_buffer);
+    void insert_way(const osmium::Way& way, std::string& copy_buffer, PostgresTable& table);
 
     /**
      * \brief Append a line to a given string for insertion of relation into its table via COPY.

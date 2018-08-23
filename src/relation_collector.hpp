@@ -124,7 +124,6 @@ public:
      * \todo change to new RelationManager
      */
     void handle_incomplete_relations();
-
 };
 
 

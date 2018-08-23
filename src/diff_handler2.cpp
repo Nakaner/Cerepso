@@ -48,11 +48,11 @@ std::unique_ptr<const geos::geom::Coordinate> DiffHandler2::get_point_from_table
     return coord;
 }
 
-void DiffHandler2::insert_way(const osmium::Way& way, std::string& copy_buffer) {
+void DiffHandler2::insert_way(const osmium::Way& way, std::string& copy_buffer, PostgresTable& table) {
     char idbuffer[20];
     sprintf(idbuffer, "%ld", way.id());
     copy_buffer.append(idbuffer, strlen(idbuffer));
-    add_tags(copy_buffer, way);
+    add_tags(copy_buffer, way, table);
     add_metadata_to_stringstream(copy_buffer, way, m_config);
     geos::geom::GeometryFactory gf;
     geos::geom::CoordinateSequence* coord_sequence = gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2);
@@ -140,7 +140,8 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
         std::stringstream multilinestring_stream;
         wkb_writer.writeHEX(*multilinestrings, multilinestring_stream);
         delete multilinestrings;
-        PostgresHandler::prepare_relation_query(relation, copy_buffer, multipoint_stream, multilinestring_stream, m_config);
+        PostgresHandler::prepare_relation_query(relation, copy_buffer, multipoint_stream, multilinestring_stream, m_config,
+                m_relations_table);
         m_relations_table.send_line(copy_buffer);
     }
     catch (osmium::geometry_error& e) {
@@ -157,7 +158,7 @@ void DiffHandler2::way(const osmium::Way& way) {
     }
     std::string copy_buffer;
     try {
-        insert_way(way, copy_buffer);
+        insert_way(way, copy_buffer, m_ways_linear_table);
     } catch (osmium::geometry_error& err) {
         std::cerr << err.what();
         return;
