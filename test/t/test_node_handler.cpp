@@ -36,13 +36,12 @@ TEST_CASE("node handler produces good lines for COPY") {
     postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns way_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
-    PostgresTable nodes_table ("nodes", config, node_columns);
-    PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
-    PostgresTable ways_table ("ways", config, way_columns);
+    PostgresTable nodes_table (node_columns, config);
+    PostgresTable untagged_nodes_table (untagged_nodes_columns, config);
+    PostgresTable ways_table (way_columns, config);
     ImportHandler handler(nodes_table, &untagged_nodes_table, ways_table, config);
 
-    std::string query_str;
-    handler.prepare_node_query(node, query_str);
+    std::string query_str = handler.prepare_query(node, nodes_table, config, nullptr);
 
     SECTION("check number of column separators") {
         REQUIRE(count_occurence_of_substring(query_str, '\t') == node_columns.size()-1);

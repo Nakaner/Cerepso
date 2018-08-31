@@ -10,10 +10,13 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/way.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
+#include <osmium/index/map/sparse_mmap_array.hpp>
 #include <diff_handler2.hpp>
 #include <postgres_table.hpp>
 #include <postgres_drivers/columns.hpp>
 #include "expire_tiles_factory.hpp"
+
+using sparse_mmap_array_t = osmium::index::map::SparseMmapArray<osmium::unsigned_object_id_type, osmium::Location>;
 
 void end_copy_nodes_tables(DiffHandler2& handler) {
     handler.write_new_nodes();
@@ -34,7 +37,8 @@ TEST_CASE("inserting new way works") {
     ExpireTilesFactory expire_tiles_factory;
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
+    sparse_mmap_array_t index;
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles, index);
 
     // build OSM objects and call the callback methods of the handler
     static constexpr int buffer_size = 10 * 1000 * 1000;
@@ -43,12 +47,15 @@ TEST_CASE("inserting new way works") {
     std::map<std::string, std::string> node_tags;
     // build and insert necessary nodes
     osmium::Node& node1 = test_utils::create_new_node(node_buffer, 1, 9.0, 50.1, node_tags);
+    index.set(node1.id(), node1.location());
     handler.node(node1);
     node_buffer.commit();
     osmium::Node& node2 = test_utils::create_new_node(node_buffer, 2, 9.1, 50.0,  node_tags);
+    index.set(node2.id(), node2.location());
     handler.node(node2);
     node_buffer.commit();
     osmium::Node& node3 = test_utils::create_new_node(node_buffer, 3, 9.2, 49.8, node_tags);
+    index.set(node3.id(), node3.location());
     handler.node(node3);
     node_buffer.commit();
 
@@ -72,9 +79,7 @@ TEST_CASE("inserting new way works") {
         wnl_builder.add_node_ref(nd_ref3);
     }
 
-    end_copy_nodes_tables(handler);
-    std::string ways_table_copy_buffer;
-    handler.insert_way(way_builder.object(), ways_table_copy_buffer);
+    std::string ways_table_copy_buffer = handler.prepare_query(way, ways_table, config, nullptr);
 
     SECTION("check if last char is \\n") {
         REQUIRE(ways_table_copy_buffer.back() == '\n');

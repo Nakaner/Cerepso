@@ -7,10 +7,13 @@
 
 #include "catch.hpp"
 #include "object_builder_utilities.hpp"
+#include <osmium/index/map/sparse_mmap_array.hpp>
 #include <postgres_table.hpp>
 #include <postgres_drivers/columns.hpp>
 #include <diff_handler2.hpp>
 #include <expire_tiles_factory.hpp>
+
+using sparse_mmap_array_t = osmium::index::map::SparseMmapArray<osmium::unsigned_object_id_type, osmium::Location>;
 
 void end_copy_ways_tables(DiffHandler2& handler) {
     handler.write_new_ways();
@@ -70,13 +73,16 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     config.m_append = true;
-    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles);
+    sparse_mmap_array_t index;
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles, index);
     handler.node(node1);
+    index.set(node1.id(), node1.location());
     handler.node(node2);
+    index.set(node2.id(), node2.location());
     handler.node(node3);
+    index.set(node3.id(), node3.location());
     handler.way(way1);
     handler.way(way2);
-    end_copy_ways_tables(handler);
     std::string copy_buffer;
     handler.insert_relation(relation, copy_buffer);
 

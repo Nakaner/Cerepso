@@ -10,7 +10,7 @@
 #include <iostream>
 #include "catch.hpp"
 #include <expire_tiles_quadtree.hpp>
-#include <postgres_drivers/columns.hpp>
+#include <postgres_drivers/config.hpp>
 
 using stringvector_t = std::vector<std::string>;
 
