@@ -213,6 +213,14 @@ void ExpireTilesClassic::expire_from_point(double lon, double lat) {
     expire_tile(norm_x, min_tile_y);
 }
 
+void ExpireTilesClassic::expire_from_coord_sequence(const osmium::NodeRefList& nodes) {
+    if (m_config.m_min_zoom < 0)
+        return;
+    for (size_t i = 1; i < nodes.size(); ++i) {
+        from_line_segment(nodes[i-1].lon(), nodes[i-1].lat(), nodes[i].lon(), nodes[i].lat());
+    }
+}
+
 void ExpireTilesClassic::expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords) {
     if (m_config.m_min_zoom < 0 || !coords || coords->getSize() == 0)
         return;

@@ -22,74 +22,11 @@ void DiffHandler2::node(const osmium::Node& node) {
     if (node.deleted()) { // we are finish now
         return;
     }
-    if (!node.location().valid()) {
-        return;
-    }
-    std::string query;
-    prepare_node_query(node, query);
-    if (node.tags().size() > 0) {
-        m_nodes_table.send_line(query);
-    }
-    else {
-        m_untagged_nodes_table->send_line(query);
-    }
-    m_expire_tiles->expire_from_point(node.location());
+    handle_node(node);
 }
 
-std::unique_ptr<const geos::geom::Coordinate> DiffHandler2::get_point_from_tables(osmium::object_id_type id) {
-    // first check untagged nodes because most nodes do not have tags
-    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table->get_point(id);
-    if (!coord) { //node not found in untagged_nodes table
-        coord = m_nodes_table.get_point(id);
-    }
-    if (!coord) { // node not found
-        throw std::runtime_error((boost::format("Node %1% not found. \n") % id).str());
-    }
-    return coord;
-}
-
-void DiffHandler2::insert_way(const osmium::Way& way, std::string& copy_buffer, PostgresTable& table) {
-    char idbuffer[20];
-    sprintf(idbuffer, "%ld", way.id());
-    copy_buffer.append(idbuffer, strlen(idbuffer));
-    add_tags(copy_buffer, way, table);
-    add_metadata_to_stringstream(copy_buffer, way, m_config);
-    geos::geom::GeometryFactory gf;
-    geos::geom::CoordinateSequence* coord_sequence = gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2);
-    for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
-        geos::geom::GeometryFactory gf;
-        try {
-            std::unique_ptr<const geos::geom::Coordinate> coord = get_point_from_tables(i->ref());
-            if (coord) {
-                coord_sequence->add(*(coord.get()));
-            }
-        } catch (std::runtime_error& e) {
-            std::cerr << e.what();
-        }
-    }
-    if (coord_sequence->size() < 2) {
-        /// \todo clean up memory
-        throw osmium::geometry_error((boost::format("Too few points for way %1%.") % way.id()).str());
-    }
-    m_expire_tiles->expire_from_coord_sequence(coord_sequence);
-    std::unique_ptr<geos::geom::Geometry> linestring (gf.createLineString(coord_sequence));
-    geos::io::WKBWriter wkb_writer;
-    std::stringstream stream(std::ios_base::out);
-    wkb_writer.writeHEX(*(linestring.get()), stream);
-    copy_buffer.append("SRID=4326;");
-    copy_buffer.append(stream.str());
-    add_separator_to_stringstream(copy_buffer);
-    copy_buffer.append("{");
-    for (osmium::WayNodeList::const_iterator i = way.nodes().begin(); i < way.nodes().end(); i++) {
-        if (i != way.nodes().begin()) {
-            copy_buffer.append(", ");
-        }
-        sprintf(idbuffer, "%ld", i->ref());
-        copy_buffer.append(idbuffer, strlen(idbuffer));
-    }
-    copy_buffer.append("}");
-    copy_buffer.push_back('\n');
-    /// \todo clean up memory
+osmium::Location DiffHandler2::get_point_from_tables(osmium::object_id_type id) {
+    return m_location_index.get_noexcept(id);
 }
 
 void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string& copy_buffer) {
@@ -100,15 +37,12 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
         bool trigger_tile_expiry = m_config.expire_this_relation(relation.tags());
         for (const auto& member : relation.members()) {
             if ((member.type() == osmium::item_type::node)) {
-                std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table->get_point(member.ref());
-                if (!coord) {
-                    coord = m_nodes_table.get_point(member.ref());
-                }
-                if (coord) {
+                osmium::Location loc = get_point_from_tables(member.ref());
+                if (loc.valid()) {
                     if (trigger_tile_expiry) {
-                        m_expire_tiles->expire_from_point(coord->x, coord->y);
+                        m_expire_tiles->expire_from_point(loc);
                     }
-                    std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(*(coord.get())));
+                    std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
                     points->push_back(point.release());
                 }
             }
@@ -156,14 +90,11 @@ void DiffHandler2::way(const osmium::Way& way) {
     if (way.deleted()) {
         return;
     }
-    std::string copy_buffer;
-    try {
-        insert_way(way, copy_buffer, m_ways_linear_table);
-    } catch (osmium::geometry_error& err) {
-        std::cerr << err.what();
-        return;
+    bool with_tags = m_ways_linear_table.has_interesting_tags(way.tags());
+    if (with_tags) {
+        m_ways_linear_table.send_line(prepare_query(way, m_ways_linear_table, m_config, nullptr));
     }
-    m_ways_linear_table.send_line(copy_buffer);
+    m_expire_tiles->expire_from_coord_sequence(way.nodes());
 }
 
 

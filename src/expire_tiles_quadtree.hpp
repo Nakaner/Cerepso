@@ -139,6 +139,14 @@ public:
     /**
      * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
      *
+     * \param nodes list of nodes of the line. Coordinates are expected as
+     * longitude and latitude (WGS84/EPSG:4326).
+     */
+    void expire_from_coord_sequence(const osmium::NodeRefList& nodes);
+
+    /**
+     * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
+     *
      * \param coords CoordinateSequence with all vertices of the line. Coordinates are expected as
      * longitude and latitude (WGS84/EPSG:4326).
      */

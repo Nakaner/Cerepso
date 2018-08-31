@@ -11,23 +11,7 @@
 #include "import_handler.hpp"
 
 void ImportHandler::node(const osmium::Node& node) {
-    if (!node.location().valid()) {
-        return;
-    }
-    if (!m_config.m_driver_config.updateable && node.tags().empty()) {
-        return;
-    }
-    std::string query;
-    bool with_tags = m_nodes_table.has_interesting_tags(node.tags());
-    if (with_tags) {
-        const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
-        std::string query = prepare_query(node, m_nodes_table, m_config, rel_tags_to_apply);
-        m_nodes_table.send_line(query);
-    }
-    else if (m_config.m_driver_config.updateable) {
-        std::string query = prepare_query(node, *m_untagged_nodes_table, m_config, nullptr);
-        m_untagged_nodes_table->send_line(query);
-    }
+    handle_node(node);
 }
 
 void ImportHandler::way(const osmium::Way& way) {

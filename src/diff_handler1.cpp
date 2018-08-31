@@ -19,10 +19,9 @@ void DiffHandler1::node(const osmium::Node& node) {
     if (node.version() > 1) {
         // expire tiles where the node has been before
         try {
-            std::unique_ptr<const geos::geom::Coordinate> coord = std::move(get_point_from_tables(node.id()));
-            if (coord) {
-                // If we do not import the full planet, objects m
-                m_expire_tiles->expire_from_point(coord->x, coord->y);
+            osmium::Location loc = m_location_index.get_noexcept(node.id());
+            if (loc.valid()) {
+                m_expire_tiles->expire_from_point(loc);
             }
         } catch (std::runtime_error& e) {
             // An exception is thrown if we import a diff which is the diff of two extracts.
@@ -31,21 +30,12 @@ void DiffHandler1::node(const osmium::Node& node) {
             // Because this happens quite often, we will do nothing.
         }
         // delete old node, try first untagged nodes table
-        m_untagged_nodes_table->delete_object(node.id());
+        // TODO untagged_nodes table maybe not necessary any more
+        if (m_config.m_driver_config.untagged_nodes) {
+            m_untagged_nodes_table->delete_object(node.id());
+        }
         m_nodes_table.delete_object(node.id());
     }
-}
-
-std::unique_ptr<const geos::geom::Coordinate> DiffHandler1::get_point_from_tables(osmium::object_id_type id) {
-    // first check untagged nodes because most nodes do not have tags
-    std::unique_ptr<const geos::geom::Coordinate> coord = m_untagged_nodes_table->get_point(id);
-    if (!coord) { //node not found in untagged_nodes table
-        coord = m_nodes_table.get_point(id);
-    }
-    if (!coord) { // node not found
-        throw std::runtime_error((boost::format("Node %1% not found. \n") % id).str());
-    }
-    return coord;
 }
 
 

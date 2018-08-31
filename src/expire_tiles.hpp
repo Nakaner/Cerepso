@@ -5,7 +5,7 @@
  *      Author: michael
  */
 
-#include <osmium/osm/location.hpp>
+#include <osmium/osm/node_ref_list.hpp>
 #include <geos/geom/Geometry.h>
 #include <geos/geom/CoordinateArraySequence.h>
 
@@ -63,6 +63,14 @@ public:
      * \param lat latitude
      */
     virtual void expire_from_point(const double lon, const double lat) = 0;
+
+    /**
+     * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
+     *
+     * \param nodes list of nodes of the line. Coordinates are expected as
+     * longitude and latitude (WGS84/EPSG:4326).
+     */
+    virtual void expire_from_coord_sequence(const osmium::NodeRefList& nodes) = 0;
 
     /**
      * \brief Expire all tiles which intersected a line.

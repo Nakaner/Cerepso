@@ -10,6 +10,7 @@
 #include <geos/geom/GeometryFactory.h>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
+#include "definitions.hpp"
 
 /**
  * \brief Diff handler for table imported using ImportHandler class, pass 1.
@@ -27,34 +28,27 @@ private:
 
     ExpireTiles* m_expire_tiles;
 
-    geos::geom::GeometryFactory m_geom_factory;
+    index_type& m_location_index;
 
-    /**
-     * \brief Search in both table holding the nodes for the node in question and return it as instance of geos::geom::Coordinate.
-     *
-     * \param id OSM ID of the node
-     *
-     * \throws std::runtime_error if it is not found in any table
-     *
-     * \returns unique_ptr to the Coordinate instance
-     */
-    std::unique_ptr<const geos::geom::Coordinate> get_point_from_tables(osmium::object_id_type id);
+    geos::geom::GeometryFactory m_geom_factory;
 
 public:
     DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, ExpireTiles* expire_tiles) :
+            PostgresTable& relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
             m_relations_table(relations_table),
-            m_expire_tiles(expire_tiles) { }
+            m_expire_tiles(expire_tiles),
+            m_location_index(location_index) { }
 
     /**
      * \brief Constructor for testing purposes, will not establish database connections.
      */
     DiffHandler1(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles) :
+            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles, index_type& location_index) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
         m_relations_table(relations_table),
-        m_expire_tiles(expire_tiles) { }
+        m_expire_tiles(expire_tiles),
+        m_location_index(location_index) { }
 
     ~DiffHandler1() {};
 

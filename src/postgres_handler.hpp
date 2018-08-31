@@ -29,29 +29,6 @@ public:
     const osmium::TagList* get_relation_tags_to_apply(const osmium::object_id_type id,
             const osmium::item_type type);
 
-    /**
-     * add tag hstore column and metadate to query
-     *
-     * \param query string to fill
-     * \param object OSM object
-     * \param table table to write the object to
-     */
-    static void add_tags(std::string& query, const osmium::OSMObject& object, PostgresTable& table,
-            const osmium::TagList* rel_tags_to_apply = nullptr);
-
-    /**
-     * \brief Add metadata (user, uid, changeset, timestamp) to the stringstream.
-     * A separator (via add_separator_to_stringstream) will be added before the first and after the last item.
-     *
-     * \param ss stringstream
-     * \param object OSM object
-     * \param config reference to current program config
-     *
-     * \todo Move the static methods into either a separate namespace or create a class for the table scheme which is the
-     * base class for all the handlers.
-     * */
-    static void add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, CerepsoConfig& config);
-
     static void add_username(std::string& ss, const char* username);
 
     static void add_uid(std::string& ss, const osmium::user_id_type uid);
@@ -79,17 +56,6 @@ public:
 
     static std::string prepare_query(const osmium::OSMObject& object, PostgresTable& table,
             CerepsoConfig& config, const osmium::TagList* rel_tags_to_apply);
-
-    /**
-     * \brief Build the line which will be inserted via `COPY` into the database.
-     *
-     * \param node Reference to the node to be inserted
-     *
-     * \param query Reference to the string where the line should be appended.
-     *              It is possible that one string contains multiple lines (e.g. for buffered writing).
-     * \returns Should this object be written to a table for nodes with tags or not?
-     */
-    bool prepare_node_query(const osmium::Node& node, std::string& query);
 
     /**
      * \brief Build the line which will be inserted via `COPY` into the database.
@@ -163,6 +129,12 @@ protected:
             m_assoc_manager(assoc_manager)  {}
 
     virtual ~PostgresHandler()  {}
+
+
+    /**
+     * \osmiumcallback
+     */
+    void handle_node(const osmium::Node& node);
 
     static bool fill_field(const osmium::OSMObject& object, postgres_drivers::ColumnsConstIterator it,
             std::string& query, bool column_added, std::vector<const char*>& written_keys, PostgresTable& table,

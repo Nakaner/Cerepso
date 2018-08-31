@@ -5,12 +5,16 @@
  *      Author: michael
  */
 
+#include <unistd.h> // ftruncate
 #include <iostream>
 #include <getopt.h>
 #include <memory>
+#include <system_error>
 #include <osmium/area/multipolygon_manager.hpp>
 #include <osmium/index/map/sparse_mmap_array.hpp>
 #include <osmium/index/map/dense_mmap_array.hpp>
+#include <osmium/index/map/sparse_file_array.hpp>
+#include <osmium/index/map/dense_file_array.hpp>
 #include <osmium/handler/node_locations_for_ways.hpp>
 #include <osmium/visitor.hpp>
 #include <osmium/osm/node.hpp>
@@ -21,9 +25,7 @@
 #include "relation_collector.hpp"
 #include "expire_tiles_factory.hpp"
 #include "column_config_parser.hpp"
-
-using index_type = osmium::index::map::Map<osmium::unsigned_object_id_type, osmium::Location>;
-using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
+#include "definitions.hpp"
 
 /**
  * \mainpage
@@ -43,6 +45,72 @@ using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
  *
  * Its written in C++11 and available under GPLv2.
  */
+
+
+using sparse_mmap_array_t = osmium::index::map::SparseMmapArray<osmium::unsigned_object_id_type, osmium::Location>;
+using dense_mmap_array_t = osmium::index::map::DenseMmapArray<osmium::unsigned_object_id_type, osmium::Location>;
+using sparse_file_array_t = osmium::index::map::SparseFileArray<osmium::unsigned_object_id_type, osmium::Location>;
+using dense_file_array_t = osmium::index::map::DenseFileArray<osmium::unsigned_object_id_type, osmium::Location>;
+
+dense_file_array_t load_index(const char* filename, const std::string& type) {
+    int fd = ::open(filename, O_RDWR);
+    if (fd == -1) {
+        std::cerr << "Can not open location cache file '" << filename << "': " << std::strerror(errno) << "\n";
+        throw std::runtime_error{"opening file failed"};
+    }
+    if (type == "dense_mmap_array" || type == "dense_file_array") {
+        return dense_file_array_t{fd};
+    }
+    throw std::runtime_error{"unsupported index type"};
+}
+
+template <typename TIndex>
+void dump_index_manually(index_type* location_index, const int fd) {
+    using index_value = osmium::Location;
+    constexpr const size_t VALUE_SIZE = sizeof(index_value);
+    // cast index to desired type
+    TIndex* index = static_cast<TIndex*>(location_index);
+    size_t array_size = ((index->end() - 1)->first + 1);
+    if (::ftruncate(fd, array_size * VALUE_SIZE) == -1) {
+        throw std::system_error{errno, std::system_category(), "Failed to truncate file."};
+    }
+    osmium::util::TypedMemoryMapping<index_value> mapping(array_size, osmium::util::MemoryMapping::mapping_mode::write_shared, fd, 0);
+    index_value* ptr = mapping.begin();
+    size_t array_idx = 0;
+    typename TIndex::iterator it = index->begin();
+    while (array_idx < array_size) {
+        if (it->first == array_idx) {
+            ptr[array_idx] = it->second;
+            ++it;
+        } else {
+            ptr[array_idx] = osmium::index::empty_value<index_value>();
+        }
+        ++array_idx;
+    }
+    mapping.unmap();
+}
+
+void dump_index(index_type* location_index, CerepsoConfig& config) {
+    if (config.m_driver_config.updateable) {
+        std::cerr << "Dumping location cache to file ";
+        time_t ts = time(NULL);
+        const int fd = ::open(config.m_flat_nodes.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0666); // NOLINT(hicpp-signed-bitwise)
+        if (fd == -1) {
+            std::cerr << "Can not open location cache file '" << config.m_flat_nodes << "': " << std::strerror(errno) << "\n";
+            std::exit(1);
+        }
+        try {
+            location_index->dump_as_array(fd);
+        } catch (std::runtime_error&) {
+            if (config.m_location_handler == "sparse_mmap_array") {
+                dump_index_manually<sparse_mmap_array_t>(location_index, fd);
+            } else if (config.m_location_handler == "sparse_mem_array") {
+                throw std::runtime_error{"This index cannot be dumped as an array."};
+            }
+        }
+        std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
+    }
+}
 
 /**
  * \brief print program usage instructions and terminate the program
@@ -77,7 +145,8 @@ void print_help(char* argv[], std::string message = "") {
     "  -s FILE, --style=FILE            Osm2pgsql style file (default: ./default.style)\n" \
     "  -l, --location-handler=HANDLER   use HANDLER as location handler\n" \
     "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
-    "  -O, --one                        Don't create tables and columns needed for updates.\n\n";
+    "  -O, --one                        Don't create tables and columns needed for updates.\n" \
+    "  --untagged-nodes                 Create a table for untagged nodes (in parallel to flatnodes file on disk).\n\n";
     exit(1);
 }
 
@@ -92,6 +161,7 @@ int main(int argc, char* argv[]) {
             {"expire-tiles",  required_argument, 0, 'e'},
             {"expiry-generator",  required_argument, 0, 'E'},
             {"expire-relations", required_argument, 0, 202},
+            {"flat-nodes", required_argument, 0, 'f'},
             {"hstore", no_argument, 0, 'H'},
             {"no-geom-indexes", no_argument, 0, 'g'},
             {"all-geom-indexes", no_argument, 0, 'G'},
@@ -105,11 +175,12 @@ int main(int argc, char* argv[]) {
             {"style", required_argument, 0, 's'},
             {"no-id-index", no_argument, 0, 'I'},
             {"location-handler", required_argument, 0, 'l'},
+            {"untagged-nodes", no_argument, 0, 204},
             {0, 0, 0, 0}
         };
     CerepsoConfig config;
     while (true) {
-        int c = getopt_long(argc, argv, "hDd:e:E:IHoOagGl:m:us:", long_options, 0);
+        int c = getopt_long(argc, argv, "hDd:e:E:f:IHoOagGl:m:us:", long_options, 0);
         if (c == -1) {
             break;
         }
@@ -129,6 +200,9 @@ int main(int argc, char* argv[]) {
                 break;
             case 'E':
                 config.m_expiry_type = optarg;
+                break;
+            case 'f':
+                config.m_flat_nodes = optarg;
                 break;
             case 'g':
                 config.m_geom_indexes = false;
@@ -189,6 +263,9 @@ int main(int argc, char* argv[]) {
                 }
                 print_help(argv, "ERROR option --expire-relations: Wrong parameter.");
                 break;
+            case 204:
+                config.m_driver_config.untagged_nodes = true;
+                break;
             default:
                 exit(1);
         }
@@ -227,6 +304,9 @@ int main(int argc, char* argv[]) {
     }
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
+        // load index from file
+        dense_file_array_t location_index = load_index(config.m_flat_nodes.c_str(), config.m_location_handler);
+        location_handler_type location_handler(location_index);
         osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
         PostgresTable relations_table("relations", config, std::move(relation_other_columns));
         relations_table.init();
@@ -241,37 +321,15 @@ int main(int argc, char* argv[]) {
             config.m_expiry_type = "";
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-        DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
-        while (osmium::memory::Buffer buffer = reader1.read()) {
-            for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
-                if (it->type_is_in(osmium::osm_entity_bits::node)) {
-                    append_handler1.node(static_cast<const osmium::Node&>(*it));
-                }
-                else if (it->type_is_in(osmium::osm_entity_bits::way)) {
-                    append_handler1.way(static_cast<const osmium::Way&>(*it));
-                }
-                else if (it->type_is_in(osmium::osm_entity_bits::relation)) {
-                    append_handler1.relation(static_cast<const osmium::Relation&>(*it));
-                }
-            }
-        }
+        DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles,
+                location_index);
+        osmium::apply(reader1, location_handler, append_handler1);
         reader1.close();
 
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles);
-        while (osmium::memory::Buffer buffer = reader2.read()) {
-            for (auto it = buffer.cbegin(); it != buffer.cend(); ++it) {
-                if (it->type_is_in(osmium::osm_entity_bits::node)) {
-                    append_handler2.node(static_cast<const osmium::Node&>(*it));
-                }
-                else if (it->type_is_in(osmium::osm_entity_bits::way)) {
-                    append_handler2.way(static_cast<const osmium::Way&>(*it));
-                }
-                else if (it->type_is_in(osmium::osm_entity_bits::relation)) {
-                    append_handler2.relation(static_cast<const osmium::Relation&>(*it));
-                }
-            }
-        }
+        DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles,
+                location_index);
+        osmium::apply(reader2, location_handler, append_handler2);
         reader2.close();
     } else {
         const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
@@ -317,5 +375,7 @@ int main(int argc, char* argv[]) {
         }
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
+        // dump location index
+        dump_index(location_index.get(), config);
     }
 }

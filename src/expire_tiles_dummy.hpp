@@ -28,6 +28,8 @@ public:
 
     void expire_from_coord_sequence(const geos::geom::CoordinateSequence*) {}
 
+    void expire_from_coord_sequence(const osmium::NodeRefList& nodes) {}
+
     void output_and_destroy() {}
 
     void expire_tile(int, int) {}

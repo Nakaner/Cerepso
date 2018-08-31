@@ -60,6 +60,8 @@ public:
 
     void expire_from_point(double lon, double lat);
 
+    void expire_from_coord_sequence(const osmium::NodeRefList& nodes);
+
     void expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords);
 
     /**

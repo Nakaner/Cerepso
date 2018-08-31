@@ -39,30 +39,6 @@ void PostgresHandler::add_changeset(std::string& ss, const osmium::changeset_id_
     ss.append(idbuffer);
 }
 
-void PostgresHandler::add_metadata_to_stringstream(std::string& ss, const osmium::OSMObject& object, CerepsoConfig& config) {
-    if (config.m_driver_config.metadata.user()) {
-        add_separator_to_stringstream(ss);
-        add_username(ss, object.user());
-    }
-    if (config.m_driver_config.metadata.uid()) {
-        add_separator_to_stringstream(ss);
-        add_uid(ss, object.uid());
-    }
-    if (config.m_driver_config.metadata.version()) {
-        add_separator_to_stringstream(ss);
-        add_version(ss, object.version());
-    }
-    if (config.m_driver_config.metadata.timestamp()) {
-        add_separator_to_stringstream(ss);
-        ss.append(object.timestamp().to_iso());
-    }
-    if (config.m_driver_config.metadata.changeset()) {
-        add_separator_to_stringstream(ss);
-        add_changeset(ss, object.changeset());
-    }
-    add_separator_to_stringstream(ss);
-}
-
 const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium::object_id_type id,
         const osmium::item_type type) {
     if (!m_assoc_manager) {
@@ -73,70 +49,6 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
         return m_assoc_manager->get_relation_tags(id, type);
     }
     return nullptr;
-}
-
-/*static*/ void PostgresHandler::add_tags(std::string& query, const osmium::OSMObject& object, PostgresTable& table,
-        const osmium::TagList* rel_tags_to_apply /*= nullptr*/) {
-    // Add normal tag columns
-    for (const auto& c : table.get_columns()) {
-        if (!(c.tag_column())) {
-            continue;
-        }
-        add_separator_to_stringstream(query);
-        const char* t = object.get_value_by_key(c.name().c_str());
-        if (!t && rel_tags_to_apply && rel_tags_to_apply->has_key(c.name().c_str())) {
-            PostgresTable::escape(rel_tags_to_apply->get_value_by_key(c.name().c_str()), query);
-        } else if (t) {
-            PostgresTable::escape(t, query);
-        }
-    }
-
-    // Add Hstore column
-    add_separator_to_stringstream(query);
-    //TODO refactor, remove code duplication
-    bool first_tag = true;
-    for (const auto& t : object.tags()) {
-        bool tag_column_exists = false;
-        for (const auto& c : table.get_columns()) {
-            if (c.tag_column() && !strcmp(c.name().c_str(), t.key())) {
-                tag_column_exists = true;
-                break;
-            }
-        }
-        if (!tag_column_exists && !table.get_columns().drop_filter()(t)) {
-            if (!first_tag) {
-                query.push_back(',');
-            }
-            PostgresTable::escape4hstore(t.key(), query);
-            query.append("=>");
-            PostgresTable::escape4hstore(t.value(), query);
-            first_tag = false;
-        }
-    }
-    if (!rel_tags_to_apply) {
-        return;
-    }
-    for (const osmium::Tag& tag : *rel_tags_to_apply) {
-        bool tag_column_exists = false;
-        for (const auto& c : table.get_columns()) {
-            if (c.tag_column() && !strcmp(c.name().c_str(), tag.key())) {
-                tag_column_exists = true;
-                break;
-            }
-        }
-        if (!tag_column_exists) {
-            continue;
-        }
-        if (!first_tag) {
-            query.push_back(',');
-        }
-        if (!object.tags().has_key(tag.key()) && !table.get_columns().drop_filter()(tag)) {
-            PostgresTable::escape4hstore(tag.key(), query);
-            query.append("=>");
-            PostgresTable::escape4hstore(tag.value(), query);
-            first_tag = false;
-        }
-    }
 }
 
 /*static*/ void PostgresHandler::add_way_nodes(const osmium::WayNodeList& nodes, std::string& query) {
@@ -321,29 +233,6 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
     return query;
 }
 
-bool PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& query) {
-    bool has_interesting_tags = m_nodes_table.has_interesting_tags(node.tags());
-    if (has_interesting_tags && node.tags().size() > 0) {
-        // If the node has tags, it will be written to nodes, not untagged_nodes table.
-        const osmium::TagList* assoc_tags = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
-        prepare_query(node, m_nodes_table, m_config, assoc_tags);
-    } else if (!m_config.m_driver_config.updateable) {
-        // If nothing should be written to the untagged_nodes table, we can abort here.
-        return false;
-    }
-    PostgresHandler::add_metadata_to_stringstream(query, node, m_config);
-    query.append("SRID=4326;");
-    std::string wkb = "010400000000000000"; // POINT EMPTY
-    try {
-        wkb = m_nodes_table.wkb_factory().create_point(node);
-    } catch (osmium::geometry_error& e) {
-        std::cerr << e.what() << "\n";
-    }
-    query.append(wkb);
-    query.push_back('\n');
-    return has_interesting_tags;
-}
-
 /*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,
         std::stringstream& multipoint_wkb, std::stringstream& multilinestring_wkb, CerepsoConfig& config, PostgresTable& table) {
     std::vector<const char*> written_keys;
@@ -364,4 +253,23 @@ bool PostgresHandler::prepare_node_query(const osmium::Node& node, std::string& 
         }
     }
     query.append("\n");
+}
+
+void PostgresHandler::handle_node(const osmium::Node& node) {
+    if (!node.location().valid()) {
+        return;
+    }
+    if (!m_config.m_driver_config.untagged_nodes && node.tags().empty()) {
+        return;
+    }
+    std::string query;
+    bool with_tags = m_nodes_table.has_interesting_tags(node.tags());
+    if (with_tags) {
+        const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
+        std::string query = prepare_query(node, m_nodes_table, m_config, rel_tags_to_apply);
+        m_nodes_table.send_line(query);
+    } else if (m_config.m_driver_config.untagged_nodes) {
+        std::string query = prepare_query(node, *m_untagged_nodes_table, m_config, nullptr);
+        m_untagged_nodes_table->send_line(query);
+    }
 }

@@ -57,6 +57,23 @@ void ExpireTilesQuadtree::expire_line_segment_180secure(double lon1, double lat1
     }
 }
 
+void ExpireTilesQuadtree::expire_from_coord_sequence(const osmium::NodeRefList& nodes) {
+    // check if distance between beginning and end is too large
+    // We don't calculate the exact distance by summing up all segments.
+    // This might return wrong results for U-shaped lines but it's faster.
+    //TODO check if exact calculation based on shere is too slow.
+    //HARDCODED 20 km
+    if (segment_length(nodes.front().lon(), nodes.front().lat(), nodes.back().lon(), nodes.back().lat()) > 20000) {
+        // If the line crosses 180th meridian, following expression will return false.
+        if (std::abs(nodes.front().lon() - nodes.back().lon()) > 1) {
+            // expire only the tiles where the nodes are, not all tiles intersected by the line
+            for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+                expire_from_point(it->lon(), it->lat());
+            }
+        }
+    }
+}
+
 void ExpireTilesQuadtree::expire_from_coord_sequence(const geos::geom::CoordinateSequence* coords) {
     // check if distance between beginning and end is too large
     // We don't calculate the exact distance by summing up all segments.

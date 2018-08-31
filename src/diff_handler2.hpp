@@ -11,6 +11,7 @@
 #include <geos/geom/GeometryFactory.h>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
+#include "definitions.hpp"
 
 enum class TypeProgress {POINT, WAY, RELATION};
 
@@ -27,6 +28,8 @@ private:
      */
     PostgresTable& m_relations_table;
 
+    index_type& m_location_index;
+
     /**
      * pointer to the used implementation of ExpireTiles
      */
@@ -42,15 +45,14 @@ private:
     TypeProgress m_progress = TypeProgress::POINT;
 
     /**
-     * \brief Search in both table holding the nodes for the node in question and return it as instance of geos::geom::Coordinate.
+     * \brief Search the location index for the location of a node.
      *
-     * This method looks both into nodes and untagged_nodes table.
+     * This method does not database queries.
      *
      * \param id OSM ID of the node
-     * \throws std::runtime_error if it is not found in any table
-     * \returns unique_ptr to the Coordinate instance
+     * \returns osmium::Location (invalid if none was found in the index)
      */
-    std::unique_ptr<const geos::geom::Coordinate> get_point_from_tables(osmium::object_id_type id);
+    osmium::Location get_point_from_tables(osmium::object_id_type id);
 
     /**
      * \brief Write all nodes which have to be written to the database.
@@ -68,9 +70,10 @@ private:
 
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, ExpireTiles* expire_tiles) :
+            PostgresTable& relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
             m_relations_table(relations_table),
+            m_location_index(location_index),
             m_expire_tiles(expire_tiles) {
         m_untagged_nodes_table->start_copy();
         m_nodes_table.start_copy();
@@ -80,9 +83,10 @@ public:
      * \brief constructor for testing purposes, will not establish database connections
      */
     DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles) :
+            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles, index_type& location_index) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
         m_relations_table(relations_table),
+        m_location_index(location_index),
         m_expire_tiles(expire_tiles) { }
 
     ~DiffHandler2();
@@ -94,13 +98,6 @@ public:
     void node(const osmium::Node& node);
 
     void way(const osmium::Way& way);
-
-    /**
-     * \brief Append a line to a given string for insertion of way into its table via COPY.
-     *
-     * This method has been extracted out of way(const osmium::Way& way) to be easier to test.
-     */
-    void insert_way(const osmium::Way& way, std::string& copy_buffer, PostgresTable& table);
 
     /**
      * \brief Append a line to a given string for insertion of relation into its table via COPY.
