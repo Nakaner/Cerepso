@@ -76,6 +76,10 @@ void PostgresTable::escape(const char* source, std::string& destination) {
     /**
     * copied (and modified) from osm2pgsql/pgsql.cpp, void escape(const std::string &src, std::string &dst)
     */
+    if (!source) {
+        destination.append("\\N");
+        return;
+    }
     for (size_t i = 0; i < strlen(source); ++i) {
         switch(source[i]) {
             case '\\':

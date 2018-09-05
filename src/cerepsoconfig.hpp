@@ -72,6 +72,11 @@ public:
     bool m_associated_streets = false;
 
     /**
+     * Create virtual address points based on address interpolations
+     */
+    bool m_address_interpolations = false;
+
+    /**
      * Add objects with tags even if they don't have any tag matching a column.
      */
     bool m_hstore_all = false;

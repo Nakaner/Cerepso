@@ -20,12 +20,15 @@
 #include <osmium/osm/node.hpp>
 #include <osmium/osm/way.hpp>
 #include <osmium/io/any_input.hpp>
+#include <postgres_drivers/columns.hpp>
 #include "diff_handler1.hpp"
 #include "diff_handler2.hpp"
 #include "relation_collector.hpp"
 #include "expire_tiles_factory.hpp"
 #include "column_config_parser.hpp"
 #include "definitions.hpp"
+#include "addr_interpolation_handler.hpp"
+#include "handler_collection.hpp"
 
 /**
  * \mainpage
@@ -135,6 +138,7 @@ void print_help(char* argv[], std::string message = "") {
     "  -G, --all-geom-indexes           create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
     "                                   overrides -g"
     "  -I, --no-id-index                don't create an index on osm_id columns\n" \
+    "  --interpolate-addr               create virtual address points based on address interpolations\n" \
     "  --min-zoom=ZOOM                  minimum zoom for expire_tile list\n" \
     "  --max-zoom=ZOOM                  maximum zoom for expire_tile list\n" \
     "  --metadata=OPTARG                import specified metadata fields. Permitted values are \"none\", \"all\" and\n" \
@@ -156,6 +160,7 @@ int main(int argc, char* argv[]) {
     static struct option long_options[] = {
             {"help",   no_argument, 0, 'h'},
             {"associated-streets", no_argument, 0, 203},
+            {"interpolate-addr", no_argument, 0, 205},
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
             {"expire-tiles",  required_argument, 0, 'e'},
@@ -266,6 +271,9 @@ int main(int argc, char* argv[]) {
             case 204:
                 config.m_driver_config.untagged_nodes = true;
                 break;
+            case 205:
+                config.m_address_interpolations = true;
+                break;
             default:
                 exit(1);
         }
@@ -288,6 +296,8 @@ int main(int argc, char* argv[]) {
 
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns relation_other_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
+    postgres_drivers::Columns interpolation_columns(config.m_driver_config,
+            postgres_drivers::Columns::addr_interpolation_columns());
 
     time_t ts = time(NULL);
     PostgresTable nodes_table = config_parser.make_point_table("planet_osm_");
@@ -301,6 +311,13 @@ int main(int argc, char* argv[]) {
     PostgresTable areas_table = config_parser.make_polygon_table("planet_osm_");
     if (config.m_areas) {
         areas_table.init();
+    }
+    PostgresTable interpolated_table {"interpolated_addresses", config,
+        std::move(interpolation_columns)};
+    AddrInterpolationHandler* interpolated_handler;
+    if (config.m_address_interpolations) {
+        interpolated_table.init();
+        interpolated_handler = new AddrInterpolationHandler(interpolated_table);
     }
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
@@ -344,20 +361,34 @@ int main(int argc, char* argv[]) {
         std::cerr << "Pass 1 (relations)";
         RelationCollector rel_collector(config, relation_other_columns);
         AssociatedStreetRelationManager assoc_manager;
-        osmium::io::File input_file {config.m_osm_file};
+//        osmium::io::File input_file {config.m_osm_file};
+        osmium::io::Reader reader1{config.m_osm_file, osmium::osm_entity_bits::way | osmium::osm_entity_bits::relation};
+        HandlerCollection handlers_collection;
+        handlers_collection.add(rel_collector);
         if (config.m_areas) {
-            if (config.m_associated_streets) {
-                osmium::relations::read_relations(input_file, rel_collector, *mp_manager, assoc_manager);
-            } else {
-                osmium::relations::read_relations(input_file, rel_collector, *mp_manager);
-            }
-        } else {
-            if (config.m_associated_streets) {
-                osmium::relations::read_relations(input_file, rel_collector, assoc_manager);
-            } else {
-                osmium::relations::read_relations(input_file, rel_collector);
-            }
+            handlers_collection.add<osmium::area::MultipolygonManager<osmium::area::Assembler>>(*mp_manager);
         }
+        if (config.m_associated_streets) {
+            handlers_collection.add<AssociatedStreetRelationManager>(assoc_manager);
+        }
+        if (config.m_address_interpolations) {
+            handlers_collection.add<AddrInterpolationHandler>(*interpolated_handler);
+        }
+        osmium::apply(reader1, handlers_collection);
+//        if (config.m_areas) {
+//            if (config.m_associated_streets) {
+//                osmium::apply(reader1, rel_collector, *mp_manager, assco_manager);
+//                osmium::relations::read_relations(input_file, rel_collector, *mp_manager, assoc_manager);
+//            } else {
+//                osmium::relations::read_relations(input_file, rel_collector, *mp_manager);
+//            }
+//        } else {
+//            if (config.m_associated_streets) {
+//                osmium::relations::read_relations(input_file, rel_collector, assoc_manager);
+//            } else {
+//                osmium::relations::read_relations(input_file, rel_collector);
+//            }
+//        }
         std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
         ts = time(NULL);
@@ -377,5 +408,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
         // dump location index
         dump_index(location_index.get(), config);
+    }
+    if (interpolated_handler) {
+        delete interpolated_handler;
     }
 }

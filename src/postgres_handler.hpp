@@ -106,6 +106,7 @@ protected:
     /// reference to relation manager for associatedStreet relations
     AssociatedStreetRelationManager* m_assoc_manager;
 
+
     PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr) :
             m_config(config),
