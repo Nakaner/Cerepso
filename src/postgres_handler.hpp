@@ -39,13 +39,6 @@ public:
 
     static void add_changeset(std::string& ss, const osmium::changeset_id_type changeset);
 
-    /**
-     * \brief Add a TAB at the end of the string.
-     *
-     * \param ss String where the TAB should be appended.
-     */
-    static void add_separator_to_stringstream(std::string& ss);
-
     static void add_way_nodes(const osmium::WayNodeList& nodes, std::string& query);
 
     static void add_member_ids(const osmium::RelationMemberList& members, std::string& query);

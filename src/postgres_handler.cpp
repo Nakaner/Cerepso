@@ -9,10 +9,6 @@
 #include <sstream>
 #include "postgres_handler.hpp"
 
-void PostgresHandler::add_separator_to_stringstream(std::string& ss) {
-    ss.push_back('\t');
-}
-
 void PostgresHandler::add_username(std::string& ss, const char* username) {
     PostgresTable::escape(username, ss);
 }
@@ -105,7 +101,7 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
         std::string& query, bool column_added, std::vector<const char*>& written_keys, PostgresTable& table,
         const osmium::TagList* rel_tags_to_apply) {
     if (column_added) {
-        add_separator_to_stringstream(query);
+        PostgresTable::add_separator_to_stringstream(query);
     }
     column_added = true;
     if (it->column_class() == postgres_drivers::ColumnClass::TAGS_OTHER) {
@@ -244,11 +240,11 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
             if (it->column_class() == postgres_drivers::ColumnClass::GEOMETRY_MULTIPOINT) {
                 query.append("SRID=4326;");
                 query.append(multipoint_wkb.str());
-                add_separator_to_stringstream(query);
+                PostgresTable::add_separator_to_stringstream(query);
             } else if (it->column_class() == postgres_drivers::ColumnClass::GEOMETRY_MULTILINESTRING) {
                 query.append("SRID=4326;");
                 query.append(multilinestring_wkb.str());
-                add_separator_to_stringstream(query);
+                PostgresTable::add_separator_to_stringstream(query);
             }
         }
     }

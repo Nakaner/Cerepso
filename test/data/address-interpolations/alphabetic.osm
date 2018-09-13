@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' generator='JOSM'>
+  <node id='40714' action='modify' lat='53.19616763337' lon='8.53557227969'>
+    <tag k='addr:city' v='Bremen' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:county' v='Irgendkreis' />
+    <tag k='addr:housenumber' v='26a' />
+    <tag k='addr:postcode' v='987654' />
+    <tag k='addr:province' v='Irgendprovinz' />
+    <tag k='addr:state' v='Irgendland' />
+    <tag k='addr:street' v='Richard-Taylor-Straße' />
+  </node>
+  <node id='40715' action='modify' lat='53.19590410914' lon='8.53447793841'>
+    <tag k='addr:city' v='Bremen' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:county' v='Irgendkreis' />
+    <tag k='addr:housenumber' v='26e' />
+    <tag k='addr:postcode' v='987654' />
+    <tag k='addr:province' v='Irgendprovinz' />
+    <tag k='addr:state' v='Irgendland' />
+    <tag k='addr:street' v='Richard-Taylor-Straße' />
+  </node>
+  <way id='40716' action='modify'>
+    <nd ref='40714' />
+    <nd ref='40715' />
+    <tag k='addr:interpolation' v='alphabetic' />
+  </way>
+</osm>

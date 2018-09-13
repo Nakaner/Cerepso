@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' generator='JOSM' upload='false'>
+  <node id='39093' action='modify' lat='53.19553774349' lon='8.53214978099'>
+    <tag k='addr:city' v='Bremen' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:county' v='Irgendkreis' />
+    <tag k='addr:housenumber' v='23' />
+    <tag k='addr:postcode' v='987654' />
+    <tag k='addr:province' v='Irgendprovinz' />
+    <tag k='addr:state' v='Irgendland' />
+    <tag k='addr:street' v='Farger Straße' />
+  </node>
+  <node id='39095' action='modify' lat='53.1965725577' lon='8.53139876246'>
+    <tag k='addr:city' v='Bremen' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:county' v='Irgendkreis' />
+    <tag k='addr:housenumber' v='33' />
+    <tag k='addr:postcode' v='987654' />
+    <tag k='addr:province' v='Irgendprovinz' />
+    <tag k='addr:state' v='Irgendland' />
+    <tag k='addr:street' v='Farger Straße' />
+  </node>
+  <node id='40761' action='modify' lat='53.19402082782' lon='8.53279351115'>
+    <tag k='addr:city' v='Bremen' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:county' v='Irgendkreis' />
+    <tag k='addr:housenumber' v='13' />
+    <tag k='addr:postcode' v='987654' />
+    <tag k='addr:province' v='Irgendprovinz' />
+    <tag k='addr:state' v='Irgendland' />
+    <tag k='addr:street' v='Farger Straße' />
+  </node>
+  <way id='39097' action='modify'>
+    <nd ref='40761' />
+    <nd ref='39093' />
+    <nd ref='39095' />
+    <tag k='addr:interpolation' v='odd' />
+  </way>
+</osm>

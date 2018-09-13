@@ -84,6 +84,13 @@ public:
     bool has_interesting_tags(const osmium::TagList& tags);
 
     /**
+     * \brief Add a TAB at the end of the string.
+     *
+     * \param ss String where the TAB should be appended.
+     */
+    static void add_separator_to_stringstream(std::string& ss);
+
+    /**
      * \brief Add a key or value of an OSM tag to a hstore column and escape forbidden characters before appending.
      *
      * This method is taken from osm2pgsql/table.cpp, void table_t::escape4hstore(const char *src, string& dst).

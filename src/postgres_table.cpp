@@ -164,6 +164,10 @@ bool PostgresTable::has_interesting_tags(const osmium::TagList& tags) {
             || osmium::tags::match_any_of(tags, m_columns.filter());
 }
 
+/*static*/ void PostgresTable::add_separator_to_stringstream(std::string& ss) {
+    ss.push_back('\t');
+}
+
 PostgresTable::~PostgresTable() {
     if (!m_initialized) {
         return;

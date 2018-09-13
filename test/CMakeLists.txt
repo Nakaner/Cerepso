@@ -6,6 +6,8 @@ include(CMakeParseArguments)
 include_directories(include)
 include_directories(../src)
 
+#set(_test_path "--test-data-dir ${CMAKE_HOME_DIRECTORY}/test/data/")
+
 add_library(testlib STATIC test_main.cpp)
 
 set(ALL_TESTS "")
@@ -57,3 +59,10 @@ target_link_libraries(test_expire_tiles_quadtree testlib ${GEOS_LIBRARY})
 add_test(NAME test_expire_tiles_quadtree
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND test_expire_tiles_quadtree)
+
+add_executable(test_addr_interpolation_handler t/test_addr_interpolation_handler.cpp ../src/addr_interpolation_handler.cpp ../src/postgres_table.cpp ../src/tags_storage.cpp)
+target_compile_options(test_addr_interpolation_handler PUBLIC -DTEST_DATA_DIR=${CMAKE_HOME_DIRECTORY}/test/data/)
+target_link_libraries(test_addr_interpolation_handler testlib ${OSMIUM_LIBRARIES} ${BOOST_LIBRARIES} ${PostgreSQL_LIBRARY}  ${GEOS_LIBRARY})
+add_test(NAME test_addr_interpolation_handler
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND test_addr_interpolation_handler)

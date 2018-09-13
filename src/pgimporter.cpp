@@ -363,18 +363,21 @@ int main(int argc, char* argv[]) {
         AssociatedStreetRelationManager assoc_manager;
 //        osmium::io::File input_file {config.m_osm_file};
         osmium::io::Reader reader1{config.m_osm_file, osmium::osm_entity_bits::way | osmium::osm_entity_bits::relation};
-        HandlerCollection handlers_collection;
-        handlers_collection.add(rel_collector);
+        HandlerCollection handlers_collection1;
+        handlers_collection1.add(rel_collector);
         if (config.m_areas) {
-            handlers_collection.add<osmium::area::MultipolygonManager<osmium::area::Assembler>>(*mp_manager);
+            handlers_collection1.add<osmium::area::MultipolygonManager<osmium::area::Assembler>>(*mp_manager);
         }
         if (config.m_associated_streets) {
-            handlers_collection.add<AssociatedStreetRelationManager>(assoc_manager);
+            handlers_collection1.add<AssociatedStreetRelationManager>(assoc_manager);
         }
         if (config.m_address_interpolations) {
-            handlers_collection.add<AddrInterpolationHandler>(*interpolated_handler);
+            handlers_collection1.add<AddrInterpolationHandler>(*interpolated_handler);
         }
-        osmium::apply(reader1, handlers_collection);
+        osmium::apply(reader1, handlers_collection1);
+        reader1.close();
+        mp_manager->prepare_for_lookup();
+        rel_collector.prepare_for_lookup();
 //        if (config.m_areas) {
 //            if (config.m_associated_streets) {
 //                osmium::apply(reader1, rel_collector, *mp_manager, assco_manager);
@@ -395,14 +398,26 @@ int main(int argc, char* argv[]) {
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
         ImportHandler handler(config, nodes_table, &untagged_nodes_table, ways_linear_table, &assoc_manager, &areas_table);
+        HandlerCollection handlers_collection2;
+        handlers_collection2.add(rel_collector.handler());
+        if (config.m_address_interpolations) {
+            interpolated_handler->after_pass1();
+            handlers_collection2.add(interpolated_handler->handler());
+        }
         if (config.m_areas) {
-            osmium::apply(reader2, location_handler, handler, rel_collector.handler(),
-                    mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
-                osmium::apply(buffer, handler);
-            }));
+            handlers_collection2.add<ImportHandler>(handler);
+            osmium::apply(reader2, location_handler, handlers_collection2,
+                mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
+                    osmium::apply(buffer, handler);
+                })
+            );
+//            osmium::apply(reader2, location_handler, handler, rel_collector.handler(),
+//                    mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
+//                osmium::apply(buffer, handler);
+//            }));
             delete mp_manager;
         } else {
-            osmium::apply(reader2, location_handler, handler, rel_collector.handler());
+            osmium::apply(reader2, location_handler, handlers_collection2);
         }
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
