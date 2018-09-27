@@ -303,7 +303,7 @@ int main(int argc, char* argv[]) {
     PostgresTable nodes_table = config_parser.make_point_table("planet_osm_");
     nodes_table.init();
     PostgresTable untagged_nodes_table {"untagged_nodes", config, std::move(untagged_nodes_columns)};
-    if (config.m_driver_config.updateable) {
+    if (config.m_driver_config.untagged_nodes) {
         untagged_nodes_table.init();
     }
     PostgresTable ways_linear_table = config_parser.make_line_table("planet_osm_");
