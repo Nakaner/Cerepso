@@ -9,6 +9,12 @@
 #include <sstream>
 #include "postgres_handler.hpp"
 
+void PostgresHandler::add_osm_id(std::string& ss, const osmium::object_id_type id) {
+    static char idbuffer[20];
+    sprintf(idbuffer, "%ld", id);
+    ss.append(idbuffer, strlen(idbuffer));
+}
+
 void PostgresHandler::add_username(std::string& ss, const char* username) {
     PostgresTable::escape(username, ss);
 }
@@ -97,6 +103,32 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
     query.push_back('}');
 }
 
+/*static*/ void PostgresHandler::add_geometry(const osmium::OSMObject& object, std::string& query, PostgresTable& table) {
+    std::string wkb; // initalize with empty geometry
+    try {
+        switch (object.type()) {
+        case osmium::item_type::node :
+            wkb = "010400000000000000";
+            wkb = table.wkb_factory().create_point(static_cast<const osmium::Node&>(object));
+            break;
+        case osmium::item_type::way :
+            wkb = "010200000000000000";
+            wkb = table.wkb_factory().create_linestring(static_cast<const osmium::Way&>(object).nodes());
+            break;
+        case osmium::item_type::area :
+            wkb = "0106000020E610000000000000";
+            wkb = table.wkb_factory().create_multipolygon(static_cast<const osmium::Area&>(object));
+            break;
+        default :
+            assert(false && "This OSM object type is not supported for a geometry field.");
+        }
+    } catch (osmium::geometry_error& e) {
+        std::cerr << e.what() << "\n";
+    }
+    query.append("SRID=4326;");
+    query.append(wkb);
+}
+
 /*static*/ bool PostgresHandler::fill_field(const osmium::OSMObject& object, postgres_drivers::ColumnsConstIterator it,
         std::string& query, bool column_added, std::vector<const char*>& written_keys, PostgresTable& table,
         const osmium::TagList* rel_tags_to_apply) {
@@ -152,17 +184,15 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
             query.append("\\N");
         }
     } else if (it->column_class() == postgres_drivers::ColumnClass::OSM_ID) {
-        static char idbuffer[20];
         if (object.type() == osmium::item_type::node || object.type() == osmium::item_type::way
                 || object.type() == osmium::item_type::relation) {
-            sprintf(idbuffer, "%ld", object.id());
+            add_osm_id(query, object.id());
         } else if (object.type() == osmium::item_type::area
                 && static_cast<const osmium::Area&>(object).from_way()) {
-            sprintf(idbuffer, "%ld", static_cast<const osmium::Area&>(object).orig_id());
+            add_osm_id(query, static_cast<const osmium::Area&>(object).orig_id());
         } else if (object.type() == osmium::item_type::area) {
-            sprintf(idbuffer, "%ld", -static_cast<const osmium::Area&>(object).orig_id());
+            add_osm_id(query, -static_cast<const osmium::Area&>(object).orig_id());
         }
-        query.append(idbuffer, strlen(idbuffer));
     } else if (it->column_class() == postgres_drivers::ColumnClass::VERSION) {
         add_version(query, object.version());
     } else if (it->column_class() == postgres_drivers::ColumnClass::UID) {
@@ -187,30 +217,7 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
             && object.type() == osmium::item_type::relation) {
         add_member_types(static_cast<const osmium::Relation&>(object).members(), query);
     } else if (it->column_class() == postgres_drivers::ColumnClass::GEOMETRY) {
-        std::string wkb; // initalize with MULTIPOLYGON EMPTY
-        // If creating a geometry fails, we have to use an empty multipolygon.
-        try {
-            switch (object.type()) {
-            case osmium::item_type::node :
-                wkb = "010400000000000000";
-                wkb = table.wkb_factory().create_point(static_cast<const osmium::Node&>(object));
-                break;
-            case osmium::item_type::way :
-                wkb = "010200000000000000";
-                wkb = table.wkb_factory().create_linestring(static_cast<const osmium::Way&>(object).nodes());
-                break;
-            case osmium::item_type::area :
-                wkb = "0106000020E610000000000000";
-                wkb = table.wkb_factory().create_multipolygon(static_cast<const osmium::Area&>(object));
-                break;
-            default :
-                assert(false && "This OSM object type is not supported for a geometry field.");
-            }
-        } catch (osmium::geometry_error& e) {
-            std::cerr << e.what() << "\n";
-        }
-        query.append("SRID=4326;");
-        query.append(wkb);
+        add_geometry(object, query, table);
     } else {
         column_added = false;
     }
@@ -226,6 +233,22 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
         column_added = fill_field(object, it, query, column_added, written_keys, table, rel_tags_to_apply);
     }
     query.push_back('\n');
+    return query;
+}
+
+/*static*/ std::string PostgresHandler::prepare_node_way_query(const osmium::Way& way) {
+    std::string query;
+    for (size_t i = 0; i != way.nodes().size(); ++i) {
+        add_osm_id(query, way.id());
+        PostgresTable::add_separator_to_stringstream(query);
+        add_osm_id(query, way.nodes()[i].ref());
+        PostgresTable::add_separator_to_stringstream(query);
+        //TODO assert smallint
+        assert (i < std::numeric_limits<int16_t>::max());
+        static char idbuffer[8];
+        sprintf(idbuffer, "%hi\n", static_cast<int16_t>(i));
+        query.append(idbuffer, strlen(idbuffer));
+    }
     return query;
 }
 

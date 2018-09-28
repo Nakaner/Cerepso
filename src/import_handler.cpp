@@ -34,6 +34,10 @@ void ImportHandler::way(const osmium::Way& way) {
     const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(way.id(), osmium::item_type::way);
     std::string query = prepare_query(way, m_ways_linear_table, m_config, rel_tags_to_apply);
     m_ways_linear_table.send_line(query);
+    if (m_config.m_driver_config.updateable) {
+        query = prepare_node_way_query(way);
+        m_node_ways_table->send_line(query);
+    }
 }
 
 void ImportHandler::area(const osmium::Area& area) {

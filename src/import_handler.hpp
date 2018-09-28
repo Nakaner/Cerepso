@@ -26,8 +26,9 @@ public:
      * This constructor takes references to the program configuration and the instances of Table class.
      */
     ImportHandler(CerepsoConfig& config,  PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr) :
-        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, assoc_manager, areas_table) {
+            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
+            PostgresTable* node_ways_table = nullptr) :
+        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, assoc_manager, areas_table, node_ways_table) {
     }
 
     /**
@@ -36,8 +37,9 @@ public:
      * This constructor takes references to the program configuration and the instances of Table class.
      */
     ImportHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
-            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, assoc_manager, areas_table){
+            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
+            PostgresTable* node_ways_table = nullptr) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, assoc_manager, areas_table, node_ways_table){
     }
 
     ~ImportHandler() {

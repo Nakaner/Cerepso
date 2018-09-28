@@ -34,8 +34,8 @@ private:
 
 public:
     DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
-            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
+            PostgresTable& relations_table, PostgresTable& node_ways_table, ExpireTiles* expire_tiles, index_type& location_index) :
+            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table),
             m_relations_table(relations_table),
             m_expire_tiles(expire_tiles),
             m_location_index(location_index) { }
@@ -44,8 +44,9 @@ public:
      * \brief Constructor for testing purposes, will not establish database connections.
      */
     DiffHandler1(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles, index_type& location_index) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
+            PostgresTable& relations_table, CerepsoConfig& config, PostgresTable& node_ways_table, ExpireTiles* expire_tiles,
+            index_type& location_index) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table),
         m_relations_table(relations_table),
         m_expire_tiles(expire_tiles),
         m_location_index(location_index) { }

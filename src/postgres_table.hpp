@@ -11,12 +11,32 @@
 #include <boost/format.hpp>
 #include <sstream>
 #include <libpq-fe.h>
+#include <osmium/osm/node_ref.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/geom/wkb.hpp>
 #include <geos/geom/Point.h>
 #include <postgres_drivers/table.hpp>
 
 #include "cerepsoconfig.hpp"
+
+/**
+ * ID of a member node of a way and its position in the WayNodeList
+ */
+struct MemberNode {
+    osmium::NodeRef node_ref;
+    int position;
+
+    MemberNode(osmium::object_id_type nr, int pos) :
+        node_ref(nr),
+        position(pos) {
+    }
+
+    MemberNode() = delete;
+
+    bool operator<(const MemberNode other) {
+        return position < other.position;
+    }
+};
 
 /**
  * \brief This class manages connection to a database table. We have one connection per table,
@@ -148,6 +168,17 @@ public:
     void delete_object(const osmium::object_id_type id);
 
     /**
+     * \brief delete member node list of a way
+     *
+     * This method executes the prepared statement `delete_way_node_list`.
+     *
+     * \param id way ID
+     *
+     * \throws std::runtime_error
+     */
+    void delete_way_node_list(const osmium::object_id_type id);
+
+    /**
      * \brief get the longitude and latitude of a node as geos::geom::Coordinate
      *
      * \param id OSM ID
@@ -165,6 +196,34 @@ public:
      * \returns unique_ptr to Geometry or empty unique_ptr otherwise
      */
     std::unique_ptr<geos::geom::Geometry> get_linestring(const osmium::object_id_type id, geos::geom::GeometryFactory& geometry_factory);
+
+    /**
+     * \brief Get ways using a node.
+     *
+     * \param node_id OSM node ID
+     * \throws std::runtime_error if query execution fails
+     * \returns vector of way IDs or empty vector if none was found
+     */
+    std::vector<osmium::object_id_type> get_way_ids(const osmium::object_id_type node_id);
+
+    /**
+     * \brief Get member nodes of a way.
+     *
+     *
+     * \param node_id OSM way ID
+     * \throws std::runtime_error if query execution fails
+     * \returns vector of node IDs sorted by position or empty vector if none was found
+     */
+    std::vector<MemberNode> get_way_nodes(const osmium::object_id_type way_id);
+
+    /**
+     * \brief Update geometry of an entry.
+     *
+     * \param id OSM object ID (column osm_id)
+     * \param geometry WKB string
+     * \throws std::runtime_error if query execution fails
+     */
+    void update_geometry(const osmium::object_id_type id, const char* geometry);
 };
 
 

@@ -48,6 +48,9 @@ void DiffHandler1::way(const osmium::Way& way) {
             m_expire_tiles->expire_from_geos_linestring(old_geom.get());
         }
         m_ways_linear_table.delete_object(way.id());
+        if (m_config.m_driver_config.updateable) {
+            m_node_ways_table->delete_way_node_list(way.id());
+        }
     }
 }
 

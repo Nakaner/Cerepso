@@ -296,6 +296,7 @@ int main(int argc, char* argv[]) {
 
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns relation_other_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
+    postgres_drivers::Columns node_ways_columns(config.m_driver_config, postgres_drivers::TableType::NODE_WAYS);
     postgres_drivers::Columns interpolation_columns(config.m_driver_config,
             postgres_drivers::Columns::addr_interpolation_columns());
 
@@ -305,6 +306,10 @@ int main(int argc, char* argv[]) {
     PostgresTable untagged_nodes_table {"untagged_nodes", config, std::move(untagged_nodes_columns)};
     if (config.m_driver_config.untagged_nodes) {
         untagged_nodes_table.init();
+    }
+    PostgresTable node_ways_table {"node_ways", config, std::move(node_ways_columns)};
+    if (config.m_driver_config.updateable) {
+        node_ways_table.init();
     }
     PostgresTable ways_linear_table = config_parser.make_line_table("planet_osm_");
     ways_linear_table.init();
@@ -338,14 +343,14 @@ int main(int argc, char* argv[]) {
             config.m_expiry_type = "";
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
-        DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles,
-                location_index);
+        DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
+                expire_tiles, location_index);
         osmium::apply(reader1, location_handler, append_handler1);
         reader1.close();
 
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, expire_tiles,
-                location_index);
+        DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
+                expire_tiles, location_index);
         osmium::apply(reader2, location_handler, append_handler2);
         reader2.close();
     } else {
@@ -361,7 +366,6 @@ int main(int argc, char* argv[]) {
         std::cerr << "Pass 1 (relations)";
         RelationCollector rel_collector(config, relation_other_columns);
         AssociatedStreetRelationManager assoc_manager;
-//        osmium::io::File input_file {config.m_osm_file};
         osmium::io::Reader reader1{config.m_osm_file, osmium::osm_entity_bits::way | osmium::osm_entity_bits::relation};
         HandlerCollection handlers_collection1;
         handlers_collection1.add(rel_collector);
@@ -376,28 +380,16 @@ int main(int argc, char* argv[]) {
         }
         osmium::apply(reader1, handlers_collection1);
         reader1.close();
-        mp_manager->prepare_for_lookup();
+        if (config.m_areas) {
+            mp_manager->prepare_for_lookup();
+        }
         rel_collector.prepare_for_lookup();
-//        if (config.m_areas) {
-//            if (config.m_associated_streets) {
-//                osmium::apply(reader1, rel_collector, *mp_manager, assco_manager);
-//                osmium::relations::read_relations(input_file, rel_collector, *mp_manager, assoc_manager);
-//            } else {
-//                osmium::relations::read_relations(input_file, rel_collector, *mp_manager);
-//            }
-//        } else {
-//            if (config.m_associated_streets) {
-//                osmium::relations::read_relations(input_file, rel_collector, assoc_manager);
-//            } else {
-//                osmium::relations::read_relations(input_file, rel_collector);
-//            }
-//        }
         std::cerr << "… needed " << static_cast<int>(time(NULL) - ts) << " seconds" << std::endl;
 
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
-        ImportHandler handler(config, nodes_table, &untagged_nodes_table, ways_linear_table, &assoc_manager, &areas_table);
+        ImportHandler handler(config, nodes_table, &untagged_nodes_table, ways_linear_table, &assoc_manager, &areas_table, &node_ways_table);
         HandlerCollection handlers_collection2;
         handlers_collection2.add(rel_collector.handler());
         if (config.m_address_interpolations) {
@@ -411,10 +403,6 @@ int main(int argc, char* argv[]) {
                     osmium::apply(buffer, handler);
                 })
             );
-//            osmium::apply(reader2, location_handler, handler, rel_collector.handler(),
-//                    mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
-//                osmium::apply(buffer, handler);
-//            }));
             delete mp_manager;
         } else {
             osmium::apply(reader2, location_handler, handlers_collection2);
@@ -424,7 +412,7 @@ int main(int argc, char* argv[]) {
         // dump location index
         dump_index(location_index.get(), config);
     }
-    if (interpolated_handler) {
+    if (config.m_address_interpolations) {
         delete interpolated_handler;
     }
 }

@@ -27,10 +27,12 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
     postgres_drivers::Columns relation_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
+    postgres_drivers::Columns node_ways_columns(config.m_driver_config, postgres_drivers::TableType::NODE_WAYS);
     PostgresTable nodes_table ("nodes", config, node_columns);
     PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
     PostgresTable ways_table ("ways", config, way_linear_columns);
     PostgresTable relations_table("relations", config, relation_columns);
+    PostgresTable node_ways_table("node_ways", config, node_ways_columns);
 
     // create some nodes and add them to the location handler
     osmium::memory::Buffer buffer(buffer_size);
@@ -74,7 +76,7 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     config.m_append = true;
     sparse_mmap_array_t index;
-    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, config, expire_tiles, index);
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, node_ways_table, config, expire_tiles, index);
     handler.node(node1);
     index.set(node1.id(), node1.location());
     handler.node(node2);

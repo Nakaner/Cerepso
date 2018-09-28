@@ -23,6 +23,10 @@ void DiffHandler2::node(const osmium::Node& node) {
         return;
     }
     handle_node(node);
+    std::vector<osmium::object_id_type> new_way_ids = m_node_ways_table->get_way_ids(node.id());
+    for (auto id : new_way_ids) {
+        m_pending_ways.push_back(id);
+    }
 }
 
 osmium::Location DiffHandler2::get_point_from_tables(osmium::object_id_type id) {
@@ -94,7 +98,52 @@ void DiffHandler2::way(const osmium::Way& way) {
     if (with_tags) {
         m_ways_linear_table.send_line(prepare_query(way, m_ways_linear_table, m_config, nullptr));
     }
+    // update list of member nodes
+    m_node_ways_table->send_line(prepare_node_way_query(way));
+    // expire tiles
     m_expire_tiles->expire_from_coord_sequence(way.nodes());
+    // remove from list of pending ways
+
+    std::vector<osmium::object_id_type>::iterator found = m_pending_ways_it;
+    for (; found != m_pending_ways.end(); ++found) {
+        if (*found == way.id()) {
+            // set to zero to indicate that the way has been processed.
+            // The zero will be removed by the next call of sort() and unique().
+            *found = 0;
+            m_pending_ways_it = found;
+            break;
+        }
+        if (*found > way.id()) {
+            break;
+        }
+    }
+}
+
+void DiffHandler2::update_way(const osmium::object_id_type id) {
+    // get node list of that way
+    std::vector<MemberNode> member_nodes = m_node_ways_table->get_way_nodes(id);
+    // add locations
+    std::string wkb;
+    try {
+        m_ways_linear_table.wkb_factory().linestring_start();
+        for (auto& n : member_nodes) {
+            n.node_ref.set_location(m_location_index.get(n.node_ref.ref()));
+        }
+        // build a lightweight wrapper container to avoid copying the member node list
+        std::vector<osmium::NodeRef> node_refs;
+        for (auto& n : member_nodes) {
+            node_refs.push_back(std::move(n.node_ref));
+        }
+        size_t points = m_ways_linear_table.wkb_factory().fill_linestring(node_refs.begin(), node_refs.end());
+        wkb = m_ways_linear_table.wkb_factory().linestring_finish(points);
+    } catch (osmium::geometry_error& e) {
+        std::cerr << e.what() << "\n";
+        wkb = "010200000000000000";
+    } catch (osmium::not_found& e) {
+        std::cerr << e.what() << "\n";
+        wkb = "010200000000000000";
+    }
+    m_ways_linear_table.update_geometry(id, wkb.c_str());
 }
 
 
@@ -113,13 +162,28 @@ void DiffHandler2::write_new_nodes() {
     m_nodes_table.end_copy();
     m_untagged_nodes_table->end_copy();
     m_ways_linear_table.start_copy();
+    m_node_ways_table->start_copy();
     m_progress = TypeProgress::WAY;
+    // sort list of pending ways
+    std::sort(m_pending_ways.begin(), m_pending_ways.end());
+    std::unique(m_pending_ways.begin(), m_pending_ways.end());
+    m_pending_ways_it = m_pending_ways.begin();
 }
 
 void DiffHandler2::write_new_ways() {
     m_ways_linear_table.end_copy();
+    m_node_ways_table->end_copy();
+    work_on_pending_ways();
     m_relations_table.start_copy();
     m_progress = TypeProgress::RELATION;
 }
 
+void DiffHandler2::work_on_pending_ways() {
+    std::sort(m_pending_ways.begin(), m_pending_ways.end());
+    std::unique(m_pending_ways.begin(), m_pending_ways.end());
+    for (auto id : m_pending_ways) {
+        // update way
+        update_way(id);
+    }
+}
 

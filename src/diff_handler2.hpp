@@ -35,6 +35,16 @@ private:
      */
     ExpireTiles* m_expire_tiles;
 
+    /**
+     * list of ways which have to be updated because one of their nodes has been moved
+     */
+    std::vector<osmium::object_id_type> m_pending_ways;
+
+    /**
+     * Iterator pointing to element in list of pending ways which has been worked on.
+     */
+    std::vector<osmium::object_id_type>::iterator m_pending_ways_it;
+
     geos::geom::GeometryFactory m_geom_factory;
 
     /**
@@ -68,13 +78,22 @@ private:
      */
     void write_new_ways();
 
+    /**
+     * Update geometry of a way.
+     *
+     * \param id OSM way ID
+     */
+    void update_way(const osmium::object_id_type id);
+
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
-            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table),
+            PostgresTable& relations_table, PostgresTable& node_ways_table, ExpireTiles* expire_tiles, index_type& location_index) :
+            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table),
             m_relations_table(relations_table),
             m_location_index(location_index),
-            m_expire_tiles(expire_tiles) {
+            m_expire_tiles(expire_tiles),
+            m_pending_ways() {
+        m_pending_ways_it = m_pending_ways.begin();
         m_untagged_nodes_table->start_copy();
         m_nodes_table.start_copy();
     }
@@ -83,8 +102,9 @@ public:
      * \brief constructor for testing purposes, will not establish database connections
      */
     DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles, index_type& location_index) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config),
+            PostgresTable& relations_table, PostgresTable& node_ways_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
+            index_type& location_index) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table),
         m_relations_table(relations_table),
         m_location_index(location_index),
         m_expire_tiles(expire_tiles) { }
@@ -108,6 +128,11 @@ public:
      * \param copy_buffer string whose content will be inserted into the database
      */
     void insert_relation(const osmium::Relation& relation, std::string& copy_buffer);
+
+    /**
+     * Update all ways whose node locations have changed without any direct changes to the way.
+     */
+    void work_on_pending_ways();
 
     void relation(const osmium::Relation& area);
 
