@@ -53,3 +53,13 @@ void ImportHandler::area(const osmium::Area& area) {
     std::string query = prepare_query(area, *m_areas_table, m_config, rel_tags_to_apply);
     m_areas_table->send_line(query);
 }
+
+void ImportHandler::relation(const osmium::Relation& relation) {
+    if (!m_config.m_driver_config.updateable) {
+        return;
+    }
+    std::string query = prepare_node_relation_query(relation);
+    m_node_relations_table->send_line(query);
+    query = prepare_way_relation_query(relation);
+    m_way_relations_table->send_line(query);
+}

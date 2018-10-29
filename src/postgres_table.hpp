@@ -179,6 +179,28 @@ public:
     void delete_way_node_list(const osmium::object_id_type id);
 
     /**
+     * \brief delete member node list of a relation
+     *
+     * This method executes the prepared statement `delete_relation_member_nodes`.
+     *
+     * \param id way ID
+     *
+     * \throws std::runtime_error
+     */
+    void delete_relation_member_nodes_list(const osmium::object_id_type id);
+
+    /**
+     * \brief delete member way list of a relation
+     *
+     * This method executes the prepared statement `delete_relation_member_ways`.
+     *
+     * \param id way ID
+     *
+     * \throws std::runtime_error
+     */
+    void delete_relation_member_ways_list(const osmium::object_id_type id);
+
+    /**
      * \brief get the longitude and latitude of a node as geos::geom::Coordinate
      *
      * \param id OSM ID
@@ -207,14 +229,40 @@ public:
     std::vector<osmium::object_id_type> get_way_ids(const osmium::object_id_type node_id);
 
     /**
-     * \brief Get member nodes of a way.
+     * \brief Get relations using a node or way
      *
+     * \param id OSM node/way ID
+     * \throws std::runtime_error if query execution fails
+     * \returns vector of relation IDs or empty vector if none was found
+     */
+    std::vector<osmium::object_id_type> get_relation_ids(const osmium::object_id_type id);
+
+    /**
+     * \brief Get member nodes of a way.
      *
      * \param node_id OSM way ID
      * \throws std::runtime_error if query execution fails
      * \returns vector of node IDs sorted by position or empty vector if none was found
      */
     std::vector<MemberNode> get_way_nodes(const osmium::object_id_type way_id);
+
+    /**
+     * \brief Get types of members of a relation.
+     *
+     * \param id OSM relation ID
+     * \throws std::runtime_error if query execution fails
+     * \returns vector sorted by position
+     */
+    std::vector<osmium::item_type> get_member_types(const osmium::object_id_type id);
+
+    /**
+     * \brief Get IDs of members of a relation.
+     *
+     * \param id OSM relation ID
+     * \throws std::runtime_error if query execution fails
+     * \returns vector sorted by position
+     */
+    std::vector<osmium::object_id_type> get_member_ids(const osmium::object_id_type id);
 
     /**
      * \brief Update geometry of an entry.
@@ -224,6 +272,16 @@ public:
      * \throws std::runtime_error if query execution fails
      */
     void update_geometry(const osmium::object_id_type id, const char* geometry);
+
+    /**
+     * \brief Update geometry collection of point and line members of a relation.
+     *
+     * \param id OSM object ID (column osm_id)
+     * \param points MultiPoint WKB string
+     * \param lines MultiLineString WKB string
+     * \throws std::runtime_error if query execution fails
+     */
+    void update_relation_member_geometry(const osmium::object_id_type id, const char* points, const char* lines);
 };
 
 

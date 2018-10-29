@@ -58,6 +58,8 @@ void DiffHandler1::way(const osmium::Way& way) {
 void DiffHandler1::relation(const osmium::Relation& relation) {
     if (relation.version() > 1) {
         m_relations_table.delete_object(relation.id());
+        m_node_relations_table->delete_relation_member_nodes_list(relation.id());
+        m_way_relations_table->delete_relation_member_ways_list(relation.id());
     }
 }
 

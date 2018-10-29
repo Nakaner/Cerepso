@@ -41,9 +41,19 @@ private:
     std::vector<osmium::object_id_type> m_pending_ways;
 
     /**
+     * list of relations which have to be updated because one of their member nodes or ways has been moved
+     */
+    std::vector<osmium::object_id_type> m_pending_relations;
+
+    /**
      * Iterator pointing to element in list of pending ways which has been worked on.
      */
-    std::vector<osmium::object_id_type>::iterator m_pending_ways_it;
+    std::vector<osmium::object_id_type>::size_type m_pending_ways_idx;
+
+    /**
+     * Iterator pointing to element in list of pending relations which has been worked on.
+     */
+    std::vector<osmium::object_id_type>::size_type m_pending_relations_idx;
 
     geos::geom::GeometryFactory m_geom_factory;
 
@@ -85,15 +95,26 @@ private:
      */
     void update_way(const osmium::object_id_type id);
 
+    /**
+     * Update multigeometry of the points and lines referenced by a relation.
+     *
+     * \param id OSM relation ID
+     */
+    void update_relation(const osmium::object_id_type id);
+
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, PostgresTable& node_ways_table, ExpireTiles* expire_tiles, index_type& location_index) :
-            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table),
+            PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
+            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
+            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table,
+                    &node_relations_table, &way_relations_table),
             m_relations_table(relations_table),
             m_location_index(location_index),
             m_expire_tiles(expire_tiles),
-            m_pending_ways() {
-        m_pending_ways_it = m_pending_ways.begin();
+            m_pending_ways(),
+            m_pending_relations(),
+            m_pending_ways_idx(0),
+            m_pending_relations_idx(0) {
         m_untagged_nodes_table->start_copy();
         m_nodes_table.start_copy();
     }
@@ -102,12 +123,16 @@ public:
      * \brief constructor for testing purposes, will not establish database connections
      */
     DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, PostgresTable& node_ways_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
+            PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
+            PostgresTable& way_relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
             index_type& location_index) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table),
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table,
+                &node_relations_table, &way_relations_table),
         m_relations_table(relations_table),
         m_location_index(location_index),
-        m_expire_tiles(expire_tiles) { }
+        m_expire_tiles(expire_tiles),
+        m_pending_ways_idx(0),
+        m_pending_relations_idx(0) { }
 
     ~DiffHandler2();
 
@@ -138,6 +163,11 @@ public:
 
     /// Handler not used but has to implemented because it is a full virtual method.
     void area(const osmium::Area& area) {};
+
+    /**
+     * Update all relations whose node or way members have changed without any direct changes to the relation.
+     */
+    void after_relations();
 };
 
 #endif /* DIFF_HANDLER2_HPP_ */

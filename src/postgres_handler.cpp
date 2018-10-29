@@ -252,6 +252,27 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
     return query;
 }
 
+/*static*/ std::string PostgresHandler::prepare_relation_member_list_query(const osmium::Relation& relation, const osmium::item_type type) {
+    std::string query;
+    for (auto& member : relation.members()) {
+        if (member.type() == type) {
+            add_osm_id(query, member.ref());
+            PostgresTable::add_separator_to_stringstream(query);
+            add_osm_id(query, relation.id());
+            query.push_back('\n');
+        }
+    }
+    return query;
+}
+
+/*static*/ std::string PostgresHandler::prepare_node_relation_query(const osmium::Relation& relation) {
+    return prepare_relation_member_list_query(relation, osmium::item_type::node);
+}
+
+/*static*/ std::string PostgresHandler::prepare_way_relation_query(const osmium::Relation& relation) {
+    return prepare_relation_member_list_query(relation, osmium::item_type::way);
+}
+
 /*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,
         std::stringstream& multipoint_wkb, std::stringstream& multilinestring_wkb, CerepsoConfig& config, PostgresTable& table) {
     std::vector<const char*> written_keys;

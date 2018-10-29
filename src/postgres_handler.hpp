@@ -20,6 +20,9 @@
 #define POSTGRES_HANDLER_HPP_
 
 class PostgresHandler : public osmium::handler::Handler {
+
+    static std::string prepare_relation_member_list_query(const osmium::Relation& relation, const osmium::item_type type);
+
 public:
     /**
      * Get tags of a associatedStreet relation the given object belongs to.
@@ -55,6 +58,10 @@ public:
             CerepsoConfig& config, const osmium::TagList* rel_tags_to_apply);
 
     static std::string prepare_node_way_query(const osmium::Way& way);
+
+    static std::string prepare_node_relation_query(const osmium::Relation& relation);
+
+    static std::string prepare_way_relation_query(const osmium::Relation& relation);
 
     /**
      * \brief Build the line which will be inserted via `COPY` into the database.
@@ -104,19 +111,26 @@ protected:
     PostgresTable* m_areas_table;
     /// pointer to table containing mapping of nodes to the ways using them
     PostgresTable* m_node_ways_table;
+    /// pointer to table containing mapping of nodes to the relations using them
+    PostgresTable* m_node_relations_table;
+    /// pointer to table containing mapping of ways to the relations using them
+    PostgresTable* m_way_relations_table;
     /// reference to relation manager for associatedStreet relations
     AssociatedStreetRelationManager* m_assoc_manager;
 
 
     PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr) :
+            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
+            PostgresTable* way_relations_table = nullptr) :
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
             m_ways_linear_table(ways_table),
             m_areas_table(areas_table),
             m_node_ways_table(node_ways_table),
+            m_node_relations_table(node_relations_table),
+            m_way_relations_table(way_relations_table),
             m_assoc_manager(assoc_manager) {}
 
 
@@ -125,13 +139,16 @@ protected:
      */
     PostgresHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr)  :
+            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
+            PostgresTable* way_relations_table = nullptr)  :
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
             m_ways_linear_table(ways_table),
             m_areas_table(areas_table),
             m_node_ways_table(node_ways_table),
+            m_node_relations_table(node_relations_table),
+            m_way_relations_table(way_relations_table),
             m_assoc_manager(assoc_manager)  {}
 
     virtual ~PostgresHandler()  {}

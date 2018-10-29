@@ -31,16 +31,21 @@ TEST_CASE("inserting new way works") {
     postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
     postgres_drivers::Columns relation_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_OTHER);
     postgres_drivers::Columns node_ways_columns(config.m_driver_config, postgres_drivers::TableType::NODE_WAYS);
+    postgres_drivers::Columns node_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_NODES);
+    postgres_drivers::Columns way_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_WAYS);
     PostgresTable nodes_table ("nodes", config, node_columns);
     PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
     PostgresTable ways_table ("ways", config, way_linear_columns);
     PostgresTable relations_table("relations", config, relation_columns);
     PostgresTable node_ways_table("node_ways", config, node_ways_columns);
+    PostgresTable node_relations_table("node_relations", config, node_ways_columns);
+    PostgresTable way_relations_table("way_relations", config, node_ways_columns);
     ExpireTilesFactory expire_tiles_factory;
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     sparse_mmap_array_t index;
-    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, node_ways_table, config, expire_tiles, index);
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, node_ways_table,
+            node_relations_table, way_relations_table, config, expire_tiles, index);
 
     // build OSM objects and call the callback methods of the handler
     static constexpr int buffer_size = 10 * 1000 * 1000;

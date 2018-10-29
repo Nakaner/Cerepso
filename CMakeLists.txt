@@ -53,6 +53,9 @@ include_directories(${PostgreSQL_INCLUDE_DIRS})
 find_package(CerepsoPostgresBackend REQUIRED)
 include_directories(${CEREPSOPOSTGRESBACKEND_INCLUDE_DIRS})
 
+find_package(PgArrayHstoreParser REQUIRED)
+include_directories(${PGARRAYHSTOREPARSER_INCLUDE_DIRS})
+
 
 #-----------------------------------------------------------------------------
 #

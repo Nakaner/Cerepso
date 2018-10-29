@@ -27,8 +27,10 @@ public:
      */
     ImportHandler(CerepsoConfig& config,  PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr) :
-        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, assoc_manager, areas_table, node_ways_table) {
+            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
+            PostgresTable* way_relations_table = nullptr) :
+        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, assoc_manager, areas_table, node_ways_table,
+                node_relations_table, way_relations_table) {
     }
 
     /**
@@ -38,8 +40,10 @@ public:
      */
     ImportHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, assoc_manager, areas_table, node_ways_table){
+            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
+            PostgresTable* way_relations_table = nullptr) :
+        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, assoc_manager, areas_table, node_ways_table,
+                node_relations_table, way_relations_table) {
     }
 
     ~ImportHandler() {
@@ -59,6 +63,11 @@ public:
      * \osmiumcallback
      */
     void area(const osmium::Area& area);
+
+    /**
+     * \osmiumcallback
+     */
+    void relation(const osmium::Relation& relation);
 };
 
 

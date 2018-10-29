@@ -12,6 +12,10 @@
 #include <geos/io/WKBReader.h>
 #include <geos/geom/Coordinate.h>
 #include <osmium/tags/taglist.hpp>
+
+#include <array_parser.hpp>
+
+#include "item_type_conversion.hpp"
 #include "postgres_table.hpp"
 
 void PostgresTable::escape4hstore(const char* source, std::string& destination) {
@@ -181,7 +185,10 @@ PostgresTable::~PostgresTable() {
         }
         if (m_program_config.m_geom_indexes && !m_program_config.m_append) {
             if (m_columns.get_type() != postgres_drivers::TableType::UNTAGGED_POINT
-                    || (m_columns.get_type() == postgres_drivers::TableType::UNTAGGED_POINT && m_program_config.m_all_geom_indexes)) {
+                    || (m_columns.get_type() == postgres_drivers::TableType::UNTAGGED_POINT && m_program_config.m_all_geom_indexes)
+                    || m_columns.get_type() == postgres_drivers::TableType::POINT
+                    || m_columns.get_type() == postgres_drivers::TableType::WAYS_LINEAR
+                    || m_columns.get_type() == postgres_drivers::TableType::AREA) {
                 if (m_program_config.m_order_by_geohash) {
                     order_by_geohash();
                 }
@@ -243,7 +250,9 @@ void PostgresTable::create_id_index() {
     // pick out geometry column
     int index_count = 1;
     for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
-        if (it->column_class() == postgres_drivers::ColumnClass::OSM_ID || it->column_class() == postgres_drivers::ColumnClass::NODE_ID) {
+        if (it->column_class() == postgres_drivers::ColumnClass::OSM_ID
+                || it->column_class() == postgres_drivers::ColumnClass::NODE_ID
+                || it->column_class() == postgres_drivers::ColumnClass::WAY_ID) {
             time_t ts = time(NULL);
             std::cerr << "Creating ID index on table " << m_name << ", column " << it->name() << " …";
             std::stringstream query;
@@ -284,10 +293,38 @@ void PostgresTable::delete_object(const osmium::object_id_type id) {
 void PostgresTable::delete_way_node_list(const osmium::object_id_type id) {
     assert(!m_copy_mode);
     char const *paramValues[1];
-    char buffer[64];
+    static char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
     PGresult *result = PQexecPrepared(m_database_connection, "delete_way_node_list", 1, paramValues, nullptr, nullptr, 0);
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        PQclear(result);
+        throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
+    }
+    PQclear(result);
+}
+
+void PostgresTable::delete_relation_member_nodes_list(const osmium::object_id_type id) {
+    assert(!m_copy_mode);
+    char const *paramValues[1];
+    char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "delete_relation_member_nodes", 1, paramValues, nullptr, nullptr, 0);
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        PQclear(result);
+        throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
+    }
+    PQclear(result);
+}
+
+void PostgresTable::delete_relation_member_ways_list(const osmium::object_id_type id) {
+    assert(!m_copy_mode);
+    char const *paramValues[1];
+    static char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "delete_relation_member_ways", 1, paramValues, nullptr, nullptr, 0);
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
         throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
@@ -301,7 +338,7 @@ std::unique_ptr<geos::geom::Coordinate> PostgresTable::get_point(const osmium::o
 //    assert(!m_begin);
     std::unique_ptr<geos::geom::Coordinate> coord;
     char const *paramValues[1];
-    char buffer[64];
+    static char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
     PGresult *result = PQexecPrepared(m_database_connection, "get_point", 1, paramValues, nullptr, nullptr, 0);
@@ -326,7 +363,7 @@ std::unique_ptr<geos::geom::Geometry> PostgresTable::get_linestring(const osmium
 //    assert(!m_begin);
     std::unique_ptr<geos::geom::Geometry> linestring;
     char const *paramValues[1];
-    char buffer[64];
+    static char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
     PGresult *result = PQexecPrepared(m_database_connection, "get_linestring", 1, paramValues, nullptr, nullptr, 0);
@@ -357,10 +394,43 @@ std::vector<osmium::object_id_type> PostgresTable::get_way_ids(const osmium::obj
     assert(!m_copy_mode);
     std::vector<osmium::object_id_type> ids;
     char const *paramValues[1];
-    char buffer[64];
+    static char buffer[64];
     sprintf(buffer, "%ld", node_id);
     paramValues[0] = buffer;
     PGresult *result = PQexecPrepared(m_database_connection, "get_way_ids", 1, paramValues, nullptr, nullptr, 0);
+    if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
+        throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+        PQclear(result);
+        return ids;
+    }
+    if (PQntuples(result) == 0) {
+        PQclear(result);
+        return ids;
+    }
+    ids.reserve(PQntuples(result));
+    for (int i = 0; i < PQntuples(result); ++i) {
+        ids.push_back(strtoll(PQgetvalue(result, i, 0), nullptr, 10));
+    }
+    PQclear(result);
+    return ids;
+}
+
+std::vector<osmium::object_id_type> PostgresTable::get_relation_ids(const osmium::object_id_type id) {
+    assert(m_database_connection);
+    assert(!m_copy_mode);
+    std::vector<osmium::object_id_type> ids;
+    char const *paramValues[1];
+    static char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result;
+    if (m_columns.get_type() == postgres_drivers::TableType::RELATION_MEMBER_NODES) {
+        result = PQexecPrepared(m_database_connection, "get_relation_ids_by_node", 1, paramValues, nullptr, nullptr, 0);
+    } else if (m_columns.get_type() == postgres_drivers::TableType::RELATION_MEMBER_WAYS) {
+        result = PQexecPrepared(m_database_connection, "get_relation_ids_by_way", 1, paramValues, nullptr, nullptr, 0);
+    } else {
+        assert(false && "not supported for relations");
+    }
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
@@ -383,7 +453,7 @@ std::vector<MemberNode> PostgresTable::get_way_nodes(const osmium::object_id_typ
     assert(!m_copy_mode);
     std::vector<MemberNode> nodes;
     char const *paramValues[1];
-    char buffer[64];
+    static char buffer[64];
     sprintf(buffer, "%ld", way_id);
     paramValues[0] = buffer;
     PGresult *result = PQexecPrepared(m_database_connection, "get_nodes", 1, paramValues, nullptr, nullptr, 0);
@@ -405,18 +475,93 @@ std::vector<MemberNode> PostgresTable::get_way_nodes(const osmium::object_id_typ
     return nodes;
 }
 
+std::vector<osmium::item_type> PostgresTable::get_member_types(const osmium::object_id_type id) {
+    assert(m_database_connection);
+    assert(!m_copy_mode);
+    std::vector<osmium::item_type> types;
+    char const *paramValues[1];
+    static char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "get_member_types_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
+    if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
+    throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+        PQclear(result);
+        return types;
+    }
+    if (PQntuples(result) == 0) {
+        PQclear(result);
+        return types;
+    }
+    types.reserve(PQntuples(result));
+    const char* response = PQgetvalue(result, 0, 0);
+    using ItemTypeConversion = pg_array_hstore_parser::TypeConversion<ItemTypeConversionImpl>;
+    pg_array_hstore_parser::ArrayParser<ItemTypeConversion> array_parser_types(response);
+    while (array_parser_types.has_next()) {
+        types.push_back(array_parser_types.get_next());
+    }
+    PQclear(result);
+    return types;
+}
+
+std::vector<osmium::object_id_type> PostgresTable::get_member_ids(const osmium::object_id_type id) {
+    assert(m_database_connection);
+    assert(!m_copy_mode);
+    std::vector<osmium::object_id_type> ids;
+    char const *paramValues[1];
+    static char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "get_member_ids_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
+    if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
+    throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+        PQclear(result);
+        return ids;
+    }
+    if (PQntuples(result) == 0) {
+        PQclear(result);
+        return ids;
+    }
+    ids.reserve(PQntuples(result));
+    const char* response = PQgetvalue(result, 0, 0);
+    using Int64Conversion = pg_array_hstore_parser::TypeConversion<pg_array_hstore_parser::Int64ConversionImpl>;
+    pg_array_hstore_parser::ArrayParser<Int64Conversion> array_parser_types(response);
+    while (array_parser_types.has_next()) {
+        ids.push_back(array_parser_types.get_next());
+    }
+    PQclear(result);
+    return ids;
+}
+
 void PostgresTable::update_geometry(const osmium::object_id_type id, const char* geometry) {
     assert(m_database_connection);
     assert(!m_copy_mode);
     char const *paramValues[2];
-    char buffer[64];
+    static char buffer[64];
     sprintf(buffer, "%ld", id);
-    paramValues[0] = buffer;
-    paramValues[1] = geometry;
+    paramValues[0] = geometry;
+    paramValues[1] = buffer;
     PGresult *result = PQexecPrepared(m_database_connection, "update_geometry", 2, paramValues, nullptr, nullptr, 0);
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
         throw std::runtime_error((boost::format("Updating geometry of object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
+    }
+    PQclear(result);
+}
+
+void PostgresTable::update_relation_member_geometry(const osmium::object_id_type id, const char* points, const char* lines) {
+    assert(m_database_connection);
+    assert(!m_copy_mode);
+    char const *paramValues[3];
+    static char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = points;
+    paramValues[1] = lines;
+    paramValues[2] = buffer;
+    PGresult *result = PQexecPrepared(m_database_connection, "update_relation_member_geometry", 3, paramValues, nullptr, nullptr, 0);
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        PQclear(result);
+        throw std::runtime_error((boost::format("Updating member geometry collection of relation %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
     }
     PQclear(result);
 }
