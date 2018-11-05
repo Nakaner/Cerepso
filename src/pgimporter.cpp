@@ -417,7 +417,7 @@ int main(int argc, char* argv[]) {
 
         ts = time(NULL);
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
-        osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::node | osmium::osm_entity_bits::way);
+        osmium::io::Reader reader2(config.m_osm_file);
         ImportHandler handler(config, nodes_table, &untagged_nodes_table, ways_linear_table, &assoc_manager, &areas_table, &node_ways_table,
                 &node_relations_table, &way_relations_table);
         HandlerCollection handlers_collection2;
