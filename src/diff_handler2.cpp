@@ -160,6 +160,7 @@ void DiffHandler2::way(const osmium::Way& way) {
             // set to zero to indicate that the way has been processed.
             // The zero will be removed by the next call of sort() and unique().
             m_pending_ways.at(found) = 0;
+            std::cerr << "remove way " << way.id() << " from list of pending ways\n";
             m_pending_ways_idx = found;
             break;
         }
@@ -238,7 +239,8 @@ void DiffHandler2::write_new_nodes() {
     // sort list of pending ways
     std::cerr << "sorting list of pending ways ...";
     std::sort(m_pending_ways.begin(), m_pending_ways.end());
-    std::unique(m_pending_ways.begin(), m_pending_ways.end());
+    //TODO check if way() can work with a non-unique container
+    m_pending_ways.erase(std::unique(m_pending_ways.begin(), m_pending_ways.end()), m_pending_ways.end());
     std::cerr << " done\n";
 }
 
@@ -249,7 +251,7 @@ void DiffHandler2::write_new_ways() {
     // sort list of pending relations
     std::cerr << "sorting list of pending relations ...";
     std::sort(m_pending_relations.begin(), m_pending_relations.end());
-    std::unique(m_pending_relations.begin(), m_pending_relations.end());
+    m_pending_relations.erase(std::unique(m_pending_relations.begin(), m_pending_relations.end()), m_pending_relations.end());
     std::cerr << " done\n";
 
     m_relations_table.start_copy();
@@ -258,27 +260,39 @@ void DiffHandler2::write_new_ways() {
 
 void DiffHandler2::after_relations() {
     m_relations_table.end_copy();
-    std::cerr << "sorting list of pending relations ...";
-    std::sort(m_pending_relations.begin(), m_pending_relations.end());
-    std::unique(m_pending_relations.begin(), m_pending_relations.end());
-    std::cerr << " done\n";
-    std::cerr << "working on list of pending relations (" << m_pending_relations.size() << ") ...";
-    for (auto id : m_pending_relations) {
-        // update way
-        update_relation(id);
-    }
-    std::cerr << " done\n";
+    std::cerr << "sorting list of relations ways ...";
+    using namespace std::placeholders;
+    std::function<void(osmium::object_id_type)> func = std::bind(&DiffHandler2::update_relation, this, _1);
+    clean_up_container_and_work_on(m_pending_relations, func);
 }
 
 void DiffHandler2::work_on_pending_ways() {
     std::cerr << "sorting list of pending ways ...";
-    std::sort(m_pending_ways.begin(), m_pending_ways.end());
-    std::unique(m_pending_ways.begin(), m_pending_ways.end());
-    std::cerr << " done\n";
-    std::cerr << "working on list of pending ways (" << m_pending_ways.size() << ") ...";
-    for (auto id : m_pending_ways) {
-        // update way
-        update_way(id);
+    using namespace std::placeholders;
+    std::function<void(osmium::object_id_type)> func = std::bind(&DiffHandler2::update_way, this, _1);
+    clean_up_container_and_work_on(m_pending_ways, func);
+}
+
+// Can be converted in a template if we work on containers
+void DiffHandler2::clean_up_container_and_work_on(std::vector<osmium::object_id_type>& container,
+        std::function<void(osmium::object_id_type)> func) {
+    std::sort(container.begin(), container.end());
+    std::cerr << " working on it ...";    // find first element after 0
+    std::vector<osmium::object_id_type>::iterator it = std::find_if(container.begin(),
+            container.end(),
+            [](const osmium::object_id_type x){return x > 0;});
+    // check if vector of pending ways is empty or contains only zeros
+    if (it == container.end()) {
+        std::cerr << " nothing to do\n";
+        return;
+    }
+    ++it;
+    osmium::object_id_type last = 0;
+    for (;it != container.end(); ++it) {
+        if (last != *it) {
+            func(*it);
+            last = *it;
+        }
     }
     std::cerr << " done\n";
 }

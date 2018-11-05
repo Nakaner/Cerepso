@@ -8,6 +8,7 @@
 #ifndef DIFF_HANDLER2_HPP_
 #define DIFF_HANDLER2_HPP_
 
+#include <functional>
 #include <geos/geom/GeometryFactory.h>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
@@ -102,6 +103,14 @@ private:
      * \param id OSM relation ID
      */
     void update_relation(const osmium::object_id_type id);
+
+    /**
+     * Sort a container of osmium::object_id_type, remove duplicates and then call a function for each non-zero element.
+     *
+     * \param container container to work on
+     * \param func function to call
+     */
+    void clean_up_container_and_work_on(std::vector<osmium::object_id_type>& container, std::function<void(osmium::object_id_type)> func);
 
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
