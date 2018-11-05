@@ -332,11 +332,10 @@ void PostgresTable::delete_relation_member_ways_list(const osmium::object_id_typ
     PQclear(result);
 }
 
-std::unique_ptr<geos::geom::Coordinate> PostgresTable::get_point(const osmium::object_id_type id) {
+osmium::Location PostgresTable::get_point(const osmium::object_id_type id) {
     assert(m_database_connection);
     assert(!m_copy_mode);
 //    assert(!m_begin);
-    std::unique_ptr<geos::geom::Coordinate> coord;
     char const *paramValues[1];
     static char buffer[64];
     sprintf(buffer, "%ld", id);
@@ -345,14 +344,14 @@ std::unique_ptr<geos::geom::Coordinate> PostgresTable::get_point(const osmium::o
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
-        return coord;
+        return osmium::Location{};
     }
     if (PQntuples(result) == 0) {
 //        throw std::runtime_error(((boost::format("Node %1% not found. ") % id)).str());
         PQclear(result);
-        return coord;
+        return osmium::Location{};
     }
-    coord = std::unique_ptr<geos::geom::Coordinate>(new geos::geom::Coordinate(atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1))));
+    osmium::Location coord {atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1))};
     PQclear(result);
     return coord;
 }

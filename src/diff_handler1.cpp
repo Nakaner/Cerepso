@@ -19,8 +19,14 @@ void DiffHandler1::node(const osmium::Node& node) {
     if (node.version() > 1) {
         // expire tiles where the node has been before
         try {
-            osmium::Location loc = m_location_index.get_noexcept(node.id());
+            // Get old location from database before it is deleted.
+            osmium::Location loc = m_location_index.get_node_location_from_persisent(node.id());
             if (loc.valid()) {
+                // Locations are often not found although the node has version > 1 if you import
+                // a diff of an extract of OSM data which was created by comparing to extract files.
+                // If a node appears in the new but not in the old file, it will appear in the diff
+                // but has version > 1. Those nodes don't have to be expired in pass 1 of the diff
+                // import.
                 m_expire_tiles->expire_from_point(loc);
             }
         } catch (std::runtime_error& e) {
@@ -42,6 +48,7 @@ void DiffHandler1::node(const osmium::Node& node) {
 void DiffHandler1::way(const osmium::Way& way) {
     if (way.version() > 1) {
         // expire all tiles which have been crossed by the linestring before
+        //TODO read locations from location cache instead parsing WKB using GEOS
         std::unique_ptr<geos::geom::Geometry> old_geom = m_ways_linear_table.get_linestring(way.id(), m_geom_factory);
         if (old_geom) {
             // nullptr will be returned if there is no old version in the database (happens if importing diffs of extracts)

@@ -201,13 +201,13 @@ public:
     void delete_relation_member_ways_list(const osmium::object_id_type id);
 
     /**
-     * \brief get the longitude and latitude of a node as geos::geom::Coordinate
+     * \brief get the longitude and latitude of a node
      *
      * \param id OSM ID
      * \throws std::runtime_error If SQL query execution fails.
      * \returns unique_ptr to coordinate or empty unique_ptr otherwise
      */
-    std::unique_ptr<geos::geom::Coordinate> get_point(const osmium::object_id_type id);
+    osmium::Location get_point(const osmium::object_id_type id);
 
     /**
      * \brief get a way as geos::geom::LineString

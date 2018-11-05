@@ -11,6 +11,7 @@
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
 #include "definitions.hpp"
+#include "update_location_handler.hpp"
 
 /**
  * \brief Diff handler for table imported using ImportHandler class, pass 1.
@@ -28,14 +29,14 @@ private:
 
     ExpireTiles* m_expire_tiles;
 
-    index_type& m_location_index;
+    UpdateLocationHandler& m_location_index;
 
     geos::geom::GeometryFactory m_geom_factory;
 
 public:
     DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
+            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table,
             &node_relations_table, &way_relations_table),
         m_relations_table(relations_table),
@@ -47,7 +48,7 @@ public:
      */
     DiffHandler1(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, CerepsoConfig& config, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
+            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table,
             &node_relations_table, &way_relations_table),
         m_relations_table(relations_table),
@@ -57,9 +58,20 @@ public:
     ~DiffHandler1() {};
 
 
+    /**
+     * Expire tiles at the old location of the node if there is any. Delete node from database.
+     *
+     * This method does not use the location of the node. Instead the location is looked up
+     * in the persisent location cache.
+     */
     void node(const osmium::Node& node);
 
-
+    /**
+     * Expire tiles along the old geometry of the way and delete it from database.
+     *
+     * This method does not need valid locations on the node references. Instead the locations are
+     * looked up in the persisent location cache.
+     */
     void way(const osmium::Way& way);
 
     void relation(const osmium::Relation& area);

@@ -37,7 +37,7 @@ void DiffHandler2::node(const osmium::Node& node) {
 }
 
 osmium::Location DiffHandler2::get_point_from_tables(osmium::object_id_type id) {
-    return m_location_index.get_noexcept(id);
+    return m_location_index.get_node_location(id);
 }
 
 void DiffHandler2::update_relation(const osmium::object_id_type id) {
@@ -177,7 +177,7 @@ void DiffHandler2::update_way(const osmium::object_id_type id) {
     try {
         m_ways_linear_table.wkb_factory().linestring_start();
         for (auto& n : member_nodes) {
-            n.node_ref.set_location(m_location_index.get(n.node_ref.ref()));
+            n.node_ref.set_location(m_location_index.get_node_location(n.node_ref.ref()));
         }
         // build a lightweight wrapper container to avoid copying the member node list
         std::vector<osmium::NodeRef> node_refs;

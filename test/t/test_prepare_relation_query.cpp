@@ -12,6 +12,7 @@
 #include <postgres_drivers/columns.hpp>
 #include <diff_handler2.hpp>
 #include <expire_tiles_factory.hpp>
+#include <update_location_handler_factory.hpp>
 
 using sparse_mmap_array_t = osmium::index::map::SparseMmapArray<osmium::unsigned_object_id_type, osmium::Location>;
 
@@ -79,15 +80,17 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     config.m_append = true;
-    sparse_mmap_array_t index;
+    std::unique_ptr<sparse_mmap_array_t> index {new sparse_mmap_array_t()};
+    std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<sparse_mmap_array_t>(nodes_table, untagged_nodes_table,
+            std::move(index));
     DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, node_ways_table,
-            node_relations_table, way_relations_table, config, expire_tiles, index);
+            node_relations_table, way_relations_table, config, expire_tiles, *location_handler);
     handler.node(node1);
-    index.set(node1.id(), node1.location());
+    index->set(node1.id(), node1.location());
     handler.node(node2);
-    index.set(node2.id(), node2.location());
+    index->set(node2.id(), node2.location());
     handler.node(node3);
-    index.set(node3.id(), node3.location());
+    index->set(node3.id(), node3.location());
     handler.way(way1);
     handler.way(way2);
     std::string copy_buffer;

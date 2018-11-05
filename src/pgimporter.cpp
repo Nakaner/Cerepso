@@ -21,6 +21,8 @@
 #include <osmium/osm/way.hpp>
 #include <osmium/io/any_input.hpp>
 #include <postgres_drivers/columns.hpp>
+#include "update_location_handler_factory.hpp"
+#include "definitions.hpp"
 #include "diff_handler1.hpp"
 #include "diff_handler2.hpp"
 #include "relation_collector.hpp"
@@ -55,14 +57,15 @@ using dense_mmap_array_t = osmium::index::map::DenseMmapArray<osmium::unsigned_o
 using sparse_file_array_t = osmium::index::map::SparseFileArray<osmium::unsigned_object_id_type, osmium::Location>;
 using dense_file_array_t = osmium::index::map::DenseFileArray<osmium::unsigned_object_id_type, osmium::Location>;
 
-dense_file_array_t load_index(const char* filename, const std::string& type) {
+
+std::unique_ptr<dense_file_array_t> load_index(const char* filename, const std::string& type) {
     int fd = ::open(filename, O_RDWR);
     if (fd == -1) {
         std::cerr << "Can not open location cache file '" << filename << "': " << std::strerror(errno) << "\n";
         throw std::runtime_error{"opening file failed"};
     }
     if (type == "dense_mmap_array" || type == "dense_file_array") {
-        return dense_file_array_t{fd};
+        return std::unique_ptr<dense_file_array_t>{new dense_file_array_t{fd}};
     }
     throw std::runtime_error{"unsupported index type"};
 }
@@ -282,6 +285,13 @@ int main(int argc, char* argv[]) {
         // set max zoom to min zoom if the user uses this tool like osm2pgsql
         config.m_max_zoom = config.m_min_zoom;
     }
+    if (config.m_driver_config.untagged_nodes != (config.m_flat_nodes == "")) {
+        std::cerr << "WARNING: This is an import without ability to update! Add either\n" \
+                "--untagged-nodes or --flat-nodes to the list of command line options.\n";
+    }
+    if (config.m_append && config.m_flat_nodes != "" && config.m_driver_config.untagged_nodes) {
+        print_help(argv, "Ambigous command line options. A flat nodes file cannot be specified together with --untagged-nodes.");
+    }
 
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
@@ -333,8 +343,19 @@ int main(int argc, char* argv[]) {
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
         // load index from file
-        dense_file_array_t location_index = load_index(config.m_flat_nodes.c_str(), config.m_location_handler);
-        location_handler_type location_handler(location_index);
+        std::unique_ptr<dense_file_array_t> location_index;
+        if (config.m_flat_nodes != "") {
+            location_index = load_index(config.m_flat_nodes.c_str(), config.m_location_handler);
+        }
+        postgres_drivers::Columns untagged_nodes_columns2(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
+        PostgresTable locations_untagged_table {"untagged_nodes", config, std::move(untagged_nodes_columns2)};
+        postgres_drivers::Columns nodes_columns2(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
+        PostgresTable locations_table {"planet_osm_point", config, std::move(nodes_columns2)};
+        locations_untagged_table.init();
+        locations_table.init();
+        std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<dense_file_array_t>(
+                locations_table, locations_untagged_table, std::move(location_index));
+        location_handler->ignore_errors();
         osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
         PostgresTable relations_table("relations", config, std::move(relation_other_columns));
         relations_table.init();
@@ -350,14 +371,15 @@ int main(int argc, char* argv[]) {
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
         DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
-                node_relations_table, way_relations_table, expire_tiles, location_index);
-        osmium::apply(reader1, location_handler, append_handler1);
+                node_relations_table, way_relations_table, expire_tiles, *location_handler);
+        // The location handler has not to be passed to the visitor in pass 1.
+        osmium::apply(reader1, append_handler1);
         reader1.close();
 
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
         DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
-                node_relations_table, way_relations_table, expire_tiles, location_index);
-        osmium::apply(reader2, location_handler, append_handler2);
+                node_relations_table, way_relations_table, expire_tiles, *location_handler);
+        osmium::apply(reader2, *location_handler, append_handler2);
         reader2.close();
         append_handler2.after_relations();
     } else {
@@ -404,8 +426,8 @@ int main(int argc, char* argv[]) {
             interpolated_handler->after_pass1();
             handlers_collection2.add(interpolated_handler->handler());
         }
+        handlers_collection2.add<ImportHandler>(handler);
         if (config.m_areas) {
-            handlers_collection2.add<ImportHandler>(handler);
             osmium::apply(reader2, location_handler, handlers_collection2,
                 mp_manager->handler([&handler](osmium::memory::Buffer&& buffer) {
                     osmium::apply(buffer, handler);
@@ -418,7 +440,12 @@ int main(int argc, char* argv[]) {
         reader2.close();
         std::cerr << "… needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
         // dump location index
-        dump_index(location_index.get(), config);
+        if (config.m_flat_nodes != "") {
+            ts = time(NULL);
+            std::cerr << "Dumping location cache as array to " << config.m_flat_nodes << " ...";
+            dump_index(location_index.get(), config);
+            std::cerr << " needed " << static_cast<int> (time(NULL) - ts) << " seconds" << std::endl;
+        }
     }
     if (config.m_address_interpolations) {
         delete interpolated_handler;

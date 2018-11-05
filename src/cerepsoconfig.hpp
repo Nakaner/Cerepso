@@ -30,7 +30,7 @@ public:
     std::string m_style_file = "default.style";
 
     /// path to flatnodes file
-    std::string m_flat_nodes = "flat.nodes";
+    std::string m_flat_nodes = "";
 
     /**
      * create geometry index on untagged_nodes table

@@ -12,6 +12,7 @@
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
 #include "definitions.hpp"
+#include "update_location_handler.hpp"
 
 enum class TypeProgress {POINT, WAY, RELATION};
 
@@ -28,7 +29,7 @@ private:
      */
     PostgresTable& m_relations_table;
 
-    index_type& m_location_index;
+    UpdateLocationHandler& m_location_index;
 
     /**
      * pointer to the used implementation of ExpireTiles
@@ -105,7 +106,7 @@ private:
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, index_type& location_index) :
+            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index) :
             PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table,
                     &node_relations_table, &way_relations_table),
             m_relations_table(relations_table),
@@ -125,7 +126,7 @@ public:
     DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
             PostgresTable& way_relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
-            index_type& location_index) :
+            UpdateLocationHandler& location_index) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table,
                 &node_relations_table, &way_relations_table),
         m_relations_table(relations_table),
