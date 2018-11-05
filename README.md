@@ -14,6 +14,30 @@ have been reused by Cerepso.
 Cerepso makes much use of the Osmium library for reading OSM data and building
 geometries.
 
+Status
+------
+
+**This programme is experimental.** A larger refactoring has to be done to
+ease maintanance and extensibility in future. Please expect bugs if you use this
+programme.
+
+The most important tasks to be done are:
+
+* `PostgresHandler::prepare_query` and similar methods should go into a separate
+  class or collection of functions because they are also required by
+  RelationCollector and DatabaseLocationHandler
+* many (mostly static) methods of `PostgresHandler` should be moved
+  `PostgresTable`
+* `PostgresTable` should be split up into one class per table type, i.e.
+  `NodesTable`, `WaysTable`, `AreasTable`, `RelationsTable`, `NodeWaysTable`,
+  `NodeRelationsTable`, `WayRelationsTable. `postgres_drivers::Table` should be a
+  member of these classes. These classes should be class interfaces and the
+  database implementation (i.e. `postgres_drivers::Table`) should be a template
+  parameter.
+
+Lacking features and minor issues can be found in the bugtracker of this
+project. In addition, some "TODO" comments in the code give help where to start.
+
 License
 -------
 
