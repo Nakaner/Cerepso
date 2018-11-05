@@ -21,6 +21,15 @@
 
 class PostgresHandler : public osmium::handler::Handler {
 
+    /**
+     * Prepare lines for SQL COPY to be written into the nodes_relations and ways_relations tables.
+     *
+     * \param relation relation to be processed
+     * \param type type of interest (node, way or relation)
+     *
+     * \returns string (multiple lines) to be written to the database or an empty string if there was no
+     * member of the type of interest.
+     */
     static std::string prepare_relation_member_list_query(const osmium::Relation& relation, const osmium::item_type type);
 
 public:

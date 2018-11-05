@@ -59,7 +59,11 @@ void ImportHandler::relation(const osmium::Relation& relation) {
         return;
     }
     std::string query = prepare_node_relation_query(relation);
-    m_node_relations_table->send_line(query);
+    if (query.c_str()[0] != '\0') {
+        m_node_relations_table->send_line(query);
+    }
     query = prepare_way_relation_query(relation);
-    m_way_relations_table->send_line(query);
+    if (query.c_str()[0] != '\0') {
+        m_way_relations_table->send_line(query);
+    }
 }
