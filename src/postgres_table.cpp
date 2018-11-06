@@ -340,18 +340,28 @@ osmium::Location PostgresTable::get_point(const osmium::object_id_type id) {
     static char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
-    PGresult *result = PQexecPrepared(m_database_connection, "get_point", 1, paramValues, nullptr, nullptr, 0);
+    PGresult *result;
+    if (m_columns.get_type() == postgres_drivers::TableType::POINT) {
+        result = PQexecPrepared(m_database_connection, "get_location_from_point_table", 1, paramValues, nullptr, nullptr, 0);
+    } else {
+        result = PQexecPrepared(m_database_connection, "get_location_from_untagged_nodes_table", 1, paramValues, nullptr, nullptr, 0);
+    }
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
         return osmium::Location{};
     }
     if (PQntuples(result) == 0) {
-//        throw std::runtime_error(((boost::format("Node %1% not found. ") % id)).str());
         PQclear(result);
         return osmium::Location{};
     }
-    osmium::Location coord {atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1))};
+    osmium::Location coord;
+    // TODO this method should be split up once PostgresTable is split up into one class per table type
+    if (m_columns.get_type() == postgres_drivers::TableType::POINT) {
+        coord = osmium::Location{atof(PQgetvalue(result, 0, 0)), atof(PQgetvalue(result, 0, 1))};
+    } else {
+        coord = osmium::Location{atoi(PQgetvalue(result, 0, 0)), atoi(PQgetvalue(result, 0, 1))};
+    }
     PQclear(result);
     return coord;
 }

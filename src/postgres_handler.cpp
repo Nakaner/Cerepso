@@ -15,6 +15,12 @@ void PostgresHandler::add_osm_id(std::string& ss, const osmium::object_id_type i
     ss.append(idbuffer, strlen(idbuffer));
 }
 
+void PostgresHandler::add_int32(std::string& ss, const int32_t number) {
+    static char idbuffer[16];
+    sprintf(idbuffer, "%d", number);
+    ss.append(idbuffer, strlen(idbuffer));
+}
+
 void PostgresHandler::add_username(std::string& ss, const char* username) {
     PostgresTable::escape(username, ss);
 }
@@ -218,6 +224,10 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
         add_member_types(static_cast<const osmium::Relation&>(object).members(), query);
     } else if (it->column_class() == postgres_drivers::ColumnClass::GEOMETRY) {
         add_geometry(object, query, table);
+    } else if (object.type() == osmium::item_type::node && it->column_class() == postgres_drivers::ColumnClass::LATITUDE) {
+        add_int32(query, static_cast<const osmium::Node&>(object).location().y());
+    } else if (object.type() == osmium::item_type::node && it->column_class() == postgres_drivers::ColumnClass::LONGITUDE) {
+        add_int32(query, static_cast<const osmium::Node&>(object).location().x());
     } else {
         column_added = false;
     }

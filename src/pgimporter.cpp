@@ -349,7 +349,7 @@ int main(int argc, char* argv[]) {
         }
         postgres_drivers::Columns untagged_nodes_columns2(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
         PostgresTable locations_untagged_table {"untagged_nodes", config, std::move(untagged_nodes_columns2)};
-        postgres_drivers::Columns nodes_columns2(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
+        postgres_drivers::Columns nodes_columns2(config.m_driver_config, postgres_drivers::TableType::POINT);
         PostgresTable locations_table {"planet_osm_point", config, std::move(nodes_columns2)};
         locations_untagged_table.init();
         locations_table.init();

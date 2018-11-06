@@ -43,6 +43,8 @@ public:
 
     static void add_osm_id(std::string& ss, const osmium::object_id_type id);
 
+    static void add_int32(std::string& ss, const int32_t number);
+
     static void add_username(std::string& ss, const char* username);
 
     static void add_uid(std::string& ss, const osmium::user_id_type uid);
