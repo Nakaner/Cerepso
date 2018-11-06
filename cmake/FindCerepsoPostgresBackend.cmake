@@ -2,7 +2,7 @@
 find_path(CEREPSOPOSTGRESBACKEND_INCLUDE_DIR postgres_drivers/table.hpp
     PATH_SUFFIXES include
     PATHS
-        ../cerepso-postgres-backend
+        contrib/cerepso-postgres-backend
 )
 
 set(CEREPSOPOSTGRESBACKEND_INCLUDE_DIRS "${CEREPSOPOSTGRESBACKEND_INCLUDE_DIR}")
