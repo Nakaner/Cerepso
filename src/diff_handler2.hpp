@@ -10,12 +10,18 @@
 
 #include <functional>
 #include <geos/geom/GeometryFactory.h>
+#include <osmium/area/assembler.hpp>
+#include <osmium/area/multipolygon_manager.hpp>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
 #include "definitions.hpp"
 #include "update_location_handler.hpp"
 
-enum class TypeProgress {POINT, WAY, RELATION};
+enum class TypeProgress : char {
+    POINT = 1,
+    WAY = 2,
+    RELATION = 3
+};
 
 /**
  * \brief Handler to import diff files (second pass) into tables imported using MyHandler.
@@ -56,6 +62,12 @@ private:
      * Iterator pointing to element in list of pending relations which has been worked on.
      */
     std::vector<osmium::object_id_type>::size_type m_pending_relations_idx;
+
+    osmium::area::MultipolygonManager<osmium::area::Assembler>* m_mp_manager;
+
+    osmium::memory::Buffer m_relation_buffer;
+
+    osmium::memory::CallbackBuffer m_out_buffer;
 
     geos::geom::GeometryFactory m_geom_factory;
 
@@ -115,19 +127,8 @@ private:
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index) :
-            PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, nullptr, &node_ways_table,
-                    &node_relations_table, &way_relations_table),
-            m_relations_table(relations_table),
-            m_location_index(location_index),
-            m_expire_tiles(expire_tiles),
-            m_pending_ways(),
-            m_pending_relations(),
-            m_pending_ways_idx(0),
-            m_pending_relations_idx(0) {
-        m_untagged_nodes_table->start_copy();
-        m_nodes_table.start_copy();
-    }
+            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
+            PostgresTable* areas_table = nullptr, osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
 
     /**
      * \brief constructor for testing purposes, will not establish database connections
@@ -135,14 +136,8 @@ public:
     DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
             PostgresTable& way_relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
-            UpdateLocationHandler& location_index) :
-        PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, nullptr, &node_ways_table,
-                &node_relations_table, &way_relations_table),
-        m_relations_table(relations_table),
-        m_location_index(location_index),
-        m_expire_tiles(expire_tiles),
-        m_pending_ways_idx(0),
-        m_pending_relations_idx(0) { }
+            UpdateLocationHandler& location_index, PostgresTable* areas_table = nullptr,
+            osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
 
     ~DiffHandler2();
 
@@ -172,7 +167,16 @@ public:
     void relation(const osmium::Relation& area);
 
     /// Handler not used but has to implemented because it is a full virtual method.
-    void area(const osmium::Area& area) {};
+    void area(const osmium::Area& area);
+
+    void incomplete_relation(const osmium::relations::RelationHandle& rel_handle);
+
+    /**
+     * Flush area output buffer.
+     *
+     * Call this method at the end of processiong.
+     */
+    void flush_incomplete_relations();
 
     /**
      * Update all relations whose node or way members have changed without any direct changes to the relation.

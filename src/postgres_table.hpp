@@ -163,9 +163,11 @@ public:
      *
      * \param id ID of the object
      *
+     * \return true if number of affected lines is greater than zero
+     *
      * \throws std::runtime_error
      */
-    void delete_object(const osmium::object_id_type id);
+    bool delete_object(const osmium::object_id_type id);
 
     /**
      * \brief delete member node list of a way
@@ -240,10 +242,11 @@ public:
     /**
      * \brief Get member nodes of a way.
      *
-     * \param node_id OSM way ID
+     * \param way_id OSM way ID
      * \throws std::runtime_error if query execution fails
      * \returns vector of node IDs sorted by position or empty vector if none was found
      */
+    //TODO check if MemberNode is really necessaryor a vector of osmium::object_id_type is sufficient
     std::vector<MemberNode> get_way_nodes(const osmium::object_id_type way_id);
 
     /**

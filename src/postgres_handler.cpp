@@ -323,3 +323,17 @@ void PostgresHandler::handle_node(const osmium::Node& node) {
         m_untagged_nodes_table->send_line(query);
     }
 }
+
+void PostgresHandler::handle_area(const osmium::Area& area) {
+    if (!m_areas_table->has_interesting_tags(area.tags())) {
+        return;
+    }
+    const osmium::TagList* rel_tags_to_apply;
+    if (area.from_way()) {
+        rel_tags_to_apply = get_relation_tags_to_apply(area.orig_id(), osmium::item_type::way);
+    } else {
+        rel_tags_to_apply = get_relation_tags_to_apply(area.orig_id(), osmium::item_type::relation);
+    }
+    std::string query = prepare_query(area, *m_areas_table, m_config, rel_tags_to_apply);
+    m_areas_table->send_line(query);
+}

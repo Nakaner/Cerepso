@@ -13,6 +13,62 @@
 #include <osmium/osm/relation.hpp>
 
 #include "diff_handler2.hpp"
+#include "postgres_table.hpp"
+
+
+DiffHandler2::DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
+        PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
+        PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
+        PostgresTable* areas_table /*= nullptr*/, osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
+        PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, areas_table, &node_ways_table,
+                &node_relations_table, &way_relations_table),
+        m_relations_table(relations_table),
+        m_location_index(location_index),
+        m_expire_tiles(expire_tiles),
+        m_pending_ways(),
+        m_pending_relations(),
+        m_pending_ways_idx(0),
+        m_pending_relations_idx(0),
+        m_mp_manager(mp_manager),
+        m_relation_buffer(100000, osmium::memory::Buffer::auto_grow::yes),
+        m_out_buffer() {
+    m_untagged_nodes_table->start_copy();
+    m_nodes_table.start_copy();
+    m_out_buffer.set_callback([&](osmium::memory::Buffer&& buffer) {
+        for (auto& item : buffer) {
+            if (item.type() == osmium::item_type::area) {
+                area(static_cast<const osmium::Area&>(item));
+            }
+        }
+    });
+}
+
+/**
+ * \brief constructor for testing purposes, will not establish database connections
+ */
+DiffHandler2::DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
+        PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
+        PostgresTable& way_relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
+        UpdateLocationHandler& location_index, PostgresTable* areas_table /*= nullptr*/,
+        osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
+    PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, areas_table, &node_ways_table,
+            &node_relations_table, &way_relations_table),
+    m_relations_table(relations_table),
+    m_location_index(location_index),
+    m_expire_tiles(expire_tiles),
+    m_pending_ways_idx(0),
+    m_pending_relations_idx(0),
+    m_mp_manager(mp_manager),
+    m_relation_buffer(100000, osmium::memory::Buffer::auto_grow::yes),
+    m_out_buffer()  {
+    m_out_buffer.set_callback([&](osmium::memory::Buffer&& buffer) {
+        for (auto& item : buffer) {
+            if (item.type() == osmium::item_type::area) {
+                area(static_cast<const osmium::Area&>(item));
+            }
+        }
+    });
+}
 
 DiffHandler2::~DiffHandler2() {
     m_expire_tiles->output_and_destroy();
@@ -55,7 +111,20 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
             std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
             points->push_back(point.release());
         } else if (*it_type == osmium::item_type::way) {
-            std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(*it_id, m_geom_factory);
+            //TODO not DRY with insert_relation()
+            std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(*it_id);
+            std::vector<geos::geom::Coordinate> coordinates;
+            coordinates.reserve(nodes.size());
+            std::vector<MemberNode>::iterator itn = nodes.begin();
+            std::vector<geos::geom::Coordinate>::iterator itc = coordinates.begin();
+            for (; itn != nodes.end() && itc != coordinates.end(); ++itn, ++itc) {
+                osmium::Location loc = get_point_from_tables(itn->node_ref.ref());
+                itc->x = loc.lon();
+                itc->y = loc.lat();
+            }
+            geos::geom::CoordinateArraySequenceFactory coord_sequence_factory;
+            std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(&coordinates)};
+            std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory.createLineString(coord_sequence.release())};
             if (linestring) {
                 linestrings->push_back(linestring.release());
             }
@@ -97,13 +166,23 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
                 }
             }
             else if ((member.type() == osmium::item_type::way)) {
-                std::unique_ptr<geos::geom::Geometry> linestring = m_ways_linear_table.get_linestring(member.ref(), m_geom_factory);
+                std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(member.ref());
+                std::unique_ptr<std::vector<geos::geom::Coordinate>> coordinates {new std::vector<geos::geom::Coordinate>()};
+                coordinates->reserve(nodes.size());
+                std::vector<MemberNode>::iterator itn = nodes.begin();
+                std::vector<geos::geom::Coordinate>::iterator itc = coordinates->begin();
+                for (; itn != nodes.end() && itc != coordinates->end(); ++itn, ++itc) {
+                    osmium::Location loc = get_point_from_tables(itn->node_ref.ref());
+                    itc->x = loc.lon();
+                    itc->y = loc.lat();
+                }
+                geos::geom::CoordinateArraySequenceFactory coord_sequence_factory;
+                std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(coordinates.release())};
+                if (trigger_tile_expiry) {
+                    m_expire_tiles->expire_from_coord_sequence(coord_sequence.get());
+                }
+                std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory.createLineString(coord_sequence.release())};
                 if (linestring) {
-                    if (trigger_tile_expiry) {
-                        geos::geom::CoordinateSequence* coord_sequence = linestring->getCoordinates();
-                        m_expire_tiles->expire_from_coord_sequence(coord_sequence);
-                        delete coord_sequence;
-                    }
                     linestrings->push_back(linestring.release());
                 }
             }
@@ -134,7 +213,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
 }
 
 void DiffHandler2::way(const osmium::Way& way) {
-    if (m_progress != TypeProgress::WAY) {
+    if (m_progress == TypeProgress::POINT) {
         write_new_nodes();
     }
     if (way.deleted()) {
@@ -160,7 +239,6 @@ void DiffHandler2::way(const osmium::Way& way) {
             // set to zero to indicate that the way has been processed.
             // The zero will be removed by the next call of sort() and unique().
             m_pending_ways.at(found) = 0;
-            std::cerr << "remove way " << way.id() << " from list of pending ways\n";
             m_pending_ways_idx = found;
             break;
         }
@@ -206,6 +284,10 @@ void DiffHandler2::update_way(const osmium::object_id_type id) {
 }
 
 void DiffHandler2::relation(const osmium::Relation& relation) {
+    if (m_progress == TypeProgress::POINT) {
+        // write_new_nodes is called if the way callback has not been called yet.
+        write_new_nodes();
+    }
     if (m_progress != TypeProgress::RELATION) {
         write_new_ways();
     }
@@ -230,10 +312,68 @@ void DiffHandler2::relation(const osmium::Relation& relation) {
     }
 }
 
+void DiffHandler2::area(const osmium::Area& area) {
+    if (m_progress == TypeProgress::POINT) {
+        write_new_nodes();
+    }
+    handle_area(area);
+}
+
+void DiffHandler2::incomplete_relation(const osmium::relations::RelationHandle& rel_handle) {
+    assert(m_mp_manager);
+    const osmium::Relation& relation = *rel_handle;
+
+    std::vector<const osmium::Way*> ways;
+    ways.reserve(relation.members().size());
+    for (const auto& member : relation.members()) {
+        if (member.ref() == 0) {
+            continue;
+        }
+        const osmium::Way* way = m_mp_manager->get_member_way(member.ref());
+        if (way) {
+            ways.push_back(way);
+        } else {
+            //fetch elements from database
+            std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(member.ref());
+            {
+                osmium::builder::WayBuilder way_builder(m_relation_buffer);
+                osmium::Way& reconstructeded_way = static_cast<osmium::Way&>(way_builder.object());
+                reconstructeded_way.set_id(member.ref());
+                way_builder.set_user("");
+                {
+                    osmium::builder::WayNodeListBuilder wnl_builder{m_relation_buffer, &way_builder};
+                    for (auto n : nodes) {
+                        n.node_ref.set_location(m_location_index.get_node_location(n.node_ref.ref()));
+                        wnl_builder.add_node_ref(n.node_ref);
+                    }
+                }
+                ways.push_back(&reconstructeded_way);
+            }
+            m_relation_buffer.commit();
+        }
+    }
+    try {
+        //TODO make osmium::area::Assembler a template parameter
+        osmium::area::AssemblerConfig assembler_config;
+        osmium::area::Assembler assembler{assembler_config};
+        assembler(relation, ways, m_out_buffer.buffer());
+    } catch (const osmium::invalid_location&) {
+        // XXX ignore
+    }
+}
+
+void DiffHandler2::flush_incomplete_relations() {
+    m_out_buffer.flush();
+}
+
 void DiffHandler2::write_new_nodes() {
+    std::cerr << "write_new_nodes\n";
     m_nodes_table.end_copy();
     m_untagged_nodes_table->end_copy();
     m_ways_linear_table.start_copy();
+    if (m_areas_table) {
+        m_areas_table->start_copy();
+    }
     m_node_ways_table->start_copy();
     m_progress = TypeProgress::WAY;
     // sort list of pending ways
@@ -245,8 +385,16 @@ void DiffHandler2::write_new_nodes() {
 }
 
 void DiffHandler2::write_new_ways() {
-    m_ways_linear_table.end_copy();
-    m_node_ways_table->end_copy();
+    if (m_ways_linear_table.get_copy()) {
+        m_ways_linear_table.end_copy();
+    }
+    if (m_node_ways_table->get_copy()) {
+        m_node_ways_table->end_copy();
+    }
+    if (m_areas_table && m_areas_table->get_copy()) {
+        // We do some UPDATEs to the areas table. That's why we have to stop copying now and restart it later.
+        m_areas_table->end_copy();
+    }
     work_on_pending_ways();
     // sort list of pending relations
     std::cerr << "sorting list of pending relations ...";
@@ -254,12 +402,18 @@ void DiffHandler2::write_new_ways() {
     m_pending_relations.erase(std::unique(m_pending_relations.begin(), m_pending_relations.end()), m_pending_relations.end());
     std::cerr << " done\n";
 
+    if (m_areas_table) {
+        m_areas_table->start_copy();
+    }
     m_relations_table.start_copy();
     m_progress = TypeProgress::RELATION;
 }
 
 void DiffHandler2::after_relations() {
     m_relations_table.end_copy();
+    if (m_areas_table) {
+        m_areas_table->end_copy();
+    }
     std::cerr << "sorting list of relations ways ...";
     using namespace std::placeholders;
     std::function<void(osmium::object_id_type)> func = std::bind(&DiffHandler2::update_relation, this, _1);

@@ -37,10 +37,13 @@ void DiffHandler1::node(const osmium::Node& node) {
         }
         // delete old node, try first untagged nodes table
         // TODO untagged_nodes table maybe not necessary any more
-        if (m_config.m_driver_config.untagged_nodes) {
-            m_untagged_nodes_table->delete_object(node.id());
+        if (!m_config.m_driver_config.untagged_nodes) {
+            m_nodes_table.delete_object(node.id());
+        } else {
+            if (!m_untagged_nodes_table->delete_object(node.id())) {
+                m_nodes_table.delete_object(node.id());
+            }
         }
-        m_nodes_table.delete_object(node.id());
     }
 }
 
@@ -55,6 +58,10 @@ void DiffHandler1::way(const osmium::Way& way) {
             m_expire_tiles->expire_from_geos_linestring(old_geom.get());
         }
         m_ways_linear_table.delete_object(way.id());
+        // A polygon might have been written to both the way and the polygon table. Therefore we have to check both.
+        if (m_config.m_areas) {
+            m_areas_table->delete_object(way.id());
+        }
         if (m_config.m_driver_config.updateable) {
             m_node_ways_table->delete_way_node_list(way.id());
         }
@@ -65,6 +72,10 @@ void DiffHandler1::way(const osmium::Way& way) {
 void DiffHandler1::relation(const osmium::Relation& relation) {
     if (relation.version() > 1) {
         m_relations_table.delete_object(relation.id());
+        // A polygon might have been written to both the relations and the polygon table. Therefore we have to check both.
+        if (m_config.m_areas) {
+            m_areas_table->delete_object(relation.id());
+        }
         m_node_relations_table->delete_relation_member_nodes_list(relation.id());
         m_way_relations_table->delete_relation_member_ways_list(relation.id());
     }

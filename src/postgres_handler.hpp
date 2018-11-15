@@ -170,6 +170,8 @@ protected:
      */
     void handle_node(const osmium::Node& node);
 
+    void handle_area(const osmium::Area& area);
+
     static bool fill_field(const osmium::OSMObject& object, postgres_drivers::ColumnsConstIterator it,
             std::string& query, bool column_added, std::vector<const char*>& written_keys, PostgresTable& table,
             const osmium::TagList* rel_tags_to_apply);

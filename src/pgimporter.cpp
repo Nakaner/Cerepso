@@ -5,8 +5,9 @@
  *      Author: michael
  */
 
-#include <unistd.h> // ftruncate
 #include <iostream>
+#include <unistd.h> // ftruncate
+#include <functional>
 #include <getopt.h>
 #include <memory>
 #include <system_error>
@@ -230,7 +231,6 @@ int main(int argc, char* argv[]) {
                 break;
             case 'A':
                 config.m_areas = true;
-                config.m_driver_config.updateable = false;
                 break;
             case 203:
                 config.m_associated_streets = true;
@@ -340,6 +340,13 @@ int main(int argc, char* argv[]) {
         interpolated_table.init();
         interpolated_handler = new AddrInterpolationHandler(interpolated_table);
     }
+
+    osmium::area::Assembler::config_type assembler_config;
+    osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager;
+    if (config.m_areas) {
+        mp_manager = new osmium::area::MultipolygonManager<osmium::area::Assembler>(assembler_config);
+    }
+
     // TODO cleanup: add a HandlerFactory which returns the handler we need
     if (config.m_append) { // append mode, reading diffs
         // load index from file
@@ -371,26 +378,50 @@ int main(int argc, char* argv[]) {
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
         DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
-                node_relations_table, way_relations_table, expire_tiles, *location_handler);
+                node_relations_table, way_relations_table, expire_tiles, *location_handler, &areas_table);
         // The location handler has not to be passed to the visitor in pass 1.
-        osmium::apply(reader1, append_handler1);
+        if (config.m_areas) {
+            osmium::apply(reader1, append_handler1, *mp_manager);
+        } else {
+            osmium::apply(reader1, append_handler1);
+        }
         reader1.close();
+
+        if (config.m_areas) {
+            // necessary because we don't use osmium::relations::read_relations
+            mp_manager->prepare_for_lookup();
+        }
 
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
         DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
-                node_relations_table, way_relations_table, expire_tiles, *location_handler);
-        osmium::apply(reader2, *location_handler, append_handler2);
-        reader2.close();
+                node_relations_table, way_relations_table, expire_tiles, *location_handler, &areas_table, mp_manager);
+        if (config.m_areas) {
+            osmium::apply(reader2, *location_handler, append_handler2,
+                    mp_manager->handler([&append_handler2](osmium::memory::Buffer&& buffer) {
+                        osmium::apply(buffer, append_handler2);
+                    })
+                );
+        } else {
+            osmium::apply(reader2, *location_handler, append_handler2);
+        }
         append_handler2.after_relations();
+
+        // work on incomplete multipolygon and boundary relations
+        if (config.m_areas) {
+            areas_table.start_copy();
+            mp_manager->for_each_incomplete_relation([&](const osmium::relations::RelationHandle& handle){
+                append_handler2.incomplete_relation(handle);
+            });
+            // Flush the content of the output buffer of the area assembler.
+            append_handler2.flush_incomplete_relations();
+            areas_table.end_copy();
+        }
+
+        reader2.close();
     } else {
         const auto& map_factory = osmium::index::MapFactory<osmium::unsigned_object_id_type, osmium::Location>::instance();
         auto location_index = map_factory.create_map(config.m_location_handler);
         location_handler_type location_handler(*location_index);
-        osmium::area::Assembler::config_type assembler_config;
-        osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager;
-        if (config.m_areas) {
-            mp_manager = new osmium::area::MultipolygonManager<osmium::area::Assembler>(assembler_config);
-        }
         ts = time(NULL);
         std::cerr << "Pass 1 (relations)";
         RelationCollector rel_collector(config, relation_other_columns);
@@ -410,6 +441,7 @@ int main(int argc, char* argv[]) {
         osmium::apply(reader1, handlers_collection1);
         reader1.close();
         if (config.m_areas) {
+            // necessary because we don't use osmium::relations::read_relations
             mp_manager->prepare_for_lookup();
         }
         rel_collector.prepare_for_lookup();

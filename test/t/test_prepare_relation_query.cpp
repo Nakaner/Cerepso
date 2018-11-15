@@ -24,6 +24,7 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     static constexpr int buffer_size = 10 * 1000 * 1000;
 
     CerepsoConfig config;
+    config.m_append = true;
     postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns way_linear_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
@@ -36,8 +37,11 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     PostgresTable ways_table ("ways", config, way_linear_columns);
     PostgresTable relations_table("relations", config, relation_columns);
     PostgresTable node_ways_table("node_ways", config, node_ways_columns);
-    PostgresTable node_relations_table("node_relations", config, node_ways_columns);
-    PostgresTable way_relations_table("way_relations", config, node_ways_columns);
+    node_ways_table.init();
+    PostgresTable node_relations_table("node_relations", config, node_relations_columns);
+    node_relations_table.init();
+    PostgresTable way_relations_table("way_relations", config, way_relations_columns);
+    way_relations_table.init();
 
     // create some nodes and add them to the location handler
     osmium::memory::Buffer buffer(buffer_size);
@@ -80,19 +84,23 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     config.m_expiry_type = "";
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     config.m_append = true;
+
     std::unique_ptr<sparse_mmap_array_t> index {new sparse_mmap_array_t()};
+    index->set(node1.id(), node1.location());
+    index->set(node2.id(), node2.location());
+    index->set(node3.id(), node3.location());
+
     std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<sparse_mmap_array_t>(nodes_table, untagged_nodes_table,
             std::move(index));
     DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, node_ways_table,
             node_relations_table, way_relations_table, config, expire_tiles, *location_handler);
     handler.node(node1);
-    index->set(node1.id(), node1.location());
     handler.node(node2);
-    index->set(node2.id(), node2.location());
     handler.node(node3);
-    index->set(node3.id(), node3.location());
     handler.way(way1);
     handler.way(way2);
+    end_copy_ways_tables(handler);
+
     std::string copy_buffer;
     handler.insert_relation(relation, copy_buffer);
 
@@ -114,7 +122,7 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     column_count++;
 
     SECTION("correct number of columns") {
-        REQUIRE(column_count == 12);
+        REQUIRE(column_count == 7);
     }
 }
 

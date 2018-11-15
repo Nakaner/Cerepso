@@ -177,9 +177,7 @@ PostgresTable::~PostgresTable() {
         return;
     }
     if (m_name != "") {
-        if (m_copy_mode) {
-            end_copy();
-        }
+        // open COPY connections are closed by destructor of superclass
         if (m_begin) {
             commit();
         }
@@ -276,7 +274,7 @@ void PostgresTable::delete_from_list(std::vector<osmium::object_id_type>& list) 
     }
 }
 
-void PostgresTable::delete_object(const osmium::object_id_type id) {
+bool PostgresTable::delete_object(const osmium::object_id_type id) {
     assert(!m_copy_mode);
     char const *paramValues[1];
     char buffer[64];
@@ -287,7 +285,9 @@ void PostgresTable::delete_object(const osmium::object_id_type id) {
         PQclear(result);
         throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
     }
+    bool rows_affected = (std::strtol(PQcmdTuples(result), nullptr, 10) > 0);
     PQclear(result);
+    return rows_affected;
 }
 
 void PostgresTable::delete_way_node_list(const osmium::object_id_type id) {
@@ -400,7 +400,6 @@ std::unique_ptr<geos::geom::Geometry> PostgresTable::get_linestring(const osmium
 
 std::vector<osmium::object_id_type> PostgresTable::get_way_ids(const osmium::object_id_type node_id) {
     assert(m_database_connection);
-    assert(!m_copy_mode);
     std::vector<osmium::object_id_type> ids;
     char const *paramValues[1];
     static char buffer[64];
@@ -426,7 +425,6 @@ std::vector<osmium::object_id_type> PostgresTable::get_way_ids(const osmium::obj
 
 std::vector<osmium::object_id_type> PostgresTable::get_relation_ids(const osmium::object_id_type id) {
     assert(m_database_connection);
-    assert(!m_copy_mode);
     std::vector<osmium::object_id_type> ids;
     char const *paramValues[1];
     static char buffer[64];
@@ -459,7 +457,6 @@ std::vector<osmium::object_id_type> PostgresTable::get_relation_ids(const osmium
 
 std::vector<MemberNode> PostgresTable::get_way_nodes(const osmium::object_id_type way_id) {
     assert(m_database_connection);
-    assert(!m_copy_mode);
     std::vector<MemberNode> nodes;
     char const *paramValues[1];
     static char buffer[64];
