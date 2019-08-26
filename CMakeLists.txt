@@ -36,6 +36,14 @@ set(AUTHOR "Michael Reichert <nakaner@gmx.net>")
 #
 #-----------------------------------------------------------------------------
 
+if (NOT EXTERNAL_CEREPSO_POSTGRES_DRIVER)
+  set(POSTGRESDRIVERS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/cerepso-postgres-backend/include")
+endif()
+
+if (NOT EXTERNAL_PG_ARRAY_HSTORE_PARSER)
+  set(PGARRAYHSTOREPARSER_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/pg-array-hstore-parser/include")
+endif()
+
 find_package(Boost)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
