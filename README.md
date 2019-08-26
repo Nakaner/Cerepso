@@ -50,6 +50,7 @@ Dependencies
 * [Cerepso-Postgres-Backend](https://github.com/Nakaner/Cerepso-Postgres-Backend) (included as Git submodule in this repository)
 * GEOS library and its C++ API
 * Osmium library v2 aka libosmium
+* [osmium_geos_factory](https://github.com/Nakaner/osmium_geos_factory) (included in this repository)
 * Catch2 (for testing only, included in this repository)
 * Doxygen (to build the documentation)
 

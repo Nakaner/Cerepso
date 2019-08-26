@@ -8,7 +8,7 @@
 #ifndef RELATION_COLLECTOR_HPP_
 #define RELATION_COLLECTOR_HPP_
 
-#include <osmium/geom/geos.hpp>
+#include <osmium_geos_factory/geos_factory.hpp>
 #include <geos/io/WKBWriter.h>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/item_type.hpp>
@@ -40,7 +40,7 @@ private:
 
     /// \brief database connection for the relations table
     PostgresTable m_database_table;
-    osmium::geom::GEOSFactory<> m_geos_factory;
+    osmium_geos_factory::GEOSFactory<> m_geos_factory;
     geos::geom::GeometryFactory m_geos_geom_factory;
     geos::io::WKBWriter m_geos_wkb_writer;
     static constexpr size_t initial_output_buffer_size = 1024 * 1024;

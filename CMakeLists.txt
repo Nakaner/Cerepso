@@ -44,6 +44,10 @@ if (NOT EXTERNAL_PG_ARRAY_HSTORE_PARSER)
   set(PGARRAYHSTOREPARSER_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/pg-array-hstore-parser/include")
 endif()
 
+if (NOT EXTERNAL_PG_ARRAY_HSTORE_PARSER)
+  set(OSMIUMGEOSFACTORY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/osmium-geos-factory/include")
+endif()
+
 find_package(Boost)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
@@ -63,6 +67,9 @@ include_directories(${CEREPSOPOSTGRESBACKEND_INCLUDE_DIRS})
 
 find_package(PgArrayHstoreParser REQUIRED)
 include_directories(${PGARRAYHSTOREPARSER_INCLUDE_DIRS})
+
+find_package(OsmiumGeosFactory REQUIRED)
+include_directories(${OSMIUMGEOSFACTORY_INCLUDE_DIR})
 
 
 #-----------------------------------------------------------------------------
