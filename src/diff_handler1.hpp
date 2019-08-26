@@ -7,9 +7,9 @@
 
 #ifndef APPEND_HANDLER_HPP_
 #define APPEND_HANDLER_HPP_
-#include <geos/geom/GeometryFactory.h>
 #include "postgres_handler.hpp"
 #include "expire_tiles.hpp"
+#include "geos_compatibility_definitions.hpp"
 #include "definitions.hpp"
 #include "update_location_handler.hpp"
 
@@ -31,7 +31,7 @@ private:
 
     UpdateLocationHandler& m_location_index;
 
-    geos::geom::GeometryFactory m_geom_factory;
+    geos_factory_type m_geom_factory;
 
 public:
     DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
@@ -42,7 +42,13 @@ public:
             &node_relations_table, &way_relations_table),
         m_relations_table(relations_table),
         m_expire_tiles(expire_tiles),
-        m_location_index(location_index) { }
+        m_location_index(location_index),
+#ifdef GEOS_36
+        m_geom_factory(geos::geom::GeometryFactory::create().release(), GEOSGeometryFactoryDeleter())
+#else
+        m_geom_factory(new geos::geom::GeometryFactory{})
+#endif
+        { }
 
     /**
      * \brief Constructor for testing purposes, will not establish database connections.
@@ -55,7 +61,13 @@ public:
             &node_relations_table, &way_relations_table),
         m_relations_table(relations_table),
         m_expire_tiles(expire_tiles),
-        m_location_index(location_index) { }
+        m_location_index(location_index),
+#ifdef GEOS_36
+        m_geom_factory(geos::geom::GeometryFactory::create().release(), GEOSGeometryFactoryDeleter())
+#else
+        m_geom_factory(new geos::geom::GeometryFactory{})
+#endif
+    { }
 
     ~DiffHandler1() {};
 

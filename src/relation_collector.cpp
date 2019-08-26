@@ -11,7 +11,13 @@
 RelationCollector::RelationCollector(CerepsoConfig& config,  postgres_drivers::Columns& node_columns) :
     m_config(config),
     m_output_buffer(initial_output_buffer_size, osmium::memory::Buffer::auto_grow::yes),
-    m_database_table("relations", config, node_columns) {
+    m_database_table("relations", config, node_columns),
+#ifdef GEOS_36
+    m_geos_geom_factory(geos::geom::GeometryFactory::create().release(), GEOSGeometryFactoryDeleter())
+#else
+    m_geos_geom_factory(new geos::geom::GeometryFactory{})
+#endif
+    {
     m_database_table.init();
 }
 
@@ -59,8 +65,8 @@ void RelationCollector::build_relation_query(const osmium::Relation& relation, s
         }
     }
     // create GeometryCollection
-    geos::geom::MultiPoint* multipoints = m_geos_geom_factory.createMultiPoint(points);
-    geos::geom::MultiLineString* multilinestrings = m_geos_geom_factory.createMultiLineString(linestrings);
+    geos::geom::MultiPoint* multipoints = m_geos_geom_factory->createMultiPoint(points);
+    geos::geom::MultiLineString* multilinestrings = m_geos_geom_factory->createMultiLineString(linestrings);
     // add multipoint to query
     // convert to WKB
     // We need a stringstream because writeHEX() needs a stringstream

@@ -18,6 +18,7 @@
 #include <postgres_drivers/table.hpp>
 
 #include "cerepsoconfig.hpp"
+#include "geos_compatibility_definitions.hpp"
 
 /**
  * ID of a member node of a way and its position in the WayNodeList
@@ -215,11 +216,11 @@ public:
      * \brief get a way as geos::geom::LineString
      *
      * \param id OSM ID
-     * \param geometry_factory reference to a GeometryFactory to build GEOS geometries
+     * \param geometry_factory pointer to a GeometryFactory to build GEOS geometries
      * \throws std::runtime_error if query execution fails
      * \returns unique_ptr to Geometry or empty unique_ptr otherwise
      */
-    std::unique_ptr<geos::geom::Geometry> get_linestring(const osmium::object_id_type id, geos::geom::GeometryFactory& geometry_factory);
+    std::unique_ptr<geos::geom::Geometry> get_linestring(const osmium::object_id_type id, geos_factory_type::pointer geometry_factory);
 
     /**
      * \brief Get ways using a node.

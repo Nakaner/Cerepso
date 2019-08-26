@@ -52,7 +52,7 @@ void DiffHandler1::way(const osmium::Way& way) {
     if (way.version() > 1) {
         // expire all tiles which have been crossed by the linestring before
         //TODO read locations from location cache instead parsing WKB using GEOS
-        std::unique_ptr<geos::geom::Geometry> old_geom = m_ways_linear_table.get_linestring(way.id(), m_geom_factory);
+        std::unique_ptr<geos::geom::Geometry> old_geom = m_ways_linear_table.get_linestring(way.id(), m_geom_factory.get());
         if (old_geom) {
             // nullptr will be returned if there is no old version in the database (happens if importing diffs of extracts)
             m_expire_tiles->expire_from_geos_linestring(old_geom.get());

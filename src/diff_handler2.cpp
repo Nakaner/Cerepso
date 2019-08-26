@@ -31,7 +31,13 @@ DiffHandler2::DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, Po
         m_pending_relations_idx(0),
         m_mp_manager(mp_manager),
         m_relation_buffer(100000, osmium::memory::Buffer::auto_grow::yes),
-        m_out_buffer() {
+        m_out_buffer(),
+#ifdef GEOS_36
+        m_geom_factory(geos::geom::GeometryFactory::create().release(), GEOSGeometryFactoryDeleter())
+#else
+        m_geom_factory(new geos::geom::GeometryFactory{})
+#endif
+{
     m_untagged_nodes_table->start_copy();
     m_nodes_table.start_copy();
     m_out_buffer.set_callback([&](osmium::memory::Buffer&& buffer) {
@@ -60,7 +66,13 @@ DiffHandler2::DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_n
     m_pending_relations_idx(0),
     m_mp_manager(mp_manager),
     m_relation_buffer(100000, osmium::memory::Buffer::auto_grow::yes),
-    m_out_buffer()  {
+    m_out_buffer(),
+#ifdef GEOS_36
+        m_geom_factory(geos::geom::GeometryFactory::create().release(), GEOSGeometryFactoryDeleter())
+#else
+        m_geom_factory(new geos::geom::GeometryFactory{})
+#endif
+{
     m_out_buffer.set_callback([&](osmium::memory::Buffer&& buffer) {
         for (auto& item : buffer) {
             if (item.type() == osmium::item_type::area) {
@@ -108,7 +120,7 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
     for (; it_type != member_types.end(), it_id != member_ids.end(); ++it_type, ++it_id) {
         if (*it_type == osmium::item_type::node) {
             osmium::Location loc = get_point_from_tables(*it_id);
-            std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
+            std::unique_ptr<geos::geom::Point> point (m_geom_factory->createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
             points->push_back(point.release());
         } else if (*it_type == osmium::item_type::way) {
             //TODO not DRY with insert_relation()
@@ -124,7 +136,7 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
             }
             geos::geom::CoordinateArraySequenceFactory coord_sequence_factory;
             std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(&coordinates)};
-            std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory.createLineString(coord_sequence.release())};
+            std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory->createLineString(coord_sequence.release())};
             if (linestring) {
                 linestrings->push_back(linestring.release());
             }
@@ -132,8 +144,8 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
         // We do not add the geometry of this relation to the GeometryCollection.
         /// \todo support one level of nested relations
     }
-    geos::geom::MultiPoint* multipoints = m_geom_factory.createMultiPoint(points);
-    geos::geom::MultiLineString* multilinestrings = m_geom_factory.createMultiLineString(linestrings);
+    geos::geom::MultiPoint* multipoints = m_geom_factory->createMultiPoint(points);
+    geos::geom::MultiLineString* multilinestrings = m_geom_factory->createMultiLineString(linestrings);
     // add multipoints to query string
     // convert to WKB
     std::stringstream multipoint_stream;
@@ -161,7 +173,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
                     if (trigger_tile_expiry) {
                         m_expire_tiles->expire_from_point(loc);
                     }
-                    std::unique_ptr<geos::geom::Point> point (m_geom_factory.createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
+                    std::unique_ptr<geos::geom::Point> point (m_geom_factory->createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
                     points->push_back(point.release());
                 }
             }
@@ -181,7 +193,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
                 if (trigger_tile_expiry) {
                     m_expire_tiles->expire_from_coord_sequence(coord_sequence.get());
                 }
-                std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory.createLineString(coord_sequence.release())};
+                std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory->createLineString(coord_sequence.release())};
                 if (linestring) {
                     linestrings->push_back(linestring.release());
                 }
@@ -190,8 +202,8 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
             /// \todo support one level of nested relations
         }
         // create GeometryCollection
-        geos::geom::MultiPoint* multipoints = m_geom_factory.createMultiPoint(points);
-        geos::geom::MultiLineString* multilinestrings = m_geom_factory.createMultiLineString(linestrings);
+        geos::geom::MultiPoint* multipoints = m_geom_factory->createMultiPoint(points);
+        geos::geom::MultiLineString* multilinestrings = m_geom_factory->createMultiLineString(linestrings);
         // add multipoints to query string
         // convert to WKB
         std::stringstream multipoint_stream;

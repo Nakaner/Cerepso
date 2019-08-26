@@ -13,6 +13,7 @@
 #include <osmium/area/assembler.hpp>
 #include <osmium/area/multipolygon_manager.hpp>
 #include "postgres_handler.hpp"
+#include "geos_compatibility_definitions.hpp"
 #include "expire_tiles.hpp"
 #include "definitions.hpp"
 #include "update_location_handler.hpp"
@@ -30,7 +31,7 @@ enum class TypeProgress : char {
  */
 
 class DiffHandler2 : public PostgresHandler {
-private:
+
     /**
      * additional table for relations which is not inherited from PostgresHandler
      */
@@ -69,7 +70,11 @@ private:
 
     osmium::memory::CallbackBuffer m_out_buffer;
 
-    geos::geom::GeometryFactory m_geom_factory;
+#ifdef GEOS_36
+    geos_factory_type m_geom_factory;
+#else
+    geos_factory_type m_geom_factory;
+#endif
 
     /**
      * \brief Track progress of import.

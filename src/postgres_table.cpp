@@ -366,7 +366,7 @@ osmium::Location PostgresTable::get_point(const osmium::object_id_type id) {
     return coord;
 }
 
-std::unique_ptr<geos::geom::Geometry> PostgresTable::get_linestring(const osmium::object_id_type id, geos::geom::GeometryFactory& geometry_factory) {
+std::unique_ptr<geos::geom::Geometry> PostgresTable::get_linestring(const osmium::object_id_type id, geos_factory_type::pointer geometry_factory) {
     assert(m_database_connection);
     assert(!m_copy_mode);
 //    assert(!m_begin);
@@ -387,7 +387,7 @@ std::unique_ptr<geos::geom::Geometry> PostgresTable::get_linestring(const osmium
         return linestring;
     }
     std::stringstream geom_stream;
-    geos::io::WKBReader wkb_reader (geometry_factory);
+    geos::io::WKBReader wkb_reader (*geometry_factory);
     geom_stream.str(PQgetvalue(result, 0, 0));
     linestring = std::unique_ptr<geos::geom::Geometry>(wkb_reader.readHEX(geom_stream));
     PQclear(result);
