@@ -11,7 +11,8 @@
 #include <osmium/osm/way.hpp>
 #include <osmium/osm/relation.hpp>
 #include <osmium/osm/area.hpp>
-#include <osmium/geom/wkb.hpp>
+#include <osmium/geom/factory.hpp>
+#include <wkbhpp/wkbwriter.hpp>
 #include <memory>
 #include "postgres_table.hpp"
 #include "associated_street_relation_manager.hpp"

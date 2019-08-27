@@ -13,7 +13,7 @@
 #include <libpq-fe.h>
 #include <osmium/osm/node_ref.hpp>
 #include <osmium/osm/types.hpp>
-#include <osmium/geom/wkb.hpp>
+#include <wkbhpp/osmium_wkb_wrapper.hpp>
 #include <geos/geom/Point.h>
 #include <postgres_drivers/table.hpp>
 
@@ -48,7 +48,7 @@ private:
     /// \brief reference to program configuration
     CerepsoConfig& m_program_config;
 
-    osmium::geom::WKBFactory<> m_wkb_factory;
+    wkbhpp::full_wkb_factory<> m_wkb_factory;
 
     bool m_initialized = false;
 
@@ -100,7 +100,7 @@ public:
 
     const CerepsoConfig& config() const;
 
-    osmium::geom::WKBFactory<>& wkb_factory();
+    wkbhpp::full_wkb_factory<>& wkb_factory();
 
     bool has_interesting_tags(const osmium::TagList& tags);
 
@@ -204,6 +204,17 @@ public:
     void delete_relation_member_ways_list(const osmium::object_id_type id);
 
     /**
+     * \brief Count how often a given OSM ID is present in the table.
+     *
+     * Use this method to check presence or absence of an OSM ID.
+     *
+     * \param id OSM ID (should be negative for areas derived from relations if searching the areas table)
+     * \throws std::runtime_error If SQL query execution fails.
+     * \returns number of hits
+     */
+    int count_osm_id(const int64_t id);
+
+    /**
      * \brief get the longitude and latitude of a node
      *
      * \param id OSM ID
@@ -247,7 +258,7 @@ public:
      * \throws std::runtime_error if query execution fails
      * \returns vector of node IDs sorted by position or empty vector if none was found
      */
-    //TODO check if MemberNode is really necessaryor a vector of osmium::object_id_type is sufficient
+    //TODO check if MemberNode is really necessary or a vector of osmium::object_id_type is sufficient
     std::vector<MemberNode> get_way_nodes(const osmium::object_id_type way_id);
 
     /**

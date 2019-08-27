@@ -8,6 +8,7 @@
 #include "addr_interpolation_handler.hpp"
 #include <osmium/geom/haversine.hpp>
 #include <osmium/geom/mercator_projection.hpp>
+#include <osmium/osm/node.hpp>
 
 AddrInterpolationHandler::SecondPassHandler::SecondPassHandler(AddrInterpolationHandler& interpolation_handler) noexcept :
     m_interpolation_handler(interpolation_handler) {

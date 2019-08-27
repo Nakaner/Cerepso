@@ -121,6 +121,7 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
             wkb = "010200000000000000";
             wkb = table.wkb_factory().create_linestring(static_cast<const osmium::Way&>(object).nodes());
             break;
+        //TODO distinguish between simple polygons and multipolygons (OGC terminology here)
         case osmium::item_type::area :
             wkb = "0106000020E610000000000000";
             wkb = table.wkb_factory().create_multipolygon(static_cast<const osmium::Area&>(object));

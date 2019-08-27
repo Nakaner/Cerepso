@@ -68,7 +68,10 @@ class DiffHandler2 : public PostgresHandler {
 
     osmium::memory::Buffer m_relation_buffer;
 
-    osmium::memory::CallbackBuffer m_out_buffer;
+    osmium::memory::CallbackBuffer m_new_areas_buffer;
+
+    /// Buffer for assembled areas which required an update due to changes to their members
+    osmium::memory::CallbackBuffer m_updated_areas_buffer;
 
 #ifdef GEOS_36
     geos_factory_type m_geom_factory;
@@ -115,11 +118,25 @@ class DiffHandler2 : public PostgresHandler {
     void update_way(const osmium::object_id_type id);
 
     /**
+     * Update geometry of an area.
+     *
+     * \param id OSM way ID
+     */
+    void update_area_geometry(const osmium::Area& area);
+
+    /**
      * Update multigeometry of the points and lines referenced by a relation.
      *
      * \param id OSM relation ID
      */
     void update_relation(const osmium::object_id_type id);
+
+    /**
+     * Build an Osmium Area object for a relation whose members changed.
+     */
+    void update_multipolygon_geometry(const osmium::object_id_type id,
+            std::vector<osmium::item_type>& member_types,
+            std::vector<osmium::object_id_type> member_ids);
 
     /**
      * Sort a container of osmium::object_id_type, remove duplicates and then call a function for each non-zero element.
@@ -176,12 +193,14 @@ public:
 
     void incomplete_relation(const osmium::relations::RelationHandle& rel_handle);
 
+    void incomplete_relation(const osmium::Relation& relation);
+
     /**
-     * Flush area output buffer.
+     * Flush area output buffers.
      *
-     * Call this method at the end of processiong.
+     * Call this method at the end of processing.
      */
-    void flush_incomplete_relations();
+    void flush();
 
     /**
      * Update all relations whose node or way members have changed without any direct changes to the relation.

@@ -116,12 +116,13 @@ void PostgresTable::escape(const char* source, std::string& destination) {
 
 PostgresTable::PostgresTable(postgres_drivers::Columns& columns, CerepsoConfig& config) :
         postgres_drivers::Table(columns, config.m_driver_config),
-        m_program_config(config) {}
+        m_program_config(config),
+        m_wkb_factory(wkbhpp::wkb_type::wkb, wkbhpp::out_type::hex) {}
 
 PostgresTable::PostgresTable(const char* table_name, CerepsoConfig& config, postgres_drivers::Columns columns) :
         postgres_drivers::Table(table_name, config.m_driver_config, columns),
         m_program_config(config),
-        m_wkb_factory(osmium::geom::wkb_type::wkb, osmium::geom::out_type::hex) {
+        m_wkb_factory(wkbhpp::wkb_type::wkb, wkbhpp::out_type::hex) {
 }
 
 void PostgresTable::init() {
@@ -159,7 +160,7 @@ const CerepsoConfig& PostgresTable::config() const {
     return m_program_config;
 }
 
-osmium::geom::WKBFactory<>& PostgresTable::wkb_factory() {
+wkbhpp::full_wkb_factory<>& PostgresTable::wkb_factory() {
     return m_wkb_factory;
 }
 
@@ -332,6 +333,23 @@ void PostgresTable::delete_relation_member_ways_list(const osmium::object_id_typ
     PQclear(result);
 }
 
+int PostgresTable::count_osm_id(const int64_t id) {
+    assert(m_database_connection);
+    char const *paramValues[1];
+    static char buffer[64];
+    sprintf(buffer, "%ld", id);
+    paramValues[0] = buffer;
+    PGresult *result;
+    result = PQexecPrepared(m_database_connection, "count_osm_id", 1, paramValues, nullptr, nullptr, 0);
+    if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
+        throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+        PQclear(result);
+    }
+    int count = PQntuples(result);
+    PQclear(result);
+    return count;
+}
+
 osmium::Location PostgresTable::get_point(const osmium::object_id_type id) {
     assert(m_database_connection);
     assert(!m_copy_mode);
@@ -349,7 +367,6 @@ osmium::Location PostgresTable::get_point(const osmium::object_id_type id) {
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
-        return osmium::Location{};
     }
     if (PQntuples(result) == 0) {
         PQclear(result);

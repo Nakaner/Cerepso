@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
                 append_handler2.incomplete_relation(handle);
             });
             // Flush the content of the output buffer of the area assembler.
-            append_handler2.flush_incomplete_relations();
+            append_handler2.flush();
             areas_table.end_copy();
         }
 

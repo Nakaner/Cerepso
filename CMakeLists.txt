@@ -44,6 +44,10 @@ if (NOT EXTERNAL_PG_ARRAY_HSTORE_PARSER)
   set(PGARRAYHSTOREPARSER_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/pg-array-hstore-parser/include")
 endif()
 
+if (NOT EXTERNAL_WKBHPP)
+  set(WKBHPP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/wkbhpp/include")
+endif()
+
 if (NOT EXTERNAL_PG_ARRAY_HSTORE_PARSER)
   set(OSMIUMGEOSFACTORY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/osmium-geos-factory/include")
 endif()
@@ -64,6 +68,9 @@ include_directories(${PostgreSQL_INCLUDE_DIRS})
 
 find_package(CerepsoPostgresBackend REQUIRED)
 include_directories(${CEREPSOPOSTGRESBACKEND_INCLUDE_DIRS})
+
+find_package(Wkbhpp REQUIRED)
+include_directories(${WKBHPP_INCLUDE_DIRS})
 
 find_package(PgArrayHstoreParser REQUIRED)
 include_directories(${PGARRAYHSTOREPARSER_INCLUDE_DIRS})

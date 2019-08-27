@@ -10,6 +10,7 @@
 
 #include <osmium/handler.hpp>
 #include <osmium/memory/buffer.hpp>
+#include <osmium/osm/way.hpp>
 
 #include "postgres_table.hpp"
 #include "tags_storage.hpp"

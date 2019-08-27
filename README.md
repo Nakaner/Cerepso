@@ -47,7 +47,8 @@ code from osm2pgsql for escaping strings before inserting them into the database
 
 Dependencies
 ------------
-* [Cerepso-Postgres-Backend](https://github.com/Nakaner/Cerepso-Postgres-Backend) (included as Git submodule in this repository)
+* [Cerepso-Postgres-Backend](https://github.com/Nakaner/Cerepso-Postgres-Backend) (included in this repository)
+* [Wkbhpp](https://github.com/Nakaner/wkbhpp) (included in this repository)
 * GEOS library and its C++ API
 * Osmium library v2 aka libosmium
 * [osmium_geos_factory](https://github.com/Nakaner/osmium_geos_factory) (included in this repository)
