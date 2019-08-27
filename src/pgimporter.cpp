@@ -138,7 +138,7 @@ void print_help(char* argv[], std::string message = "") {
     "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
     "  --expire-relations=SETTING       expiration setting for relations: NONE, ALL, NO_ROUTES\n" \
     "  -g, --no-geom-indexes            don't create any geometry indexes\n" \
-    "  -H, --hstore-all                 Add objects with tags even if they don't have any tag matching a column.\n" \
+    "  -H, --hstore                     Add objects with tags even if they don't have any tag matching a column.\n" \
     "  -G, --all-geom-indexes           create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
     "                                   overrides -g"
     "  -I, --no-id-index                don't create an index on osm_id columns\n" \
