@@ -47,6 +47,9 @@ std::vector<ColumnConfigFlag> ColumnConfigParser::parse_flags(const std::string&
 }
 
 void ColumnConfigParser::parse() {
+    if (m_config.m_style_file.empty()) {
+        return;
+    }
     std::ifstream csv_read;
     csv_read.open(m_config.m_style_file, std::ios::in);
     if (!csv_read.good()) {

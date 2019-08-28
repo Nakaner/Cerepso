@@ -27,7 +27,7 @@ public:
     std::string m_osm_file = "";
 
     /// Osm2pgsql style file path
-    std::string m_style_file = "default.style";
+    std::string m_style_file = "";
 
     /// path to flatnodes file
     std::string m_flat_nodes = "";
