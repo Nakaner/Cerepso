@@ -325,7 +325,7 @@ namespace postgres_drivers {
                 return;
             }
             if (m_copy_mode) {
-                throw std::runtime_error((boost::format("%1% failed: You are in COPY mode.\n") % query % PQerrorMessage(m_database_connection)).str());
+                throw std::runtime_error((boost::format("%1% failed: You are in COPY mode.\n%2%\n") % query % PQerrorMessage(m_database_connection)).str());
             }
             PGresult *result = PQexec(m_database_connection, query);
             check_and_free_result(result, PGRES_COMMAND_OK, query);
