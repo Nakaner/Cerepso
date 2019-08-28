@@ -179,6 +179,9 @@ PostgresTable::~PostgresTable() {
     }
     if (m_name != "") {
         // open COPY connections are closed by destructor of superclass
+        if (m_copy_mode) {
+            end_copy();
+        }
         if (m_begin) {
             commit();
         }
