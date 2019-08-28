@@ -18,36 +18,46 @@
 
 namespace postgres_drivers {
 
+    namespace detail {
+        using table_type_base_type = unsigned char;
+        constexpr table_type_base_type table_type_osm_object_mask = 0x10;
+        constexpr table_type_base_type table_type_osm_member_mask = 0x20;
+    }
+
     /**
      * \brief Typed enum which defines the geometry type of the table.
      *
      * The types are different from simple features because OSM does not
      * follow OGC Simple Feature Specification. For example, nod
      */
-    enum class TableType : char {
+    enum class TableType : detail::table_type_base_type {
         /// other
-        OTHER = 0,
+        OTHER = detail::table_type_osm_object_mask,
         /// nodes with tags
-        POINT = 1,
+        POINT = detail::table_type_osm_object_mask + 1,
         /// nodes without tags
-        UNTAGGED_POINT = 2,
+        UNTAGGED_POINT = detail::table_type_osm_object_mask + 2,
         /// ways
-        WAYS_LINEAR = 3,
+        WAYS_LINEAR = detail::table_type_osm_object_mask + 3,
         /// ways which are polygons
-        WAYS_POLYGON = 4,
+        WAYS_POLYGON = detail::table_type_osm_object_mask + 4,
         /// relations which are multipolygons
-        RELATION_POLYGON = 5,
+        RELATION_POLYGON = detail::table_type_osm_object_mask + 5,
         /// relations
-        RELATION_OTHER = 6,
+        RELATION_OTHER = detail::table_type_osm_object_mask + 6,
         /// areas (ways and multipolygon/boundary relations)
-        AREA = 7,
+        AREA = detail::table_type_osm_object_mask + 7,
         /// mapping of nodes to ways using them
-        NODE_WAYS = 8,
+        NODE_WAYS = detail::table_type_osm_member_mask,
         /// mapping of nodes to relations using them
-        RELATION_MEMBER_NODES = 9,
+        RELATION_MEMBER_NODES = detail::table_type_osm_member_mask + 1,
         /// mapping of ways to relations using them
-        RELATION_MEMBER_WAYS = 10
+        RELATION_MEMBER_WAYS = detail::table_type_osm_member_mask + 2
     };
+
+    inline bool is_osm_object_table_type(const TableType type) noexcept {
+        return (static_cast<detail::table_type_base_type>(type) & detail::table_type_osm_object_mask) == detail::table_type_osm_object_mask;
+    }
 
     enum class ColumnType : char {
         NONE = 0,
@@ -278,24 +288,23 @@ namespace postgres_drivers {
         }
 
         void init(Config& config, TableType type) {
-            if (type != TableType::NODE_WAYS && type != TableType::RELATION_MEMBER_NODES
-                    && type != TableType::RELATION_MEMBER_WAYS) {
+            if (is_osm_object_table_type(type)) {
                 m_columns.emplace_back("osm_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
-            }
-            if (config.metadata.user()) {
-                m_columns.emplace_back("osm_user", ColumnType::TEXT, ColumnClass::USERNAME);
-            }
-            if (config.metadata.uid()) {
-                m_columns.emplace_back("osm_uid", ColumnType::BIGINT, ColumnClass::UID);
-            }
-            if (config.metadata.version()) {
-                m_columns.emplace_back("osm_version", ColumnType::INT, ColumnClass::VERSION);
-            }
-            if (config.metadata.timestamp()) {
-                m_columns.emplace_back("osm_lastmodified", ColumnType::TEXT, ColumnClass::TIMESTAMP);
-            }
-            if (config.metadata.changeset()) {
-                m_columns.emplace_back("osm_changeset", ColumnType::BIGINT, ColumnClass::CHANGESET);
+                if (config.metadata.user()) {
+                    m_columns.emplace_back("osm_user", ColumnType::TEXT, ColumnClass::USERNAME);
+                }
+                if (config.metadata.uid()) {
+                    m_columns.emplace_back("osm_uid", ColumnType::BIGINT, ColumnClass::UID);
+                }
+                if (config.metadata.version()) {
+                    m_columns.emplace_back("osm_version", ColumnType::INT, ColumnClass::VERSION);
+                }
+                if (config.metadata.timestamp()) {
+                    m_columns.emplace_back("osm_lastmodified", ColumnType::TEXT, ColumnClass::TIMESTAMP);
+                }
+                if (config.metadata.changeset()) {
+                    m_columns.emplace_back("osm_changeset", ColumnType::BIGINT, ColumnClass::CHANGESET);
+                }
             }
             switch (type) {
             case TableType::POINT :
