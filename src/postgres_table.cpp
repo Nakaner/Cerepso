@@ -236,7 +236,7 @@ void PostgresTable::create_geom_index() {
     for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
         if (static_cast<char>(it->type()) >= static_cast<char>(postgres_drivers::ColumnType::GEOMETRY)) {
             time_t ts = time(NULL);
-            std::cerr << "Creating geometry index on table " << m_name << " …";
+            std::cerr << "Creating geometry index on table " << m_name << ", field " << it->name() << " …";
             std::stringstream query;
             query << "CREATE INDEX " << m_name << "_index_" << it->name() << " ON " << m_name << " USING GIST (" << it->name() << ")";
             send_query(query.str().c_str());
