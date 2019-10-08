@@ -111,7 +111,8 @@ namespace postgres_drivers {
         NODE_ID = 26,
         WAY_ID = 27,
         LONGITUDE = 28,
-        LATITUDE = 29
+        LATITUDE = 29,
+        ROLE = 30
     };
 
     inline std::string column_type_to_str(const ColumnType c, const int epsg = 0) {
@@ -265,7 +266,7 @@ namespace postgres_drivers {
         TableType m_type;
 
         void add_hstore_column(Config& config, TableType type) {
-            if (config.tags_hstore && type != TableType::UNTAGGED_POINT) {
+            if (config.tags_hstore) {
                 m_columns.emplace_back("tags", ColumnType::HSTORE, ColumnClass::TAGS_OTHER);
             }
         }
@@ -281,10 +282,6 @@ namespace postgres_drivers {
                 m_type(type)/*,
                 m_tags()*/ {
             init(config, type);
-            if (type != TableType::NODE_WAYS && type != TableType::RELATION_MEMBER_NODES
-                    && type != TableType::RELATION_MEMBER_WAYS && type != TableType::OTHER) {
-                add_hstore_column(config, type);
-            }
         }
 
         void init(Config& config, TableType type) {
@@ -309,6 +306,7 @@ namespace postgres_drivers {
             switch (type) {
             case TableType::POINT :
                 m_columns.emplace_back("geom", ColumnType::POINT, 4326);
+                add_hstore_column(config, type);
                 break;
             case TableType::UNTAGGED_POINT :
                 m_columns.emplace_back("x", ColumnType::INT, ColumnClass::LONGITUDE);
@@ -316,12 +314,15 @@ namespace postgres_drivers {
                 break;
             case TableType::WAYS_LINEAR :
                 m_columns.emplace_back("geom", ColumnType::LINESTRING, 4326);
+                add_hstore_column(config, type);
                 break;
             case TableType::WAYS_POLYGON :
                 m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
+                add_hstore_column(config, type);
                 break;
             case TableType::RELATION_POLYGON :
                 m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
+                add_hstore_column(config, type);
 //                if (config.updateable) {
 //                    m_columns.emplace_back("member_ids", ColumnType::BIGINT_ARRAY);
 //                    m_columns.emplace_back("member_types", ColumnType::CHAR_ARRAY);
@@ -333,9 +334,11 @@ namespace postgres_drivers {
                 m_columns.emplace_back("member_ids", ColumnType::BIGINT_ARRAY, ColumnClass::MEMBER_IDS);
                 m_columns.emplace_back("member_types", ColumnType::CHAR_ARRAY, ColumnClass::MEMBER_TYPES);
                 m_columns.emplace_back("member_roles", ColumnType::TEXT_ARRAY, ColumnClass::MEMBER_ROLES);
+                add_hstore_column(config, type);
                 break;
             case TableType::AREA :
                 m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
+                add_hstore_column(config, type);
                 break;
             case TableType::NODE_WAYS :
                 m_columns.emplace_back("way_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
@@ -345,10 +348,14 @@ namespace postgres_drivers {
             case TableType::RELATION_MEMBER_NODES :
                 m_columns.emplace_back("node_id", ColumnType::BIGINT, ColumnClass::NODE_ID);
                 m_columns.emplace_back("relation_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
+                m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
+                m_columns.emplace_back("role", ColumnType::TEXT, ColumnClass::ROLE);
                 break;
             case TableType::RELATION_MEMBER_WAYS :
                 m_columns.emplace_back("way_id", ColumnType::BIGINT, ColumnClass::WAY_ID);
                 m_columns.emplace_back("relation_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
+                m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
+                m_columns.emplace_back("role", ColumnType::TEXT, ColumnClass::ROLE);
                 break;
             case TableType::OTHER :
                 break;
@@ -372,9 +379,6 @@ namespace postgres_drivers {
             }
             for (auto& k : nocolumn_keys) {
                 m_tags_filter.add_rule(true, k);
-            }
-            if (type != TableType::NODE_WAYS && type != TableType::OTHER) {
-                add_hstore_column(config, type);
             }
         }
 

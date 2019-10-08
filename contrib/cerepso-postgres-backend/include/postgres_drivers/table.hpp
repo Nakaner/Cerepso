@@ -19,6 +19,29 @@
 
 namespace postgres_drivers {
 
+    struct MemberIdPos {
+        osmium::object_id_type id;
+        int pos;
+
+        MemberIdPos(osmium::object_id_type id, int pos) :
+            id(id),
+            pos(pos) {
+        }
+
+        bool operator<(const MemberIdPos& other) const {
+            return pos < other.pos;
+        }
+    };
+
+    struct MemberIdTypePos : MemberIdPos {
+        osmium::item_type type;
+
+        MemberIdTypePos(osmium::object_id_type id, osmium::item_type type, int pos) :
+            MemberIdPos(id, pos),
+            type(type) {
+        }
+    };
+
     /**
      * This class manages connection to a database table. We have one connection per table,
      * therefore this class is called Table, not DBConnection.
@@ -64,6 +87,7 @@ namespace postgres_drivers {
          *
          * This method chooses the suitable prepared statements which are dependend from the table type (point vs. way vs. …).
          */
+        //TODO move to pgimporter
         void create_prepared_statements() {
             // create delete statement
             std::string query;
@@ -111,6 +135,12 @@ namespace postgres_drivers {
                 create_prepared_statement("get_member_ids_by_relation_id", query, 1);
                 query = (boost::format("UPDATE %1% SET geom_points = $1, geom_lines = $2 WHERE osm_id = $3") % m_name).str();
                 create_prepared_statement("update_relation_member_geometry", query, 3);
+            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_NODES) {
+                query = (boost::format("SELECT node_id, position FROM %1% WHERE relation_id = $1") % m_name).str();
+                create_prepared_statement("get_member_nodes_by_relation_id", query, 1);
+            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_WAYS) {
+                query = (boost::format("SELECT way_id, position FROM %1% WHERE relation_id = $1") % m_name).str();
+                create_prepared_statement("get_member_ways_by_relation_id", query, 1);
             }
         }
 
