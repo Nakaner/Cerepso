@@ -21,6 +21,12 @@ void PostgresHandler::add_int32(std::string& ss, const int32_t number) {
     ss.append(idbuffer, strlen(idbuffer));
 }
 
+void PostgresHandler::add_int16(std::string& ss, const int16_t number) {
+    static char idbuffer[8];
+    sprintf(idbuffer, "%hi", number);
+    ss.append(idbuffer, strlen(idbuffer));
+}
+
 void PostgresHandler::add_username(std::string& ss, const char* username) {
     PostgresTable::escape(username, ss);
 }
@@ -254,24 +260,32 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
         PostgresTable::add_separator_to_stringstream(query);
         add_osm_id(query, way.nodes()[i].ref());
         PostgresTable::add_separator_to_stringstream(query);
-        //TODO assert smallint
-        assert (i < std::numeric_limits<int16_t>::max());
-        static char idbuffer[8];
-        sprintf(idbuffer, "%hi\n", static_cast<int16_t>(i));
-        query.append(idbuffer, strlen(idbuffer));
+        assert (i < std::numeric_limits<uint16_t>::max());
+        add_int16(query, static_cast<int16_t>(i));
+        query.push_back('\n');
     }
     return query;
 }
 
 /*static*/ std::string PostgresHandler::prepare_relation_member_list_query(const osmium::Relation& relation, const osmium::item_type type) {
     std::string query;
+    int i = 0;
     for (auto& member : relation.members()) {
+        // Skip tail of element list if there are equal or more than 2^16 - 1 members.
+        if (i >= std::numeric_limits<uint16_t>::max()) {
+            return query;
+        }
         if (member.type() == type) {
             add_osm_id(query, member.ref());
             PostgresTable::add_separator_to_stringstream(query);
             add_osm_id(query, relation.id());
+            PostgresTable::add_separator_to_stringstream(query);
+            add_int16(query, static_cast<int16_t>(i));
+            PostgresTable::add_separator_to_stringstream(query);
+            PostgresTable::escape(member.role(), query);
             query.push_back('\n');
         }
+        ++i;
     }
     return query;
 }

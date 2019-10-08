@@ -501,62 +501,37 @@ std::vector<MemberNode> PostgresTable::get_way_nodes(const osmium::object_id_typ
     return nodes;
 }
 
-std::vector<osmium::item_type> PostgresTable::get_member_types(const osmium::object_id_type id) {
+void PostgresTable::get_members_by_id_and_type(std::vector<postgres_drivers::MemberIdTypePos>& members,
+        const osmium::object_id_type id, const osmium::item_type type) {
     assert(m_database_connection);
     assert(!m_copy_mode);
-    std::vector<osmium::item_type> types;
     char const *paramValues[1];
     static char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
-    PGresult *result = PQexecPrepared(m_database_connection, "get_member_types_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
+    PGresult* result;
+    if (type == osmium::item_type::node) {
+        result = PQexecPrepared(m_database_connection, "get_member_nodes_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
+    } else if (type == osmium::item_type::way) {
+        result = PQexecPrepared(m_database_connection, "get_member_ways_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
+    } else {
+        return;
+    }
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
-    throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
+        throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
-        return types;
+        return;
     }
     if (PQntuples(result) == 0) {
         PQclear(result);
-        return types;
+        return;
     }
-    types.reserve(PQntuples(result));
-    const char* response = PQgetvalue(result, 0, 0);
-    using ItemTypeConversion = pg_array_hstore_parser::TypeConversion<ItemTypeConversionImpl>;
-    pg_array_hstore_parser::ArrayParser<ItemTypeConversion> array_parser_types(response);
-    while (array_parser_types.has_next()) {
-        types.push_back(array_parser_types.get_next());
+    int tuple_count = PQntuples(result);
+    members.reserve(members.size() + PQntuples(result));
+    for (int i = 0; i < tuple_count; ++i){
+        members.emplace_back(strtoll(PQgetvalue(result, i, 0), nullptr, 10), type, strtoll(PQgetvalue(result, i, 1), nullptr, 10));
     }
     PQclear(result);
-    return types;
-}
-
-std::vector<osmium::object_id_type> PostgresTable::get_member_ids(const osmium::object_id_type id) {
-    assert(m_database_connection);
-    assert(!m_copy_mode);
-    std::vector<osmium::object_id_type> ids;
-    char const *paramValues[1];
-    static char buffer[64];
-    sprintf(buffer, "%ld", id);
-    paramValues[0] = buffer;
-    PGresult *result = PQexecPrepared(m_database_connection, "get_member_ids_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
-    if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
-    throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
-        PQclear(result);
-        return ids;
-    }
-    if (PQntuples(result) == 0) {
-        PQclear(result);
-        return ids;
-    }
-    ids.reserve(PQntuples(result));
-    const char* response = PQgetvalue(result, 0, 0);
-    using Int64Conversion = pg_array_hstore_parser::TypeConversion<pg_array_hstore_parser::Int64ConversionImpl>;
-    pg_array_hstore_parser::ArrayParser<Int64Conversion> array_parser_types(response);
-    while (array_parser_types.has_next()) {
-        ids.push_back(array_parser_types.get_next());
-    }
-    PQclear(result);
-    return ids;
 }
 
 void PostgresTable::update_geometry(const osmium::object_id_type id, const char* geometry) {

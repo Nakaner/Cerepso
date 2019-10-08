@@ -262,22 +262,14 @@ public:
     std::vector<MemberNode> get_way_nodes(const osmium::object_id_type way_id);
 
     /**
-     * \brief Get types of members of a relation.
+     * \brief Get members of a relation by relation ID and type.
      *
-     * \param id OSM relation ID
-     * \throws std::runtime_error if query execution fails
-     * \returns vector sorted by position
+     * \param members vector to insert results into
+     * \param id relation ID
+     * \param type OSM object type
      */
-    std::vector<osmium::item_type> get_member_types(const osmium::object_id_type id);
-
-    /**
-     * \brief Get IDs of members of a relation.
-     *
-     * \param id OSM relation ID
-     * \throws std::runtime_error if query execution fails
-     * \returns vector sorted by position
-     */
-    std::vector<osmium::object_id_type> get_member_ids(const osmium::object_id_type id);
+    void get_members_by_id_and_type(std::vector<postgres_drivers::MemberIdTypePos>& members,
+            const osmium::object_id_type id, const osmium::item_type type);
 
     /**
      * \brief Update geometry of an entry.

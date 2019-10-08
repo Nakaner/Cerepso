@@ -126,21 +126,20 @@ osmium::Location DiffHandler2::get_point_from_tables(osmium::object_id_type id) 
 
 void DiffHandler2::update_relation(const osmium::object_id_type id) {
     // get relation members from relations table
-    std::vector<osmium::item_type> member_types = m_relations_table.get_member_types(id);
-    std::vector<osmium::object_id_type> member_ids = m_relations_table.get_member_ids(id);
-    assert(member_types.size() == member_ids.size());
+    std::vector<postgres_drivers::MemberIdTypePos> members;
+    m_node_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::node);
+    m_way_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::way);
+    std::sort(members.begin(), members.end());
     std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
     std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
-    std::vector<osmium::item_type>::iterator it_type = member_types.begin();
-    std::vector<osmium::object_id_type>::iterator it_id = member_ids.begin();
-    for (; it_type != member_types.end(), it_id != member_ids.end(); ++it_type, ++it_id) {
-        if (*it_type == osmium::item_type::node) {
-            osmium::Location loc = get_point_from_tables(*it_id);
+    for (auto it = members.begin(); it != members.end(); ++it) {
+        if (it->type == osmium::item_type::node) {
+            osmium::Location loc = get_point_from_tables(it->id);
             std::unique_ptr<geos::geom::Point> point (m_geom_factory->createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
             points->push_back(point.release());
-        } else if (*it_type == osmium::item_type::way) {
+        } else if (it->type == osmium::item_type::way) {
             //TODO not DRY with insert_relation()
-            std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(*it_id);
+            std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(it->id);
             std::vector<geos::geom::Coordinate> coordinates;
             coordinates.reserve(nodes.size());
             std::vector<MemberNode>::iterator itn = nodes.begin();
@@ -176,31 +175,29 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
     m_relations_table.update_relation_member_geometry(id, multipoint_stream.str().c_str(), multilinestring_stream.str().c_str());
     //TODO code before this "if" becomes unnecessary once ways are not written to lines table any more if they are considered as areas only.
     if (m_config.m_areas) {
-        update_multipolygon_geometry(id, member_types, member_ids);
+        update_multipolygon_geometry(id, members);
     }
 }
 
 void DiffHandler2::update_multipolygon_geometry(const osmium::object_id_type id,
-        std::vector<osmium::item_type>& member_types,
-        std::vector<osmium::object_id_type> member_ids) {
+        const std::vector<postgres_drivers::MemberIdTypePos>& members) {
     std::vector<const osmium::Way*> ways;
-    ways.reserve(member_types.size());
-    for (std::size_t i = 0; i < member_types.size(); ++i) {
-        const osmium::object_id_type member_id = member_ids.at(i);
-        if (member_types.at(i) != osmium::item_type::way || member_id == 0) {
+    ways.reserve(members.size());
+    for (auto& m : members) {
+        if (m.type != osmium::item_type::way || m.id == 0) {
             continue;
         }
-        const osmium::Way* way = m_mp_manager->get_member_way(member_id);
+        const osmium::Way* way = m_mp_manager->get_member_way(m.id);
         if (way) {
             // The diff file contained the way.
             ways.push_back(way);
         } else {
             // Fetch the elements of the way from the database and reconstruct the OSM object.
-            std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(member_id);
+            std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(m.id);
             {
                 osmium::builder::WayBuilder way_builder(m_relation_buffer);
                 osmium::Way& reconstructeded_way = static_cast<osmium::Way&>(way_builder.object());
-                reconstructeded_way.set_id(member_id);
+                reconstructeded_way.set_id(m.id);
                 way_builder.set_user("");
                 {
                     osmium::builder::WayNodeListBuilder wnl_builder{m_relation_buffer, &way_builder};
@@ -223,9 +220,9 @@ void DiffHandler2::update_multipolygon_geometry(const osmium::object_id_type id,
         relation_builder.set_user("");
         {
             osmium::builder::RelationMemberListBuilder rml_builder{m_relation_buffer, &relation_builder};
-            for (std::size_t i = 0; i < member_types.size(); ++i) {
-                const osmium::object_id_type member_id = member_ids.at(i);
-                if (member_types.at(i) != osmium::item_type::way || member_id == 0) {
+            for (auto& m : members) {
+                const osmium::object_id_type member_id = m.id;
+                if (m.type != osmium::item_type::way || m.id == 0) {
                     continue;
                 }
                 rml_builder.add_member(osmium::item_type::way, member_id, "");
