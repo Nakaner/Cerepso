@@ -310,8 +310,7 @@ int main(int argc, char* argv[]) {
     postgres_drivers::Columns node_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_NODES);
     postgres_drivers::Columns way_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_WAYS);
     postgres_drivers::Columns relation_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_RELATIONS);
-    postgres_drivers::Columns interpolation_columns(config.m_driver_config,
-            postgres_drivers::Columns::addr_interpolation_columns());
+    postgres_drivers::Columns interpolation_columns(postgres_drivers::Columns::addr_interpolation_columns());
 
     time_t ts = time(NULL);
     PostgresTable nodes_table = config_parser.make_point_table("planet_osm_");

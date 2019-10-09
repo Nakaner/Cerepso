@@ -306,7 +306,7 @@ namespace postgres_drivers {
             switch (type) {
             case TableType::POINT :
                 m_columns.emplace_back("geom", ColumnType::POINT, 4326);
-                add_hstore_column(config, type);
+                add_hstore_column(config);
                 break;
             case TableType::UNTAGGED_POINT :
                 m_columns.emplace_back("x", ColumnType::INT, ColumnClass::LONGITUDE);
@@ -314,15 +314,15 @@ namespace postgres_drivers {
                 break;
             case TableType::WAYS_LINEAR :
                 m_columns.emplace_back("geom", ColumnType::LINESTRING, 4326);
-                add_hstore_column(config, type);
+                add_hstore_column(config);
                 break;
             case TableType::WAYS_POLYGON :
                 m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
-                add_hstore_column(config, type);
+                add_hstore_column(config);
                 break;
             case TableType::RELATION_POLYGON :
                 m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
-                add_hstore_column(config, type);
+                add_hstore_column(config);
 //                if (config.updateable) {
 //                    m_columns.emplace_back("member_ids", ColumnType::BIGINT_ARRAY);
 //                    m_columns.emplace_back("member_types", ColumnType::CHAR_ARRAY);
@@ -331,11 +331,11 @@ namespace postgres_drivers {
             case TableType::RELATION_OTHER :
                 m_columns.emplace_back("geom_points", ColumnType::MULTIPOINT, 4326, ColumnClass::GEOMETRY_MULTIPOINT);
                 m_columns.emplace_back("geom_lines", ColumnType::MULTILINESTRING, 4326, ColumnClass::GEOMETRY_MULTILINESTRING);
-                add_hstore_column(config, type);
+                add_hstore_column(config);
                 break;
             case TableType::AREA :
                 m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
-                add_hstore_column(config, type);
+                add_hstore_column(config);
                 break;
             case TableType::NODE_WAYS :
                 m_columns.emplace_back("way_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
