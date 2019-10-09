@@ -18,10 +18,12 @@
 
 DiffHandler2::DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
         PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-        PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
-        PostgresTable* areas_table /*= nullptr*/, osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
+        PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+        ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
+        PostgresTable* areas_table /*= nullptr*/,
+        osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, areas_table, &node_ways_table,
-                &node_relations_table, &way_relations_table),
+                &node_relations_table, &way_relations_table, &relation_relations_table),
         m_relations_table(relations_table),
         m_location_index(location_index),
         m_expire_tiles(expire_tiles),
@@ -62,11 +64,12 @@ DiffHandler2::DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, Po
  */
 DiffHandler2::DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
         PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-        PostgresTable& way_relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
+        PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+        CerepsoConfig& config, ExpireTiles* expire_tiles,
         UpdateLocationHandler& location_index, PostgresTable* areas_table /*= nullptr*/,
         osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
     PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, areas_table, &node_ways_table,
-            &node_relations_table, &way_relations_table),
+            &node_relations_table, &way_relations_table, &relation_relations_table),
     m_relations_table(relations_table),
     m_location_index(location_index),
     m_expire_tiles(expire_tiles),
@@ -129,6 +132,7 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
     std::vector<postgres_drivers::MemberIdTypePos> members;
     m_node_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::node);
     m_way_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::way);
+    m_relation_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::relation);
     std::sort(members.begin(), members.end());
     std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
     std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
@@ -424,6 +428,19 @@ void DiffHandler2::relation(const osmium::Relation& relation) {
     }
     std::string copy_buffer;
     insert_relation(relation, copy_buffer);
+    // write list of relation members to the database
+    std::string query = prepare_node_relation_query(relation);
+    if (query.c_str()[0] != '\0') {
+        m_node_relations_table->send_line(query);
+    }
+    query = prepare_way_relation_query(relation);
+    if (query.c_str()[0] != '\0') {
+        m_way_relations_table->send_line(query);
+    }
+    query = prepare_relation_relation_query(relation);
+    if (query.c_str()[0] != '\0') {
+        m_relation_relations_table->send_line(query);
+    }
     // remove from list of pending relations
     std::vector<osmium::object_id_type>::size_type found = m_pending_relations_idx;
     for (; found != m_pending_relations.size(); ++found) {

@@ -182,26 +182,15 @@ public:
     void delete_way_node_list(const osmium::object_id_type id);
 
     /**
-     * \brief delete member node list of a relation
+     * \brief delete list of member nodes/ways/relations of a relation
      *
-     * This method executes the prepared statement `delete_relation_member_nodes`.
-     *
-     * \param id way ID
-     *
-     * \throws std::runtime_error
-     */
-    void delete_relation_member_nodes_list(const osmium::object_id_type id);
-
-    /**
-     * \brief delete member way list of a relation
-     *
-     * This method executes the prepared statement `delete_relation_member_ways`.
+     * This method executes the prepared statement `delete_relation_members`.
      *
      * \param id way ID
      *
      * \throws std::runtime_error
      */
-    void delete_relation_member_ways_list(const osmium::object_id_type id);
+    void delete_relation_members(const osmium::object_id_type id);
 
     /**
      * \brief Count how often a given OSM ID is present in the table.

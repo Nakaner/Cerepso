@@ -32,6 +32,7 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     postgres_drivers::Columns node_ways_columns(config.m_driver_config, postgres_drivers::TableType::NODE_WAYS);
     postgres_drivers::Columns node_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_NODES);
     postgres_drivers::Columns way_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_WAYS);
+    postgres_drivers::Columns relation_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_RELATIONS);
     PostgresTable nodes_table ("nodes", config, node_columns);
     PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
     PostgresTable ways_table ("ways", config, way_linear_columns);
@@ -42,6 +43,8 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     node_relations_table.init();
     PostgresTable way_relations_table("way_relations", config, way_relations_columns);
     way_relations_table.init();
+    PostgresTable relation_relations_table("relation_relations", config, relation_relations_columns);
+    relation_relations_table.init();
 
     // create some nodes and add them to the location handler
     osmium::memory::Buffer buffer(buffer_size);
@@ -92,8 +95,9 @@ TEST_CASE("check if preparing a query to insert a relation works") {
 
     std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<sparse_mmap_array_t>(nodes_table, untagged_nodes_table,
             std::move(index));
-    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table, node_ways_table,
-            node_relations_table, way_relations_table, config, expire_tiles, *location_handler);
+    DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table,
+            node_ways_table, node_relations_table, way_relations_table, relation_relations_table,
+            config, expire_tiles, *location_handler);
     handler.node(node1);
     handler.node(node2);
     handler.node(node3);

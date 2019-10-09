@@ -76,8 +76,9 @@ void DiffHandler1::relation(const osmium::Relation& relation) {
         if (m_config.m_areas) {
             m_areas_table->delete_object(relation.id());
         }
-        m_node_relations_table->delete_relation_member_nodes_list(relation.id());
-        m_way_relations_table->delete_relation_member_ways_list(relation.id());
+        m_node_relations_table->delete_relation_members(relation.id());
+        m_way_relations_table->delete_relation_members(relation.id());
+        m_relation_relations_table->delete_relation_members(relation.id());
     }
 }
 

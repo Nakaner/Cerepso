@@ -77,6 +77,8 @@ public:
 
     static std::string prepare_way_relation_query(const osmium::Relation& relation);
 
+    static std::string prepare_relation_relation_query(const osmium::Relation& relation);
+
     /**
      * \brief Build the line which will be inserted via `COPY` into the database.
      *
@@ -129,6 +131,8 @@ protected:
     PostgresTable* m_node_relations_table;
     /// pointer to table containing mapping of ways to the relations using them
     PostgresTable* m_way_relations_table;
+    /// pointer to table containing mapping of relations to the relations using them
+    PostgresTable* m_relation_relations_table;
     /// reference to relation manager for associatedStreet relations
     AssociatedStreetRelationManager* m_assoc_manager;
 
@@ -136,7 +140,7 @@ protected:
     PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
             PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
-            PostgresTable* way_relations_table = nullptr) :
+            PostgresTable* way_relations_table = nullptr, PostgresTable* relation_relations_table = nullptr) :
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
@@ -145,6 +149,7 @@ protected:
             m_node_ways_table(node_ways_table),
             m_node_relations_table(node_relations_table),
             m_way_relations_table(way_relations_table),
+            m_relation_relations_table(relation_relations_table),
             m_assoc_manager(assoc_manager) {}
 
 
@@ -154,7 +159,7 @@ protected:
     PostgresHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
             AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
             PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
-            PostgresTable* way_relations_table = nullptr)  :
+            PostgresTable* way_relations_table = nullptr, PostgresTable* relation_relations_table = nullptr)  :
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
@@ -163,6 +168,7 @@ protected:
             m_node_ways_table(node_ways_table),
             m_node_relations_table(node_relations_table),
             m_way_relations_table(way_relations_table),
+            m_relation_relations_table(relation_relations_table),
             m_assoc_manager(assoc_manager)  {}
 
     virtual ~PostgresHandler()  {}

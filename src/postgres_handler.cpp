@@ -220,15 +220,6 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
             && object.type() == osmium::item_type::way
             && table.config().m_driver_config.updateable) {
         add_way_nodes(static_cast<const osmium::Way&>(object).nodes(), query);
-    } else if (it->column_class() == postgres_drivers::ColumnClass::MEMBER_IDS
-            && object.type() == osmium::item_type::relation) {
-        add_member_ids(static_cast<const osmium::Relation&>(object).members(), query);
-    } else if (it->column_class() == postgres_drivers::ColumnClass::MEMBER_ROLES
-            && object.type() == osmium::item_type::relation) {
-        add_member_roles(static_cast<const osmium::Relation&>(object).members(), query);
-    } else if (it->column_class() == postgres_drivers::ColumnClass::MEMBER_TYPES
-            && object.type() == osmium::item_type::relation) {
-        add_member_types(static_cast<const osmium::Relation&>(object).members(), query);
     } else if (it->column_class() == postgres_drivers::ColumnClass::GEOMETRY) {
         add_geometry(object, query, table);
     } else if (object.type() == osmium::item_type::node && it->column_class() == postgres_drivers::ColumnClass::LATITUDE) {
@@ -296,6 +287,10 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
 
 /*static*/ std::string PostgresHandler::prepare_way_relation_query(const osmium::Relation& relation) {
     return prepare_relation_member_list_query(relation, osmium::item_type::way);
+}
+
+/*static*/ std::string PostgresHandler::prepare_relation_relation_query(const osmium::Relation& relation) {
+    return prepare_relation_member_list_query(relation, osmium::item_type::relation);
 }
 
 /*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,

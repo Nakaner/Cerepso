@@ -254,7 +254,8 @@ void PostgresTable::create_id_index() {
     for (postgres_drivers::ColumnsIterator it = m_columns.begin(); it != m_columns.end(); it++) {
         if (it->column_class() == postgres_drivers::ColumnClass::OSM_ID
                 || it->column_class() == postgres_drivers::ColumnClass::NODE_ID
-                || it->column_class() == postgres_drivers::ColumnClass::WAY_ID) {
+                || it->column_class() == postgres_drivers::ColumnClass::WAY_ID
+                || it->column_class() == postgres_drivers::ColumnClass::RELATION_ID) {
             time_t ts = time(NULL);
             std::cerr << "Creating ID index on table " << m_name << ", column " << it->name() << " …";
             std::stringstream query;
@@ -308,27 +309,13 @@ void PostgresTable::delete_way_node_list(const osmium::object_id_type id) {
     PQclear(result);
 }
 
-void PostgresTable::delete_relation_member_nodes_list(const osmium::object_id_type id) {
+void PostgresTable::delete_relation_members(const osmium::object_id_type id) {
     assert(!m_copy_mode);
     char const *paramValues[1];
     char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
-    PGresult *result = PQexecPrepared(m_database_connection, "delete_relation_member_nodes", 1, paramValues, nullptr, nullptr, 0);
-    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
-        PQclear(result);
-        throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
-    }
-    PQclear(result);
-}
-
-void PostgresTable::delete_relation_member_ways_list(const osmium::object_id_type id) {
-    assert(!m_copy_mode);
-    char const *paramValues[1];
-    static char buffer[64];
-    sprintf(buffer, "%ld", id);
-    paramValues[0] = buffer;
-    PGresult *result = PQexecPrepared(m_database_connection, "delete_relation_member_ways", 1, paramValues, nullptr, nullptr, 0);
+    PGresult *result = PQexecPrepared(m_database_connection, "delete_relation_members", 1, paramValues, nullptr, nullptr, 0);
     if (PQresultStatus(result) != PGRES_COMMAND_OK) {
         PQclear(result);
         throw std::runtime_error((boost::format("Deleting object %1% from %2% failed: %3%\n") % id % m_name % PQresultErrorMessage(result)).str());
@@ -509,14 +496,7 @@ void PostgresTable::get_members_by_id_and_type(std::vector<postgres_drivers::Mem
     static char buffer[64];
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
-    PGresult* result;
-    if (type == osmium::item_type::node) {
-        result = PQexecPrepared(m_database_connection, "get_member_nodes_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
-    } else if (type == osmium::item_type::way) {
-        result = PQexecPrepared(m_database_connection, "get_member_ways_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
-    } else {
-        return;
-    }
+    PGresult* result = PQexecPrepared(m_database_connection, "get_members_by_relation_id", 1, paramValues, nullptr, nullptr, 0);
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);

@@ -309,6 +309,7 @@ int main(int argc, char* argv[]) {
     postgres_drivers::Columns node_ways_columns(config.m_driver_config, postgres_drivers::TableType::NODE_WAYS);
     postgres_drivers::Columns node_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_NODES);
     postgres_drivers::Columns way_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_WAYS);
+    postgres_drivers::Columns relation_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_RELATIONS);
     postgres_drivers::Columns interpolation_columns(config.m_driver_config,
             postgres_drivers::Columns::addr_interpolation_columns());
 
@@ -322,10 +323,12 @@ int main(int argc, char* argv[]) {
     PostgresTable node_ways_table {"node_ways", config, std::move(node_ways_columns)};
     PostgresTable node_relations_table {"node_relations", config, std::move(node_relations_columns)};
     PostgresTable way_relations_table {"way_relations", config, std::move(way_relations_columns)};
+    PostgresTable relation_relations_table {"relation_relations", config, std::move(relation_relations_columns)};
     if (config.m_driver_config.updateable) {
         node_ways_table.init();
         node_relations_table.init();
         way_relations_table.init();
+        relation_relations_table.init();
     }
     PostgresTable ways_linear_table = config_parser.make_line_table("planet_osm_");
     ways_linear_table.init();
@@ -378,7 +381,7 @@ int main(int argc, char* argv[]) {
         }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
         DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
-                node_relations_table, way_relations_table, expire_tiles, *location_handler, &areas_table);
+                node_relations_table, way_relations_table, relation_relations_table, expire_tiles, *location_handler, &areas_table);
         // The location handler has not to be passed to the visitor in pass 1.
         if (config.m_areas) {
             osmium::apply(reader1, append_handler1, *mp_manager);
@@ -394,7 +397,7 @@ int main(int argc, char* argv[]) {
 
         osmium::io::Reader reader2(config.m_osm_file, osmium::osm_entity_bits::nwr);
         DiffHandler2 append_handler2(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
-                node_relations_table, way_relations_table, expire_tiles, *location_handler, &areas_table, mp_manager);
+                node_relations_table, way_relations_table, relation_relations_table, expire_tiles, *location_handler, &areas_table, mp_manager);
         if (config.m_areas) {
             osmium::apply(reader2, *location_handler, append_handler2,
                     mp_manager->handler([&append_handler2](osmium::memory::Buffer&& buffer) {
@@ -451,7 +454,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Pass 2 (nodes and ways; writing everything to database)" << std::endl;
         osmium::io::Reader reader2(config.m_osm_file);
         ImportHandler handler(config, nodes_table, &untagged_nodes_table, ways_linear_table, &assoc_manager, &areas_table, &node_ways_table,
-                &node_relations_table, &way_relations_table);
+                &node_relations_table, &way_relations_table, &relation_relations_table);
         HandlerCollection handlers_collection2;
         handlers_collection2.add(rel_collector.handler());
         if (config.m_address_interpolations) {

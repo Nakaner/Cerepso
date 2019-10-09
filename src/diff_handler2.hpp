@@ -148,15 +148,18 @@ class DiffHandler2 : public PostgresHandler {
 public:
     DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
-            PostgresTable* areas_table = nullptr, osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
+            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+            ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
+            PostgresTable* areas_table = nullptr,
+            osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
 
     /**
      * \brief constructor for testing purposes, will not establish database connections
      */
     DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, CerepsoConfig& config, ExpireTiles* expire_tiles,
+            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+            CerepsoConfig& config, ExpireTiles* expire_tiles,
             UpdateLocationHandler& location_index, PostgresTable* areas_table = nullptr,
             osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
 

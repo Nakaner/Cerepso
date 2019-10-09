@@ -56,4 +56,8 @@ void ImportHandler::relation(const osmium::Relation& relation) {
     if (query.c_str()[0] != '\0') {
         m_way_relations_table->send_line(query);
     }
+    query = prepare_relation_relation_query(relation);
+    if (query.c_str()[0] != '\0') {
+        m_relation_relations_table->send_line(query);
+    }
 }

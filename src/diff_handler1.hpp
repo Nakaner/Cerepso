@@ -36,10 +36,11 @@ private:
 public:
     DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
+            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+            ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
             PostgresTable* areas_table = nullptr) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, areas_table, &node_ways_table,
-            &node_relations_table, &way_relations_table),
+            &node_relations_table, &way_relations_table, &relation_relations_table),
         m_relations_table(relations_table),
         m_expire_tiles(expire_tiles),
         m_location_index(location_index),
@@ -55,10 +56,11 @@ public:
      */
     DiffHandler1(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
             PostgresTable& relations_table, CerepsoConfig& config, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
+            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+            ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
             PostgresTable* areas_table = nullptr) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, areas_table, &node_ways_table,
-            &node_relations_table, &way_relations_table),
+            &node_relations_table, &way_relations_table, &relation_relations_table),
         m_relations_table(relations_table),
         m_expire_tiles(expire_tiles),
         m_location_index(location_index),
