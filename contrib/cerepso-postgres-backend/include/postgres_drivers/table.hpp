@@ -91,8 +91,7 @@ namespace postgres_drivers {
         void create_prepared_statements() {
             // create delete statement
             std::string query;
-            if (m_columns.get_type() != TableType::NODE_WAYS && m_columns.get_type() != TableType::RELATION_MEMBER_NODES
-                    && m_columns.get_type() != TableType::RELATION_MEMBER_WAYS) {
+            if (is_osm_object_table_type(m_columns.get_type())) {
                 query= (boost::format("DELETE FROM %1% WHERE osm_id = $1") % m_name).str();
                 create_prepared_statement("delete_statement", query, 1);
             }
@@ -123,19 +122,11 @@ namespace postgres_drivers {
                 create_prepared_statement("delete_relation_members", query, 1);
                 query= (boost::format("DELETE FROM %1% WHERE member_id = $1") % m_name).str();
                 create_prepared_statement("delete_statement", query, 1);
+                query = (boost::format("SELECT member_id, position FROM %1% WHERE relation_id = $1") % m_name).str();
+                create_prepared_statement("get_members_by_relation_id", query, 1);
             } else if (m_columns.get_type() == TableType::RELATION_OTHER) {
-                query = (boost::format("SELECT member_types FROM %1% WHERE osm_id = $1") % m_name).str();
-                create_prepared_statement("get_member_types_by_relation_id", query, 1);
-                query = (boost::format("SELECT member_ids FROM %1% WHERE osm_id = $1") % m_name).str();
-                create_prepared_statement("get_member_ids_by_relation_id", query, 1);
                 query = (boost::format("UPDATE %1% SET geom_points = $1, geom_lines = $2 WHERE osm_id = $3") % m_name).str();
                 create_prepared_statement("update_relation_member_geometry", query, 3);
-            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_NODES) {
-                query = (boost::format("SELECT node_id, position FROM %1% WHERE relation_id = $1") % m_name).str();
-                create_prepared_statement("get_member_nodes_by_relation_id", query, 1);
-            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_WAYS) {
-                query = (boost::format("SELECT way_id, position FROM %1% WHERE relation_id = $1") % m_name).str();
-                create_prepared_statement("get_member_ways_by_relation_id", query, 1);
             }
         }
 

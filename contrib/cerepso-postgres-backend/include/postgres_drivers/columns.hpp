@@ -95,9 +95,6 @@ namespace postgres_drivers {
         TIMESTAMP = 8,
         GEOMETRY = 9,
         WAY_NODES = 10,
-        MEMBER_IDS = 11,
-        MEMBER_TYPES = 12,
-        MEMBER_ROLES = 13,
         GEOMETRY_MULTIPOINT = 14,
         GEOMETRY_MULTILINESTRING = 15,
         OTHER = 16,
@@ -334,9 +331,6 @@ namespace postgres_drivers {
             case TableType::RELATION_OTHER :
                 m_columns.emplace_back("geom_points", ColumnType::MULTIPOINT, 4326, ColumnClass::GEOMETRY_MULTIPOINT);
                 m_columns.emplace_back("geom_lines", ColumnType::MULTILINESTRING, 4326, ColumnClass::GEOMETRY_MULTILINESTRING);
-                m_columns.emplace_back("member_ids", ColumnType::BIGINT_ARRAY, ColumnClass::MEMBER_IDS);
-                m_columns.emplace_back("member_types", ColumnType::CHAR_ARRAY, ColumnClass::MEMBER_TYPES);
-                m_columns.emplace_back("member_roles", ColumnType::TEXT_ARRAY, ColumnClass::MEMBER_ROLES);
                 add_hstore_column(config, type);
                 break;
             case TableType::AREA :
@@ -360,7 +354,7 @@ namespace postgres_drivers {
                 m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
                 m_columns.emplace_back("role", ColumnType::TEXT, ColumnClass::ROLE);
                 break;
-            case TableType::RELATION_MEMBER_WAYS :
+            case TableType::RELATION_MEMBER_RELATIONS :
                 m_columns.emplace_back("member_id", ColumnType::BIGINT, ColumnClass::RELATION_ID);
                 m_columns.emplace_back("relation_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
                 m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
