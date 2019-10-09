@@ -265,7 +265,7 @@ namespace postgres_drivers {
         osmium::TagsFilter m_nocolumn_filter;
         TableType m_type;
 
-        void add_hstore_column(Config& config, TableType type) {
+        void add_hstore_column(Config& config) {
             if (config.tags_hstore) {
                 m_columns.emplace_back("tags", ColumnType::HSTORE, ColumnClass::TAGS_OTHER);
             }
@@ -385,7 +385,7 @@ namespace postgres_drivers {
             }
         }
 
-        Columns(Config& config, ColumnsVector&& additional_columns) :
+        Columns(ColumnsVector&& additional_columns) :
             m_columns(),
             m_tags_filter(false),
             m_drop_filter(false),
