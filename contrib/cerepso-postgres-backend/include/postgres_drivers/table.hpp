@@ -114,19 +114,14 @@ namespace postgres_drivers {
                 create_prepared_statement("get_nodes", query, 1);
                 query = (boost::format("DELETE FROM %1% WHERE way_id = $1") % m_name).str();
                 create_prepared_statement("delete_way_node_list", query, 1);
-            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_NODES) {
-                query = (boost::format("SELECT relation_id FROM %1% WHERE node_id = $1") % m_name).str();
-                create_prepared_statement("get_relation_ids_by_node", query, 1);
+            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_NODES
+                    || m_columns.get_type() == TableType::RELATION_MEMBER_WAYS
+                    || m_columns.get_type() == TableType::RELATION_MEMBER_RELATIONS) {
+                query = (boost::format("SELECT relation_id FROM %1% WHERE member_id = $1") % m_name).str();
+                create_prepared_statement("get_relation_ids_by_member", query, 1);
                 query = (boost::format("DELETE FROM %1% WHERE relation_id = $1") % m_name).str();
-                create_prepared_statement("delete_relation_member_nodes", query, 1);
-                query= (boost::format("DELETE FROM %1% WHERE node_id = $1") % m_name).str();
-                create_prepared_statement("delete_statement", query, 1);
-            } else if (m_columns.get_type() == TableType::RELATION_MEMBER_WAYS) {
-                query = (boost::format("SELECT relation_id FROM %1% WHERE way_id = $1") % m_name).str();
-                create_prepared_statement("get_relation_ids_by_way", query, 1);
-                query = (boost::format("DELETE FROM %1% WHERE relation_id = $1") % m_name).str();
-                create_prepared_statement("delete_relation_member_ways", query, 1);
-                query= (boost::format("DELETE FROM %1% WHERE way_id = $1") % m_name).str();
+                create_prepared_statement("delete_relation_members", query, 1);
+                query= (boost::format("DELETE FROM %1% WHERE member_id = $1") % m_name).str();
                 create_prepared_statement("delete_statement", query, 1);
             } else if (m_columns.get_type() == TableType::RELATION_OTHER) {
                 query = (boost::format("SELECT member_types FROM %1% WHERE osm_id = $1") % m_name).str();

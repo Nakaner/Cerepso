@@ -52,7 +52,9 @@ namespace postgres_drivers {
         /// mapping of nodes to relations using them
         RELATION_MEMBER_NODES = detail::table_type_osm_member_mask + 1,
         /// mapping of ways to relations using them
-        RELATION_MEMBER_WAYS = detail::table_type_osm_member_mask + 2
+        RELATION_MEMBER_WAYS = detail::table_type_osm_member_mask + 2,
+        /// mapping of ways to relations using them
+        RELATION_MEMBER_RELATIONS = detail::table_type_osm_member_mask + 3
     };
 
     inline bool is_osm_object_table_type(const TableType type) noexcept {
@@ -110,9 +112,10 @@ namespace postgres_drivers {
         INTERPOLATION_COUNTRY = 25,
         NODE_ID = 26,
         WAY_ID = 27,
-        LONGITUDE = 28,
-        LATITUDE = 29,
-        ROLE = 30
+        RELATION_ID = 28,
+        LONGITUDE = 29,
+        LATITUDE = 30,
+        ROLE = 31
     };
 
     inline std::string column_type_to_str(const ColumnType c, const int epsg = 0) {
@@ -346,13 +349,19 @@ namespace postgres_drivers {
                 m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
                 break;
             case TableType::RELATION_MEMBER_NODES :
-                m_columns.emplace_back("node_id", ColumnType::BIGINT, ColumnClass::NODE_ID);
+                m_columns.emplace_back("member_id", ColumnType::BIGINT, ColumnClass::NODE_ID);
                 m_columns.emplace_back("relation_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
                 m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
                 m_columns.emplace_back("role", ColumnType::TEXT, ColumnClass::ROLE);
                 break;
             case TableType::RELATION_MEMBER_WAYS :
-                m_columns.emplace_back("way_id", ColumnType::BIGINT, ColumnClass::WAY_ID);
+                m_columns.emplace_back("member_id", ColumnType::BIGINT, ColumnClass::WAY_ID);
+                m_columns.emplace_back("relation_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
+                m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
+                m_columns.emplace_back("role", ColumnType::TEXT, ColumnClass::ROLE);
+                break;
+            case TableType::RELATION_MEMBER_WAYS :
+                m_columns.emplace_back("member_id", ColumnType::BIGINT, ColumnClass::RELATION_ID);
                 m_columns.emplace_back("relation_id", ColumnType::BIGINT, ColumnClass::OSM_ID);
                 m_columns.emplace_back("position", ColumnType::SMALLINT, ColumnClass::OTHER);
                 m_columns.emplace_back("role", ColumnType::TEXT, ColumnClass::ROLE);
