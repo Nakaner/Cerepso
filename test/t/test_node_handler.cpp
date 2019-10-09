@@ -41,7 +41,7 @@ TEST_CASE("node handler produces good lines for COPY") {
     PostgresTable ways_table (way_columns, config);
     ImportHandler handler(nodes_table, &untagged_nodes_table, ways_table, config);
 
-    std::string query_str = handler.prepare_query(node, nodes_table, config, nullptr);
+    std::string query_str = handler.prepare_query(node, nodes_table, nullptr);
 
     SECTION("check number of column separators") {
         REQUIRE(count_occurence_of_substring(query_str, '\t') == node_columns.size()-1);

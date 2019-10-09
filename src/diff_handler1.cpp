@@ -82,3 +82,5 @@ void DiffHandler1::relation(const osmium::Relation& relation) {
     }
 }
 
+void DiffHandler1::area(const osmium::Area&) {
+}

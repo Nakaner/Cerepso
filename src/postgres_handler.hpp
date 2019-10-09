@@ -69,7 +69,7 @@ public:
     static void add_geometry(const osmium::OSMObject& object, std::string& query, PostgresTable& table);
 
     static std::string prepare_query(const osmium::OSMObject& object, PostgresTable& table,
-            CerepsoConfig& config, const osmium::TagList* rel_tags_to_apply);
+            const osmium::TagList* rel_tags_to_apply);
 
     static std::string prepare_node_way_query(const osmium::Way& way);
 
@@ -90,8 +90,9 @@ public:
      * \param config reference to program configuration
      * \param table table to write to
      */
-    static void prepare_relation_query(const osmium::Relation& relation, std::string& query, std::stringstream& multipoint_wkb,
-            std::stringstream& multilinestring_wkb, CerepsoConfig& config, PostgresTable& table);
+    static void prepare_relation_query(const osmium::Relation& relation, std::string& query,
+            std::stringstream& multipoint_wkb, std::stringstream& multilinestring_wkb,
+            PostgresTable& table);
 
     /**
      * \brief Node handler has derived from osmium::handler::Handler.

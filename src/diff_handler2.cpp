@@ -302,8 +302,8 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
         std::stringstream multilinestring_stream;
         wkb_writer.writeHEX(*multilinestrings, multilinestring_stream);
         delete multilinestrings;
-        PostgresHandler::prepare_relation_query(relation, copy_buffer, multipoint_stream, multilinestring_stream, m_config,
-                m_relations_table);
+        PostgresHandler::prepare_relation_query(relation, copy_buffer, multipoint_stream,
+                multilinestring_stream, m_relations_table);
         m_relations_table.send_line(copy_buffer);
     }
     catch (osmium::geometry_error& e) {
@@ -323,7 +323,7 @@ void DiffHandler2::way(const osmium::Way& way) {
     //TODO immediatedly return if multipolygon relations should not be written into the relations table (if areas are enabled)
     bool with_tags = m_ways_linear_table.has_interesting_tags(way.tags());
     if (with_tags) {
-        m_ways_linear_table.send_line(prepare_query(way, m_ways_linear_table, m_config, nullptr));
+        m_ways_linear_table.send_line(prepare_query(way, m_ways_linear_table, nullptr));
     }
     // check if relations have to be updated
     std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids(way.id());

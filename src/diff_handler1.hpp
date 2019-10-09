@@ -93,7 +93,7 @@ public:
     void relation(const osmium::Relation& area);
 
     /// Handler not used but has to implemented because it is a full virtual method.
-    void area(const osmium::Area& area) {};
+    void area(const osmium::Area& area);
 };
 
 

@@ -97,7 +97,7 @@ TEST_CASE("inserting new way works") {
         wnl_builder.add_node_ref(nd_ref3);
     }
 
-    std::string ways_table_copy_buffer = handler.prepare_query(way, ways_table, config, nullptr);
+    std::string ways_table_copy_buffer = handler.prepare_query(way, ways_table, nullptr);
 
     SECTION("check if last char is \\n") {
         REQUIRE(ways_table_copy_buffer.back() == '\n');

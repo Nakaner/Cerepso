@@ -232,8 +232,8 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
     return column_added;
 }
 
-/*static*/ std::string PostgresHandler::prepare_query(const osmium::OSMObject& object, PostgresTable& table,
-        CerepsoConfig& config, const osmium::TagList* rel_tags_to_apply) {
+/*static*/ std::string PostgresHandler::prepare_query(const osmium::OSMObject& object,
+        PostgresTable& table, const osmium::TagList* rel_tags_to_apply) {
     std::string query;
     std::vector<const char*> written_keys;
     bool column_added = false;
@@ -294,7 +294,8 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
 }
 
 /*static*/ void PostgresHandler::prepare_relation_query(const osmium::Relation& relation, std::string& query,
-        std::stringstream& multipoint_wkb, std::stringstream& multilinestring_wkb, CerepsoConfig& config, PostgresTable& table) {
+        std::stringstream& multipoint_wkb, std::stringstream& multilinestring_wkb,
+        PostgresTable& table) {
     std::vector<const char*> written_keys;
     bool column_added = false;
     for (postgres_drivers::ColumnsConstIterator it = table.get_columns().cbegin(); it != table.get_columns().cend(); ++it) {
@@ -326,10 +327,10 @@ void PostgresHandler::handle_node(const osmium::Node& node) {
     bool with_tags = m_nodes_table.has_interesting_tags(node.tags());
     if (with_tags) {
         const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
-        std::string query = prepare_query(node, m_nodes_table, m_config, rel_tags_to_apply);
+        std::string query = prepare_query(node, m_nodes_table, rel_tags_to_apply);
         m_nodes_table.send_line(query);
     } else if (m_config.m_driver_config.untagged_nodes) {
-        std::string query = prepare_query(node, *m_untagged_nodes_table, m_config, nullptr);
+        std::string query = prepare_query(node, *m_untagged_nodes_table, nullptr);
         m_untagged_nodes_table->send_line(query);
     }
 }
@@ -344,6 +345,6 @@ void PostgresHandler::handle_area(const osmium::Area& area) {
     } else {
         rel_tags_to_apply = get_relation_tags_to_apply(area.orig_id(), osmium::item_type::relation);
     }
-    std::string query = prepare_query(area, *m_areas_table, m_config, rel_tags_to_apply);
+    std::string query = prepare_query(area, *m_areas_table, rel_tags_to_apply);
     m_areas_table->send_line(query);
 }
