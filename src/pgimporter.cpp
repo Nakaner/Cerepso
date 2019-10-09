@@ -125,7 +125,7 @@ void dump_index(index_type* location_index, CerepsoConfig& config) {
  * \param argv command line argument array (from main method)
  * \param message error message to output (optional)
  */
-void print_help(char* argv[], std::string message = "") {
+void print_help(char* argv[], std::string message = "", const int return_code = 1) {
     if (message != "") {
         std::cerr << message << "\n";
     }
@@ -155,7 +155,7 @@ void print_help(char* argv[], std::string message = "") {
     "  -o, --no-order-by-geohash        don't order tables by ST_GeoHash\n" \
     "  -O, --one                        Don't create tables and columns needed for updates.\n" \
     "  --untagged-nodes                 Create a table for untagged nodes (in parallel to flatnodes file on disk).\n\n";
-    exit(1);
+    exit(return_code);
 }
 
 
@@ -196,8 +196,8 @@ int main(int argc, char* argv[]) {
 
         switch (c) {
             case 'h':
-                //print_help();
-                exit(0);
+                print_help(argv, "", 0);
+                break;
             case 'D':
                 config.m_driver_config.m_debug = true;
                 break;
