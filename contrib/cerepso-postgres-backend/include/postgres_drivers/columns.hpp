@@ -112,7 +112,8 @@ namespace postgres_drivers {
         RELATION_ID = 28,
         LONGITUDE = 29,
         LATITUDE = 30,
-        ROLE = 31
+        ROLE = 31,
+        RELATION_TYPE_ID_ROLE = 32
     };
 
     inline std::string column_type_to_str(const ColumnType c, const int epsg = 0) {
@@ -250,6 +251,21 @@ namespace postgres_drivers {
     using ColumnsIterator = ColumnsVector::iterator;
     using ColumnsConstIterator = ColumnsVector::const_iterator;
 
+
+    inline std::string join_columns_to_str(ColumnsVector& vec, const bool add_splitter_to_first = false) {
+        std::string result;
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
+            if (add_splitter_to_first || it != vec.begin()) {
+                result += ", ";
+            }
+            result += '"';
+            result += it->name();
+            result += '"';
+
+        }
+        return result;
+    }
+
     /**
      * \brief This class holds the names and types of the columns of a database table.
      *
@@ -273,6 +289,14 @@ namespace postgres_drivers {
 
     public:
         Columns() = delete;
+
+        Columns(ColumnsVector columns, TableType type):
+                m_columns(columns),
+                m_tags_filter(false),
+                m_drop_filter(false),
+                m_nocolumn_filter(false),
+                m_type(type) {
+        }
 
         Columns(Config& config, TableType type):
                 m_columns(),
@@ -334,7 +358,7 @@ namespace postgres_drivers {
                 add_hstore_column(config);
                 break;
             case TableType::AREA :
-                m_columns.emplace_back("geom", ColumnType::MULTIPOLYGON, 4326);
+                m_columns.emplace_back("geom", ColumnType::GEOMETRY, 4326);
                 add_hstore_column(config);
                 break;
             case TableType::NODE_WAYS :
@@ -476,6 +500,14 @@ namespace postgres_drivers {
          */
         size_t size() {
             return m_columns.size();
+        }
+
+        void push_back(Column& col) {
+            m_columns.push_back(col);
+        }
+
+        void insert(ColumnsVector& vec) {
+            m_columns.insert(m_columns.end(), vec.begin(), vec.end());
         }
 
         /**
