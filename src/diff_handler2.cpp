@@ -463,8 +463,10 @@ void DiffHandler2::area(const osmium::Area& area) {
     }
     handle_area(area);
     // expire tiles
-    // TODO expire whole polygon
-    m_expire_tiles->expire_from_coord_sequence(*(area.outer_rings().begin()));
+    std::cerr << area.orig_id() << '\n';
+    for (auto it = area.outer_rings().begin(); it != area.outer_rings().end(); ++it) {
+        m_expire_tiles->expire_from_coord_sequence(*it);
+    }
     // TODO remove from list of pending ways
 }
 
