@@ -137,6 +137,10 @@ void print_help(char* argv[], std::string message = "", const int return_code = 
     "  -e FILE, --expire-tiles=FILE     write an expiry_tile list to FILE\n" \
     "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
     "  --expire-relations=SETTING       expiration setting for relations: NONE, ALL, NO_ROUTES\n" \
+    "  -f PATH, --flat-nodes=PATH       Flatnodes file path.\n" \
+    "                                     Import mode: dump node locations to this path.\n" \
+    "                                     Append mode: read node locations from here and not from the untagged_nodes"
+    "                                     table.\n" \
     "  -g, --no-geom-indexes            don't create any geometry indexes\n" \
     "  -H, --hstore                     Add objects with tags even if they don't have any tag matching a column.\n" \
     "  -G, --all-geom-indexes           create geometry indexes on all tables (otherwise not on untagged nodes table),\n" \
