@@ -117,7 +117,7 @@ void DiffHandler2::node(const osmium::Node& node) {
         m_pending_ways.push_back(id);
     }
     // check if relations have to be updated
-    std::vector<osmium::object_id_type> rel_ids = m_node_relations_table->get_relation_ids(node.id());
+    std::vector<osmium::object_id_type> rel_ids = m_node_relations_table->get_relation_ids_by_member(node.id());
     for (auto id : rel_ids) {
         m_pending_relations.push_back(id);
     }
@@ -326,7 +326,7 @@ void DiffHandler2::way(const osmium::Way& way) {
         m_ways_linear_table.send_line(prepare_query(way, m_ways_linear_table, nullptr));
     }
     // check if relations have to be updated
-    std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids(way.id());
+    std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids_by_member(way.id());
     for (auto id : rel_ids) {
         m_pending_relations.push_back(id);
     }
@@ -374,7 +374,7 @@ void DiffHandler2::update_way(const osmium::object_id_type id) {
         // This point is only reached if a valid geometry could be build. If so,
         // trigger a geometry update of all relations using this way.
         // Check if relations have to be updated:
-        std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids(id);
+        std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids_by_member(id);
         for (auto id : rel_ids) {
             m_pending_relations.push_back(id);
         }
@@ -392,6 +392,7 @@ void DiffHandler2::update_way(const osmium::object_id_type id) {
     try {
         m_areas_table->wkb_factory().polygon_start();
         size_t points = m_ways_linear_table.wkb_factory().fill_polygon_unique(node_refs.begin(), node_refs.end());
+        std::cerr << "got " << points << " points\n";
         wkb = m_ways_linear_table.wkb_factory().polygon_finish(points);
     } catch (osmium::geometry_error& e) {
         //TODO delete entry if something failed

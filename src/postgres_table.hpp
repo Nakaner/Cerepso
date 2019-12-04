@@ -234,11 +234,11 @@ public:
     /**
      * \brief Get relations using a node or way
      *
-     * \param id OSM node/way ID
+     * \param id OSM node/way/relation ID
      * \throws std::runtime_error if query execution fails
      * \returns vector of relation IDs or empty vector if none was found
      */
-    std::vector<osmium::object_id_type> get_relation_ids(const osmium::object_id_type id);
+    std::vector<osmium::object_id_type> get_relation_ids_by_member(const osmium::object_id_type id);
 
     /**
      * \brief Get member nodes of a way.

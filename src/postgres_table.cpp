@@ -430,7 +430,7 @@ std::vector<osmium::object_id_type> PostgresTable::get_way_ids(const osmium::obj
     return ids;
 }
 
-std::vector<osmium::object_id_type> PostgresTable::get_relation_ids(const osmium::object_id_type id) {
+std::vector<osmium::object_id_type> PostgresTable::get_relation_ids_by_member(const osmium::object_id_type id) {
     assert(m_database_connection);
     std::vector<osmium::object_id_type> ids;
     char const *paramValues[1];
@@ -438,13 +438,7 @@ std::vector<osmium::object_id_type> PostgresTable::get_relation_ids(const osmium
     sprintf(buffer, "%ld", id);
     paramValues[0] = buffer;
     PGresult *result;
-    if (m_columns.get_type() == postgres_drivers::TableType::RELATION_MEMBER_NODES) {
-        result = PQexecPrepared(m_database_connection, "get_relation_ids_by_node", 1, paramValues, nullptr, nullptr, 0);
-    } else if (m_columns.get_type() == postgres_drivers::TableType::RELATION_MEMBER_WAYS) {
-        result = PQexecPrepared(m_database_connection, "get_relation_ids_by_way", 1, paramValues, nullptr, nullptr, 0);
-    } else {
-        assert(false && "not supported for relations");
-    }
+    result = PQexecPrepared(m_database_connection, "get_relation_ids_by_member", 1, paramValues, nullptr, nullptr, 0);
     if ((PQresultStatus(result) != PGRES_COMMAND_OK) && (PQresultStatus(result) != PGRES_TUPLES_OK)) {
         throw std::runtime_error((boost::format("Failed: %1%\n") % PQresultErrorMessage(result)).str());
         PQclear(result);
