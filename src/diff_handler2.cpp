@@ -391,9 +391,8 @@ void DiffHandler2::update_way(const osmium::object_id_type id) {
     wkb = "010300000000000000";
     try {
         m_areas_table->wkb_factory().polygon_start();
-        size_t points = m_ways_linear_table.wkb_factory().fill_polygon_unique(node_refs.begin(), node_refs.end());
-        std::cerr << "got " << points << " points\n";
-        wkb = m_ways_linear_table.wkb_factory().polygon_finish(points);
+        size_t points = m_areas_table->wkb_factory().fill_polygon_unique(node_refs.begin(), node_refs.end());
+        wkb = m_areas_table->wkb_factory().polygon_finish(points);
     } catch (osmium::geometry_error& e) {
         //TODO delete entry if something failed
         std::cerr << e.what() << "\n";
