@@ -52,6 +52,10 @@ if (NOT EXTERNAL_PG_ARRAY_HSTORE_PARSER)
   set(OSMIUMGEOSFACTORY_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/osmium-geos-factory/include")
 endif()
 
+# set include path to patched version of Libosmium RelationManager and MemberDatabaseCommon
+set(OSMIUMPATCHED_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium_patched/include")
+include_directories(${OSMIUMPATCHED_INCLUDE_DIR})
+
 find_package(Boost)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 

@@ -30,7 +30,7 @@ void AssociatedStreetRelationManager::relation(const osmium::Relation& relation)
 
 const osmium::TagList* AssociatedStreetRelationManager::get_relation_tags(const osmium::object_id_type id,
         const osmium::item_type type) {
-    const osmium::relations::MembersDatabaseCommon& md = member_database(type);
+    const osmium_patched::relations::MembersDatabaseCommon& md = member_database(type);
     auto range = md.find(id);
     if (range.begin() == range.end()) {
         return nullptr;

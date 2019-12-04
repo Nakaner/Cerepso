@@ -13,11 +13,11 @@
 #include <osmium/osm/relation.hpp>
 #include <osmium/osm/tag.hpp>
 #include <osmium/osm/way.hpp>
-#include <osmium/relations/relations_manager.hpp>
+#include <osmium_patched/relations/relations_manager_base.hpp>
 #include <osmium/relations/detail/member_meta.hpp>
 #include <osmium/util/iterator.hpp>
 
-class AssociatedStreetRelationManager: public osmium::relations::RelationsManagerBase {
+class AssociatedStreetRelationManager: public osmium_patched::relations::RelationsManagerBase {
 
     osmium::relations::SecondPassHandler<AssociatedStreetRelationManager> m_handler_pass2;
 
