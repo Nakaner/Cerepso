@@ -296,6 +296,12 @@ int main(int argc, char* argv[]) {
     if (config.m_append && config.m_flat_nodes != "" && config.m_driver_config.untagged_nodes) {
         print_help(argv, "Ambigous command line options. A flat nodes file cannot be specified together with --untagged-nodes.");
     }
+    if (config.m_append && !config.m_flat_nodes.empty() && config.m_location_handler != "dense_file_array") {
+        std::cerr << "WARNING: You are using --append with a flatnodes file but the wrong location index type.\n" \
+                "Flat node files can be only used with the dense_file_array location index in update mode.\n" \
+                "--location-handler will be ignored and set to \"dense_file_array\"\n";
+        config.m_location_handler = "dense_file_array";
+    }
 
     int remaining_args = argc - optind;
     if (remaining_args != 1) {
