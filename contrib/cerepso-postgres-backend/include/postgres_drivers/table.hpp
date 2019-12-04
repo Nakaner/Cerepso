@@ -127,6 +127,11 @@ namespace postgres_drivers {
             } else if (m_columns.get_type() == TableType::RELATION_OTHER) {
                 query = (boost::format("UPDATE %1% SET geom_points = $1, geom_lines = $2 WHERE osm_id = $3") % m_name).str();
                 create_prepared_statement("update_relation_member_geometry", query, 3);
+            } else if (m_columns.get_type() == TableType::AREA) {
+                query = (boost::format("SELECT 1 FROM %1% WHERE osm_id = $1") % m_name).str();
+                create_prepared_statement("count_osm_id", query, 1);
+                query = (boost::format("UPDATE %1% SET geom = $1 WHERE osm_id = $2") % m_name).str();
+                create_prepared_statement("update_geometry", query, 2);
             }
         }
 
