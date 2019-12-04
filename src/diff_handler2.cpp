@@ -559,11 +559,21 @@ void DiffHandler2::write_new_ways() {
         m_areas_table->start_copy();
     }
     m_relations_table.start_copy();
+    if (m_node_relations_table && m_way_relations_table && m_relation_relations_table) {
+        m_node_relations_table->start_copy();
+        m_way_relations_table->start_copy();
+        m_relation_relations_table->start_copy();
+    }
     m_progress = TypeProgress::RELATION;
 }
 
 void DiffHandler2::after_relations() {
     m_relations_table.end_copy();
+    if (m_node_relations_table && m_way_relations_table && m_relation_relations_table) {
+        m_node_relations_table->end_copy();
+        m_way_relations_table->end_copy();
+        m_relation_relations_table->end_copy();
+    }
     if (m_areas_table) {
         m_areas_table->end_copy();
     }
