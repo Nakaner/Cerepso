@@ -21,8 +21,8 @@ RelationCollector::RelationCollector(CerepsoConfig& config,  postgres_drivers::C
     m_database_table.init();
 }
 
-bool RelationCollector::new_relation(const osmium::Relation&) const {
-    return true;
+bool RelationCollector::new_relation(const osmium::Relation& relation) const {
+    return !relation.deleted();
 }
 
 bool RelationCollector::new_member(const osmium::Relation& /*relation*/, const osmium::RelationMember& /*member*/, std::size_t /*n*/) noexcept {
