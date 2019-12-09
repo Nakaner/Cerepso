@@ -15,8 +15,9 @@
 
 
 void DiffHandler1::node(const osmium::Node& node) {
-    // if node has version 1, we don't have to check if it already exists
-    if (node.version() > 1) {
+    // If node has version 1, we don't have to check if it already exists.
+    // The latter check is necessary to get along with somehow broken diff files (or handcrafted diffs).
+    if (node.version() > 1 || node.deleted()) {
         // expire tiles where the node has been before
         try {
             // Get old location from database before it is deleted.
@@ -49,7 +50,8 @@ void DiffHandler1::node(const osmium::Node& node) {
 
 
 void DiffHandler1::way(const osmium::Way& way) {
-    if (way.version() > 1) {
+    // The latter check is necessary to get along with somehow broken diff files (or handcrafted diffs).
+    if (way.version() > 1 || way.deleted()) {
         // expire all tiles which have been crossed by the linestring before
         //TODO read locations from location cache instead parsing WKB using GEOS
         std::unique_ptr<geos::geom::Geometry> old_geom = m_ways_linear_table.get_linestring(way.id(), m_geom_factory.get());
@@ -70,7 +72,8 @@ void DiffHandler1::way(const osmium::Way& way) {
 
 
 void DiffHandler1::relation(const osmium::Relation& relation) {
-    if (relation.version() > 1) {
+    // The latter check is necessary to get along with somehow broken diff files (or handcrafted diffs).
+    if (relation.version() > 1 || relation.deleted()) {
         m_relations_table.delete_object(relation.id());
         // A polygon might have been written to both the relations and the polygon table. Therefore we have to check both.
         if (m_config.m_areas) {
