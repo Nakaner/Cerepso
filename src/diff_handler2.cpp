@@ -139,22 +139,28 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
     for (auto it = members.begin(); it != members.end(); ++it) {
         if (it->type == osmium::item_type::node) {
             osmium::Location loc = get_point_from_tables(it->id);
-            std::unique_ptr<geos::geom::Point> point (m_geom_factory->createPoint(geos::geom::Coordinate(loc.lon(), loc.lat())));
-            points->push_back(point.release());
+            if (loc.valid()) {
+                std::unique_ptr<geos::geom::Point> point (m_geom_factory->createPoint(
+                        geos::geom::Coordinate(loc.lon_without_check(), loc.lat_without_check())));
+                points->push_back(point.release());
+            }
         } else if (it->type == osmium::item_type::way) {
             //TODO not DRY with insert_relation()
             std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(it->id);
-            std::vector<geos::geom::Coordinate> coordinates;
-            coordinates.reserve(nodes.size());
-            std::vector<MemberNode>::iterator itn = nodes.begin();
-            std::vector<geos::geom::Coordinate>::iterator itc = coordinates.begin();
-            for (; itn != nodes.end() && itc != coordinates.end(); ++itn, ++itc) {
+            std::unique_ptr<std::vector<geos::geom::Coordinate>> coordinates {new std::vector<geos::geom::Coordinate>};
+            coordinates->reserve(nodes.size());
+            bool all_locations_valid = true;
+            for (auto itn = nodes.begin(); itn != nodes.end(); ++itn) {
                 osmium::Location loc = get_point_from_tables(itn->node_ref.ref());
-                itc->x = loc.lon();
-                itc->y = loc.lat();
+                all_locations_valid &= loc.valid();
+                coordinates->emplace_back(loc.lon(), loc.lat());
+            }
+            if (!all_locations_valid) {
+                // some nodes are missing for this way
+                continue;
             }
             geos::geom::CoordinateArraySequenceFactory coord_sequence_factory;
-            std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(&coordinates)};
+            std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(coordinates.release())};
             std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory->createLineString(coord_sequence.release())};
             if (linestring) {
                 linestrings->push_back(linestring.release());
@@ -175,16 +181,18 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
     // convert to WKB
     std::stringstream multilinestring_stream;
     wkb_writer.writeHEX(*multilinestrings, multilinestring_stream);
-    delete multilinestrings;
-    m_relations_table.update_relation_member_geometry(id, multipoint_stream.str().c_str(), multilinestring_stream.str().c_str());
+    std::string mp_str = multipoint_stream.str();
+    std::string ml_str = multilinestring_stream.str();
+    m_relations_table.update_relation_member_geometry(id, mp_str.c_str(), ml_str.c_str());
     //TODO code before this "if" becomes unnecessary once ways are not written to lines table any more if they are considered as areas only.
-    if (m_config.m_areas) {
+    if (m_config.m_areas && (m_areas_table->count_osm_id(-id) > 0)) {
         update_multipolygon_geometry(id, members);
     }
+    delete multilinestrings;
 }
 
 void DiffHandler2::update_multipolygon_geometry(const osmium::object_id_type id,
-        const std::vector<postgres_drivers::MemberIdTypePos>& members) {
+        std::vector<postgres_drivers::MemberIdTypePos>& members) {
     std::vector<const osmium::Way*> ways;
     ways.reserve(members.size());
     for (auto& m : members) {
@@ -198,6 +206,13 @@ void DiffHandler2::update_multipolygon_geometry(const osmium::object_id_type id,
         } else {
             // Fetch the elements of the way from the database and reconstruct the OSM object.
             std::vector<MemberNode> nodes = m_node_ways_table->get_way_nodes(m.id);
+            if (nodes.size() < 2) {
+                // No nodes found for this member. Skip it and set its ID to 0.
+                // The ID is set to 0 to mark this member as incomplete and avoid that we
+                // add it to our artificially created relation below.
+                m.id = 0;
+                continue;
+            }
             {
                 osmium::builder::WayBuilder way_builder(m_relation_buffer);
                 osmium::Way& reconstructeded_way = static_cast<osmium::Way&>(way_builder.object());
@@ -232,9 +247,9 @@ void DiffHandler2::update_multipolygon_geometry(const osmium::object_id_type id,
                 rml_builder.add_member(osmium::item_type::way, member_id, "");
             }
         }
-        m_relation_buffer.commit();
         relation = &reconstructed_relation;
     }
+    m_relation_buffer.commit();
     try {
         //TODO make osmium::area::Assembler a template parameter
         osmium::area::AssemblerConfig assembler_config;
@@ -463,7 +478,6 @@ void DiffHandler2::area(const osmium::Area& area) {
     }
     handle_area(area);
     // expire tiles
-    std::cerr << area.orig_id() << '\n';
     for (auto it = area.outer_rings().begin(); it != area.outer_rings().end(); ++it) {
         m_expire_tiles->expire_from_coord_sequence(*it);
     }

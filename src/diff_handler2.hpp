@@ -133,9 +133,13 @@ class DiffHandler2 : public PostgresHandler {
 
     /**
      * Build an Osmium Area object for a relation whose members changed.
+     *
+     * \param id relation ID
+     * \param members ID, type and rank of the members. The method will set the ID of a
+     * way member in the vector to 0 if there are no nodes available for it.
      */
     void update_multipolygon_geometry(const osmium::object_id_type id,
-            const std::vector<postgres_drivers::MemberIdTypePos>& members);
+            std::vector<postgres_drivers::MemberIdTypePos>& members);
 
     /**
      * Sort a container of osmium::object_id_type, remove duplicates and then call a function for each non-zero element.
