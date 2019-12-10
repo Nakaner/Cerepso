@@ -1,0 +1,11 @@
+/*! \page good_to_know Tips, tricks and troubleshooting
+
+## Updating
+
+You can apply an update (in the correct order of course) twice but this will lead to some
+inconsistencies you have to fix manually:
+
+* If the update adds new geometries, these geometries might be duplicated if the previous
+  application of that update succeded in writing them into the database. Delete all duplicated rows
+  from all tables from the SQL console.
+*/
