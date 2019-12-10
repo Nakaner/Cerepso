@@ -420,6 +420,8 @@ int main(int argc, char* argv[]) {
 
         // work on incomplete multipolygon and boundary relations
         if (config.m_areas) {
+            // Flush the content of the output buffer of the area assembler.
+            append_handler2.flush();
             areas_table.start_copy();
             mp_manager->for_each_incomplete_relation([&](const osmium::relations::RelationHandle& handle){
                 append_handler2.incomplete_relation(handle);

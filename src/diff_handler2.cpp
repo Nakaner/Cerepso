@@ -572,6 +572,7 @@ void DiffHandler2::write_new_ways() {
     std::cerr << " done\n";
 
     if (m_areas_table) {
+        flush();
         m_areas_table->start_copy();
     }
     m_relations_table.start_copy();
