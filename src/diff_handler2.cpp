@@ -110,6 +110,7 @@ void DiffHandler2::node(const osmium::Node& node) {
     if (node.deleted()) { // we are finish now
         return;
     }
+    //TODO Expire tiles
     handle_node(node);
     // check if ways have to be updated
     std::vector<osmium::object_id_type> new_way_ids = m_node_ways_table->get_way_ids(node.id());
@@ -267,7 +268,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
         std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
         std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
         // check if this relation should trigger a tile expiration
-        bool trigger_tile_expiry = m_config.expire_this_relation(relation.tags());
+        bool trigger_tile_expiry = m_config.m_expiry_enabled && m_config.expire_this_relation(relation.tags());
         for (const auto& member : relation.members()) {
             if ((member.type() == osmium::item_type::node)) {
                 osmium::Location loc = get_point_from_tables(member.ref());
@@ -348,7 +349,9 @@ void DiffHandler2::way(const osmium::Way& way) {
     // update list of member nodes
     m_node_ways_table->send_line(prepare_node_way_query(way));
     // expire tiles
-    m_expire_tiles->expire_from_coord_sequence(way.nodes());
+    if (m_config.m_expiry_enabled) {
+        m_expire_tiles->expire_from_coord_sequence(way.nodes());
+    }
     // remove from list of pending ways
     std::vector<osmium::object_id_type>::size_type found = m_pending_ways_idx;
     for (; found != m_pending_ways.size(); ++found) {
@@ -478,8 +481,10 @@ void DiffHandler2::area(const osmium::Area& area) {
     }
     handle_area(area);
     // expire tiles
-    for (auto it = area.outer_rings().begin(); it != area.outer_rings().end(); ++it) {
-        m_expire_tiles->expire_from_coord_sequence(*it);
+    if (m_config.m_expiry_enabled) {
+        for (auto it = area.outer_rings().begin(); it != area.outer_rings().end(); ++it) {
+            m_expire_tiles->expire_from_coord_sequence(*it);
+        }
     }
     // TODO remove from list of pending ways
 }

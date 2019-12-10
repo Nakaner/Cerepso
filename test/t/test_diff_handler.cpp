@@ -47,7 +47,7 @@ TEST_CASE("inserting new way works") {
     PostgresTable way_relations_table("way_relations", config, way_relations_columns);
     PostgresTable relation_relations_table("relation_relations", config, relation_relations_columns);
     ExpireTilesFactory expire_tiles_factory;
-    config.m_expiry_type = "";
+    config.m_expiry_enabled = false;
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
 
     std::unique_ptr<sparse_mmap_array_t> index {new sparse_mmap_array_t()};

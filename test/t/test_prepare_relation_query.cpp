@@ -84,7 +84,7 @@ TEST_CASE("check if preparing a query to insert a relation works") {
 
     // We use a DiffHandler2 to insert nodes and ways into the database
     ExpireTilesFactory expire_tiles_factory;
-    config.m_expiry_type = "";
+    config.m_expiry_enabled = false;
     ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
     config.m_append = true;
 

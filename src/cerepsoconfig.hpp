@@ -103,15 +103,9 @@ public:
     std::string m_expire_tiles = "";
 
     /**
-     * Selected TileExpiry implementation.
-     *
-     * Available implementations:
-     *
-     * - dummy (default – does nothing)
-     * - classic (old osm2pgsql – might be buggy, only for backward compatability, deprecated)
-     * - quadtree (new implementation, suggested)
+     * Enable tile expiry
      */
-    std::string m_expiry_type = "dummy";
+    bool m_expiry_enabled = false;
 
     /// minimum zoom level for tile expiry
     int m_min_zoom = 9;
