@@ -306,7 +306,7 @@ namespace postgres_drivers {
                 m_type(type)/*,
                 m_tags()*/ {
             init(config, type);
-            if (is_osm_object_table_type(type)) {
+            if (is_osm_object_table_type(type) && type != TableType::UNTAGGED_POINT) {
                 add_hstore_column(config);
             }
         }
@@ -404,7 +404,7 @@ namespace postgres_drivers {
             for (auto& k : nocolumn_keys) {
                 m_tags_filter.add_rule(true, k);
             }
-            if (is_osm_object_table_type(type)) {
+            if (is_osm_object_table_type(type) && type != TableType::UNTAGGED_POINT) {
                 add_hstore_column(config);
             }
         }
