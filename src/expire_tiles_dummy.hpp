@@ -8,6 +8,8 @@
 #ifndef DUMMY_EXPIRE_HPP_
 #define DUMMY_EXPIRE_HPP_
 
+#include "expire_tiles.hpp"
+
 /**
  * \brief Dummy class for creating tile expiry lists. Used if no expiry list should be created.
  *

@@ -30,13 +30,13 @@ add_test(NAME test_node_handler
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND test_node_handler)
 
-add_executable(test_diff_handler t/test_diff_handler.cpp ../src/diff_handler2.cpp ../src/postgres_table.cpp ../src/postgres_handler.cpp ../src/associated_street_relation_manager.cpp ../src/expire_tiles_factory.cpp ../src/expire_tiles_classic.cpp ../src/expire_tiles_quadtree.cpp  ../src/expire_tiles.cpp ../src/database_location_handler.cpp)
+add_executable(test_diff_handler t/test_diff_handler.cpp ../src/diff_handler2.cpp ../src/postgres_table.cpp ../src/postgres_handler.cpp ../src/associated_street_relation_manager.cpp ../src/expire_tiles_factory.cpp ../src/expire_tiles_quadtree.cpp  ../src/expire_tiles.cpp ../src/database_location_handler.cpp)
 target_link_libraries(test_diff_handler testlib ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${GEOS_LIBRARY})
 add_test(NAME test_diff_handler
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND test_diff_handler)
 
-add_executable(test_prepare_relation_query t/test_prepare_relation_query.cpp ../src/postgres_table.cpp ../src/postgres_handler.cpp ../src/associated_street_relation_manager.cpp ../src/expire_tiles_factory.cpp ../src/expire_tiles_classic.cpp ../src/expire_tiles_quadtree.cpp  ../src/expire_tiles.cpp ../src/diff_handler2.cpp ../src/database_location_handler.cpp)
+add_executable(test_prepare_relation_query t/test_prepare_relation_query.cpp ../src/postgres_table.cpp ../src/postgres_handler.cpp ../src/associated_street_relation_manager.cpp ../src/expire_tiles_factory.cpp ../src/expire_tiles_quadtree.cpp  ../src/expire_tiles.cpp ../src/diff_handler2.cpp ../src/database_location_handler.cpp)
 target_link_libraries(test_prepare_relation_query testlib ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${GEOS_LIBRARY})
 add_test(NAME test_prepare_relation_query
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

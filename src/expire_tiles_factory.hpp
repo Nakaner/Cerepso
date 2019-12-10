@@ -8,7 +8,6 @@
 #ifndef EXPIRE_TILES_FACTORY_HPP_
 #define EXPIRE_TILES_FACTORY_HPP_
 
-#include "expire_tiles_classic.hpp"
 #include "expire_tiles_quadtree.hpp"
 #include "expire_tiles_dummy.hpp"
 
@@ -32,7 +31,6 @@ public:
     ExpireTiles* create_expire_tiles(CerepsoConfig& config);
 
 private:
-    ExpireTilesClassic* create_classic(CerepsoConfig& config);
     ExpireTilesQuadtree* create_qt(CerepsoConfig& config);
     ExpireTilesDummy* create_dummy(CerepsoConfig& config);
 };

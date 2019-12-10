@@ -135,7 +135,6 @@ void print_help(char* argv[], std::string message = "", const int return_code = 
     "  --associated-streets             Apply tags of relations of type associatedStreet to their members\n" \
     "  -d, --database-name              database name\n" \
     "  -e FILE, --expire-tiles=FILE     write an expiry_tile list to FILE\n" \
-    "  -E TYPE, --expiry-generator=TYPE choose TYPE as expiry list generator\n" \
     "  --expire-relations=SETTING       expiration setting for relations: NONE, ALL, NO_ROUTES\n" \
     "  -f PATH, --flat-nodes=PATH       Flatnodes file path.\n" \
     "                                     Import mode: dump node locations to this path.\n" \
@@ -172,7 +171,6 @@ int main(int argc, char* argv[]) {
             {"debug",  no_argument, 0, 'D'},
             {"database",  required_argument, 0, 'd'},
             {"expire-tiles",  required_argument, 0, 'e'},
-            {"expiry-generator",  required_argument, 0, 'E'},
             {"expire-relations", required_argument, 0, 202},
             {"flat-nodes", required_argument, 0, 'f'},
             {"hstore", no_argument, 0, 'H'},
@@ -210,9 +208,7 @@ int main(int argc, char* argv[]) {
                 break;
             case 'e':
                 config.m_expire_tiles = optarg;
-                break;
-            case 'E':
-                config.m_expiry_type = optarg;
+                config.m_expiry_enabled = true;
                 break;
             case 'f':
                 config.m_flat_nodes = optarg;
@@ -285,7 +281,7 @@ int main(int argc, char* argv[]) {
                 exit(1);
         }
     }
-    if ((config.m_expiry_type != "dummy") && (config.m_max_zoom == 0)) {
+    if ((config.m_expiry_enabled) && (config.m_max_zoom == 0)) {
         // set max zoom to min zoom if the user uses this tool like osm2pgsql
         config.m_max_zoom = config.m_min_zoom;
     }
@@ -385,9 +381,6 @@ int main(int argc, char* argv[]) {
         ways_linear_table.send_begin();
 
         ExpireTilesFactory expire_tiles_factory;
-        if (config.m_expire_tiles == "") {
-            config.m_expiry_type = "";
-        }
         ExpireTiles* expire_tiles = expire_tiles_factory.create_expire_tiles(config);
         DiffHandler1 append_handler1(config, nodes_table, &untagged_nodes_table, ways_linear_table, relations_table, node_ways_table,
                 node_relations_table, way_relations_table, relation_relations_table, expire_tiles, *location_handler, &areas_table);
