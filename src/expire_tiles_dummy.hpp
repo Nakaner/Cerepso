@@ -30,7 +30,9 @@ public:
 
     void expire_from_coord_sequence(const geos::geom::CoordinateSequence*) {}
 
-    void expire_from_coord_sequence(const osmium::NodeRefList&) {}
+    void expire_from_coord_sequence(const std::vector<osmium::Location>& /*locations*/) {}
+
+    void expire_from_coord_sequence(const osmium::NodeRef* /*begin*/, const osmium::NodeRef* /*end*/) {}
 
     void output_and_destroy() {}
 

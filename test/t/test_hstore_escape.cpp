@@ -6,7 +6,7 @@
  */
 
 #include "catch.hpp"
-#include <postgres_table.hpp>
+#include <tables/postgres_table.hpp>
 
 
 TEST_CASE( "escape4hstore(), escape()") {

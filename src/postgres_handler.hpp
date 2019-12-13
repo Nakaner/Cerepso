@@ -14,7 +14,10 @@
 #include <osmium/geom/factory.hpp>
 #include <wkbhpp/wkbwriter.hpp>
 #include <memory>
-#include "postgres_table.hpp"
+#include "tables/features_table.hpp"
+#include "tables/relation_members_table.hpp"
+#include "tables/node_locations_table.hpp"
+#include "tables/way_nodes_table.hpp"
 #include "associated_street_relation_manager.hpp"
 
 #ifndef POSTGRES_HANDLER_HPP_
@@ -66,7 +69,7 @@ public:
 
     static void add_member_types(const osmium::RelationMemberList& members, std::string& query);
 
-    static void add_geometry(const osmium::OSMObject& object, std::string& query, PostgresTable& table);
+    static void add_geometry(const osmium::OSMObject& object, std::string& query, FeaturesTable& table);
 
     static std::string prepare_query(const osmium::OSMObject& object, PostgresTable& table,
             const osmium::TagList* rel_tags_to_apply);
@@ -119,29 +122,29 @@ public:
 protected:
     CerepsoConfig& m_config;
     /// reference to nodes table
-    PostgresTable& m_nodes_table;
+    FeaturesTable& m_nodes_table;
     /// reference to table of untagged nodes
-    PostgresTable* m_untagged_nodes_table;
+    NodeLocationsTable* m_untagged_nodes_table;
     /// reference to table of all ways
-    PostgresTable& m_ways_linear_table;
+    FeaturesTable& m_ways_linear_table;
     /// reference to table of polkygons
-    PostgresTable* m_areas_table;
+    FeaturesTable* m_areas_table;
     /// pointer to table containing mapping of nodes to the ways using them
-    PostgresTable* m_node_ways_table;
+    WayNodesTable* m_node_ways_table;
     /// pointer to table containing mapping of nodes to the relations using them
-    PostgresTable* m_node_relations_table;
+    RelationMembersTable* m_node_relations_table;
     /// pointer to table containing mapping of ways to the relations using them
-    PostgresTable* m_way_relations_table;
+    RelationMembersTable* m_way_relations_table;
     /// pointer to table containing mapping of relations to the relations using them
-    PostgresTable* m_relation_relations_table;
+    RelationMembersTable* m_relation_relations_table;
     /// reference to relation manager for associatedStreet relations
     AssociatedStreetRelationManager* m_assoc_manager;
 
 
-    PostgresHandler(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
-            PostgresTable* way_relations_table = nullptr, PostgresTable* relation_relations_table = nullptr) :
+    PostgresHandler(CerepsoConfig& config, FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+            AssociatedStreetRelationManager* assoc_manager = nullptr, FeaturesTable* areas_table = nullptr,
+            WayNodesTable* node_ways_table = nullptr, RelationMembersTable* node_relations_table = nullptr,
+            RelationMembersTable* way_relations_table = nullptr, RelationMembersTable* relation_relations_table = nullptr) :
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),
@@ -157,10 +160,10 @@ protected:
     /**
      * \brief constructor for testing purposes, will not establish database connections
      */
-    PostgresHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
-            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
-            PostgresTable* way_relations_table = nullptr, PostgresTable* relation_relations_table = nullptr)  :
+    PostgresHandler(FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table, CerepsoConfig& config,
+            AssociatedStreetRelationManager* assoc_manager = nullptr, FeaturesTable* areas_table = nullptr,
+            WayNodesTable* node_ways_table = nullptr, RelationMembersTable* node_relations_table = nullptr,
+            RelationMembersTable* way_relations_table = nullptr, RelationMembersTable* relation_relations_table = nullptr)  :
             m_config(config),
             m_nodes_table(nodes_table),
             m_untagged_nodes_table(untagged_nodes_table),

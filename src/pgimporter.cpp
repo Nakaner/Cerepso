@@ -29,9 +29,13 @@
 #include "relation_collector.hpp"
 #include "expire_tiles_factory.hpp"
 #include "column_config_parser.hpp"
+#include "tables/node_locations_table.hpp"
+#include "tables/way_nodes_table.hpp"
+#include "tables/relation_members_table.hpp"
 #include "definitions.hpp"
 #include "addr_interpolation_handler.hpp"
 #include "handler_collection.hpp"
+#include "tables/relations_table.hpp"
 
 /**
  * \mainpage
@@ -319,30 +323,30 @@ int main(int argc, char* argv[]) {
     postgres_drivers::Columns interpolation_columns(postgres_drivers::Columns::addr_interpolation_columns());
 
     time_t ts = time(NULL);
-    PostgresTable nodes_table = config_parser.make_point_table("planet_osm_");
+    FeaturesTable nodes_table = config_parser.make_point_table("planet_osm_");
     nodes_table.init();
-    PostgresTable untagged_nodes_table {"untagged_nodes", config, std::move(untagged_nodes_columns)};
+    NodeLocationsTable untagged_nodes_table {"untagged_nodes", config, std::move(untagged_nodes_columns)};
     if (config.m_driver_config.untagged_nodes) {
         untagged_nodes_table.init();
     }
-    PostgresTable node_ways_table {"node_ways", config, std::move(node_ways_columns)};
-    PostgresTable node_relations_table {"node_relations", config, std::move(node_relations_columns)};
-    PostgresTable way_relations_table {"way_relations", config, std::move(way_relations_columns)};
-    PostgresTable relation_relations_table {"relation_relations", config, std::move(relation_relations_columns)};
+    WayNodesTable node_ways_table {"node_ways", config, std::move(node_ways_columns)};
+    RelationMembersTable node_relations_table {"node_relations", config, std::move(node_relations_columns)};
+    RelationMembersTable way_relations_table {"way_relations", config, std::move(way_relations_columns)};
+    RelationMembersTable relation_relations_table {"relation_relations", config, std::move(relation_relations_columns)};
     if (config.m_driver_config.updateable) {
         node_ways_table.init();
         node_relations_table.init();
         way_relations_table.init();
         relation_relations_table.init();
     }
-    PostgresTable ways_linear_table = config_parser.make_line_table("planet_osm_");
+    FeaturesTable ways_linear_table = config_parser.make_line_table("planet_osm_");
     ways_linear_table.init();
-    PostgresTable areas_table = config_parser.make_polygon_table("planet_osm_");
+    FeaturesTable areas_table = config_parser.make_polygon_table("planet_osm_");
     if (config.m_areas) {
         areas_table.init();
     }
-    PostgresTable interpolated_table {"interpolated_addresses", config,
-        std::move(interpolation_columns)};
+    FeaturesTable interpolated_table {"interpolated_addresses", config,
+        std::move(interpolation_columns), osmium::osm_entity_bits::node};
     AddrInterpolationHandler* interpolated_handler;
     if (config.m_address_interpolations) {
         interpolated_table.init();
@@ -363,16 +367,14 @@ int main(int argc, char* argv[]) {
             location_index = load_index(config.m_flat_nodes.c_str(), config.m_location_handler);
         }
         postgres_drivers::Columns untagged_nodes_columns2(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
-        PostgresTable locations_untagged_table {"untagged_nodes", config, std::move(untagged_nodes_columns2)};
+        NodeLocationsTable locations_untagged_table {"untagged_nodes", config, std::move(untagged_nodes_columns2)};
         postgres_drivers::Columns nodes_columns2(config.m_driver_config, postgres_drivers::TableType::POINT);
-        PostgresTable locations_table {"planet_osm_point", config, std::move(nodes_columns2)};
         locations_untagged_table.init();
-        locations_table.init();
         std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<dense_file_array_t>(
-                locations_table, locations_untagged_table, std::move(location_index));
+                locations_untagged_table, std::move(location_index));
         location_handler->ignore_errors();
         osmium::io::Reader reader1(config.m_osm_file, osmium::osm_entity_bits::nwr);
-        PostgresTable relations_table("relations", config, std::move(relation_other_columns));
+        RelationsTable relations_table("relations", config, std::move(relation_other_columns));
         relations_table.init();
         // send BEGIN to all tables
         relations_table.send_begin();

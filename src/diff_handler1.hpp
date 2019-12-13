@@ -8,6 +8,7 @@
 #ifndef APPEND_HANDLER_HPP_
 #define APPEND_HANDLER_HPP_
 #include "postgres_handler.hpp"
+#include "tables/relations_table.hpp"
 #include "expire_tiles.hpp"
 #include "geos_compatibility_definitions.hpp"
 #include "definitions.hpp"
@@ -25,7 +26,7 @@ private:
     /**
      * \brief additional table for relations which is not inherited from PostgresHandler
      */
-    PostgresTable& m_relations_table;
+    RelationsTable& m_relations_table;
 
     ExpireTiles* m_expire_tiles;
 
@@ -34,11 +35,11 @@ private:
     geos_factory_type m_geom_factory;
 
 public:
-    DiffHandler1(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+    DiffHandler1(CerepsoConfig& config, FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+            RelationsTable& relations_table, WayNodesTable& node_ways_table, RelationMembersTable& node_relations_table,
+            RelationMembersTable& way_relations_table, RelationMembersTable& relation_relations_table,
             ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
-            PostgresTable* areas_table = nullptr) :
+            FeaturesTable* areas_table = nullptr) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, areas_table, &node_ways_table,
             &node_relations_table, &way_relations_table, &relation_relations_table),
         m_relations_table(relations_table),
@@ -54,11 +55,11 @@ public:
     /**
      * \brief Constructor for testing purposes, will not establish database connections.
      */
-    DiffHandler1(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, CerepsoConfig& config, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+    DiffHandler1(FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+            RelationsTable& relations_table, CerepsoConfig& config, WayNodesTable& node_ways_table, RelationMembersTable& node_relations_table,
+            RelationMembersTable& way_relations_table, RelationMembersTable& relation_relations_table,
             ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
-            PostgresTable* areas_table = nullptr) :
+            FeaturesTable* areas_table = nullptr) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, areas_table, &node_ways_table,
             &node_relations_table, &way_relations_table, &relation_relations_table),
         m_relations_table(relations_table),

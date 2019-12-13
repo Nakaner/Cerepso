@@ -13,6 +13,7 @@
 #include <osmium/area/assembler.hpp>
 #include <osmium/area/multipolygon_manager.hpp>
 #include "postgres_handler.hpp"
+#include "tables/relations_table.hpp"
 #include "geos_compatibility_definitions.hpp"
 #include "expire_tiles.hpp"
 #include "definitions.hpp"
@@ -35,7 +36,7 @@ class DiffHandler2 : public PostgresHandler {
     /**
      * additional table for relations which is not inherited from PostgresHandler
      */
-    PostgresTable& m_relations_table;
+    RelationsTable& m_relations_table;
 
     UpdateLocationHandler& m_location_index;
 
@@ -150,21 +151,21 @@ class DiffHandler2 : public PostgresHandler {
     void clean_up_container_and_work_on(std::vector<osmium::object_id_type>& container, std::function<void(osmium::object_id_type)> func);
 
 public:
-    DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+    DiffHandler2(CerepsoConfig& config, FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+            RelationsTable& relations_table, WayNodesTable& node_ways_table, RelationMembersTable& node_relations_table,
+            RelationMembersTable& way_relations_table, RelationMembersTable& relation_relations_table,
             ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
-            PostgresTable* areas_table = nullptr,
+            FeaturesTable* areas_table = nullptr,
             osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
 
     /**
      * \brief constructor for testing purposes, will not establish database connections
      */
-    DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-            PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+    DiffHandler2(FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+            RelationsTable& relations_table, WayNodesTable& node_ways_table, RelationMembersTable& node_relations_table,
+            RelationMembersTable& way_relations_table, RelationMembersTable& relation_relations_table,
             CerepsoConfig& config, ExpireTiles* expire_tiles,
-            UpdateLocationHandler& location_index, PostgresTable* areas_table = nullptr,
+            UpdateLocationHandler& location_index, FeaturesTable* areas_table = nullptr,
             osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager = nullptr);
 
     ~DiffHandler2();

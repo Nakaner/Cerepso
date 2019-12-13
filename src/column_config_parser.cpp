@@ -126,28 +126,28 @@ void ColumnConfigParser::parse() {
     }
 }
 
-PostgresTable ColumnConfigParser::make_point_table(const char* prefix) {
+FeaturesTable ColumnConfigParser::make_point_table(const char* prefix) {
     std::string name = prefix;
     name += "point";
     postgres_drivers::Columns cols {m_config.m_driver_config, m_point_columns, m_drop_filter,
         m_nocolumn_keys, postgres_drivers::TableType::POINT};
-    return PostgresTable(name.c_str(), m_config, cols);
+    return FeaturesTable(name.c_str(), m_config, cols, osmium::osm_entity_bits::node);
 }
 
-PostgresTable ColumnConfigParser::make_line_table(const char* prefix) {
+FeaturesTable ColumnConfigParser::make_line_table(const char* prefix) {
     std::string name = prefix;
     name += "line";
     postgres_drivers::Columns cols {m_config.m_driver_config, m_line_columns, m_drop_filter,
         m_nocolumn_keys, postgres_drivers::TableType::WAYS_LINEAR};
-    return PostgresTable(name.c_str(), m_config, cols);
+    return FeaturesTable(name.c_str(), m_config, cols, osmium::osm_entity_bits::way);
 }
 
-PostgresTable ColumnConfigParser::make_polygon_table(const char* prefix) {
+FeaturesTable ColumnConfigParser::make_polygon_table(const char* prefix) {
     std::string name = prefix;
     name += "polygon";
     postgres_drivers::Columns cols {m_config.m_driver_config, m_polygon_columns, m_drop_filter,
         m_nocolumn_keys, postgres_drivers::TableType::AREA};
-    return PostgresTable(name.c_str(), m_config, cols);
+    return FeaturesTable(name.c_str(), m_config, cols, osmium::osm_entity_bits::area);
 }
 
 std::vector<std::string>& ColumnConfigParser::nocolumn_keys() {

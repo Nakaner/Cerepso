@@ -41,14 +41,10 @@ void DiffHandler1::node(const osmium::Node& node) {
         }
     }
     // delete old node, try first untagged nodes table
-    // TODO untagged_nodes table maybe not necessary any more
-    if (!m_config.m_driver_config.untagged_nodes) {
-        m_nodes_table.delete_object(node.id());
-    } else {
-        if (!m_untagged_nodes_table->delete_object(node.id())) {
-            m_nodes_table.delete_object(node.id());
-        }
+    if (m_config.m_driver_config.untagged_nodes) {
+        m_untagged_nodes_table->delete_object(node.id());
     }
+    m_nodes_table.delete_object(node.id());
 }
 
 
@@ -58,12 +54,16 @@ void DiffHandler1::way(const osmium::Way& way) {
         return;
     }
     if (m_config.m_expiry_enabled) {
-        // expire all tiles which have been crossed by the linestring before
-        //TODO read locations from location cache instead parsing WKB using GEOS
-        std::unique_ptr<geos::geom::Geometry> old_geom = m_ways_linear_table.get_linestring(way.id(), m_geom_factory.get());
-        if (old_geom) {
-            // nullptr will be returned if there is no old version in the database (happens if importing diffs of extracts)
-            m_expire_tiles->expire_from_geos_linestring(old_geom.get());
+        std::vector<osmium::Location> locations;
+        locations.reserve(way.nodes().size());
+        bool valid = true;
+        for (auto& n : way.nodes()) {
+            osmium::Location loc = m_location_index.get_node_location(n.ref());
+            valid &= loc.valid();
+            locations.push_back(std::move(loc));
+        }
+        if (valid) {
+            m_expire_tiles->expire_from_coord_sequence(locations);
         }
     }
     m_ways_linear_table.delete_object(way.id());
@@ -85,9 +85,9 @@ void DiffHandler1::relation(const osmium::Relation& relation) {
         if (m_config.m_areas) {
             m_areas_table->delete_object(relation.id());
         }
-        m_node_relations_table->delete_relation_members(relation.id());
-        m_way_relations_table->delete_relation_members(relation.id());
-        m_relation_relations_table->delete_relation_members(relation.id());
+        m_node_relations_table->delete_members_by_object_id(relation.id());
+        m_way_relations_table->delete_members_by_object_id(relation.id());
+        m_relation_relations_table->delete_members_by_object_id(relation.id());
     }
 }
 

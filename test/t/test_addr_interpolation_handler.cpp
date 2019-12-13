@@ -21,8 +21,8 @@ using namespace osmium::builder::attr; // NOLINT(google-build-using-namespace)
 std::string get_copy_data(osmium::memory::Buffer& buffer) {
     CerepsoConfig config;
     postgres_drivers::Columns interpolation_columns(postgres_drivers::Columns::addr_interpolation_columns());
-    PostgresTable interpolated_table {"interpolated_addresses", config,
-        std::move(interpolation_columns)};
+    FeaturesTable interpolated_table {"interpolated_addresses", config,
+        std::move(interpolation_columns), osmium::osm_entity_bits::node};
     AddrInterpolationHandler handler {interpolated_table};
 
     index_type location_index;

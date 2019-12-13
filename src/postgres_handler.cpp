@@ -115,7 +115,7 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
     query.push_back('}');
 }
 
-/*static*/ void PostgresHandler::add_geometry(const osmium::OSMObject& object, std::string& query, PostgresTable& table) {
+/*static*/ void PostgresHandler::add_geometry(const osmium::OSMObject& object, std::string& query, FeaturesTable& table) {
     std::string wkb; // initalize with empty geometry
     try {
         switch (object.type()) {
@@ -221,7 +221,7 @@ const osmium::TagList* PostgresHandler::get_relation_tags_to_apply(const osmium:
             && table.config().m_driver_config.updateable) {
         add_way_nodes(static_cast<const osmium::Way&>(object).nodes(), query);
     } else if (it->column_class() == postgres_drivers::ColumnClass::GEOMETRY) {
-        add_geometry(object, query, table);
+        add_geometry(object, query, static_cast<FeaturesTable&>(table));
     } else if (object.type() == osmium::item_type::node && it->column_class() == postgres_drivers::ColumnClass::LATITUDE) {
         add_int32(query, static_cast<const osmium::Node&>(object).location().y());
     } else if (object.type() == osmium::item_type::node && it->column_class() == postgres_drivers::ColumnClass::LONGITUDE) {
@@ -320,19 +320,16 @@ void PostgresHandler::handle_node(const osmium::Node& node) {
     if (!node.location().valid()) {
         return;
     }
-    if (!m_config.m_driver_config.untagged_nodes && node.tags().empty()) {
-        return;
-    }
-    std::string query;
-    bool with_tags = m_nodes_table.has_interesting_tags(node.tags());
-    if (with_tags) {
-        const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
-        std::string query = prepare_query(node, m_nodes_table, rel_tags_to_apply);
-        m_nodes_table.send_line(query);
-    } else if (m_config.m_driver_config.untagged_nodes) {
+    if (m_config.m_driver_config.untagged_nodes) {
         std::string query = prepare_query(node, *m_untagged_nodes_table, nullptr);
         m_untagged_nodes_table->send_line(query);
     }
+    if (!m_nodes_table.has_interesting_tags(node.tags())) {
+        return;
+    }
+    const osmium::TagList* rel_tags_to_apply = get_relation_tags_to_apply(node.id(), osmium::item_type::node);
+    std::string query = prepare_query(node, m_nodes_table, rel_tags_to_apply);
+    m_nodes_table.send_line(query);
 }
 
 void PostgresHandler::handle_area(const osmium::Area& area) {

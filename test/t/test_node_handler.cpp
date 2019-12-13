@@ -7,7 +7,8 @@
 
 #include "catch.hpp"
 #include "object_builder_utilities.hpp"
-#include <postgres_table.hpp>
+#include <tables/features_table.hpp>
+#include <tables/node_locations_table.hpp>
 #include <postgres_drivers/columns.hpp>
 #include "../../src/import_handler.hpp"
 
@@ -36,9 +37,9 @@ TEST_CASE("node handler produces good lines for COPY") {
     postgres_drivers::Columns node_columns(config.m_driver_config, postgres_drivers::TableType::POINT);
     postgres_drivers::Columns untagged_nodes_columns(config.m_driver_config, postgres_drivers::TableType::UNTAGGED_POINT);
     postgres_drivers::Columns way_columns(config.m_driver_config, postgres_drivers::TableType::WAYS_LINEAR);
-    PostgresTable nodes_table (node_columns, config);
-    PostgresTable untagged_nodes_table (untagged_nodes_columns, config);
-    PostgresTable ways_table (way_columns, config);
+    FeaturesTable nodes_table (node_columns, config, osmium::osm_entity_bits::node);
+    NodeLocationsTable untagged_nodes_table (untagged_nodes_columns, config);
+    FeaturesTable ways_table (way_columns, config, osmium::osm_entity_bits::way);
     ImportHandler handler(nodes_table, &untagged_nodes_table, ways_table, config);
 
     std::string query_str = handler.prepare_query(node, nodes_table, nullptr);

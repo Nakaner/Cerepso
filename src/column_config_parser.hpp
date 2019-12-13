@@ -13,7 +13,7 @@
 #include <postgres_drivers/columns.hpp>
 
 #include "cerepsoconfig.hpp"
-#include "postgres_table.hpp"
+#include "tables/features_table.hpp"
 
 enum class ColumnConfigFlag : char {
     LINEAR = 1,
@@ -53,11 +53,11 @@ public:
 
     void parse();
 
-    PostgresTable make_point_table(const char* prefix);
+    FeaturesTable make_point_table(const char* prefix);
 
-    PostgresTable make_line_table(const char* prefix);
+    FeaturesTable make_line_table(const char* prefix);
 
-    PostgresTable make_polygon_table(const char* prefix);
+    FeaturesTable make_polygon_table(const char* prefix);
 
     std::vector<std::string>& nocolumn_keys();
 

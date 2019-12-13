@@ -8,19 +8,20 @@
 #include <geos/geom/CoordinateArraySequenceFactory.h>
 #include <geos/geom/CoordinateArraySequence.h>
 #include <geos/geom/GeometryFactory.h>
+#include <geos/geom/Point.h>
 #include <geos/io/WKBWriter.h>
 #include <geos/geom/LineString.h>
 #include <osmium/osm/relation.hpp>
 
 #include "diff_handler2.hpp"
-#include "postgres_table.hpp"
 
 
-DiffHandler2::DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-        PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-        PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+DiffHandler2::DiffHandler2(CerepsoConfig& config, FeaturesTable& nodes_table,
+        NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+        RelationsTable& relations_table, WayNodesTable& node_ways_table, RelationMembersTable& node_relations_table,
+        RelationMembersTable& way_relations_table, RelationMembersTable& relation_relations_table,
         ExpireTiles* expire_tiles, UpdateLocationHandler& location_index,
-        PostgresTable* areas_table /*= nullptr*/,
+        FeaturesTable* areas_table /*= nullptr*/,
         osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, nullptr, areas_table, &node_ways_table,
                 &node_relations_table, &way_relations_table, &relation_relations_table),
@@ -62,11 +63,11 @@ DiffHandler2::DiffHandler2(CerepsoConfig& config, PostgresTable& nodes_table, Po
 /**
  * \brief constructor for testing purposes, will not establish database connections
  */
-DiffHandler2::DiffHandler2(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-        PostgresTable& relations_table, PostgresTable& node_ways_table, PostgresTable& node_relations_table,
-        PostgresTable& way_relations_table, PostgresTable& relation_relations_table,
+DiffHandler2::DiffHandler2(FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+        RelationsTable& relations_table, WayNodesTable& node_ways_table, RelationMembersTable& node_relations_table,
+        RelationMembersTable& way_relations_table, RelationMembersTable& relation_relations_table,
         CerepsoConfig& config, ExpireTiles* expire_tiles,
-        UpdateLocationHandler& location_index, PostgresTable* areas_table /*= nullptr*/,
+        UpdateLocationHandler& location_index, FeaturesTable* areas_table /*= nullptr*/,
         osmium::area::MultipolygonManager<osmium::area::Assembler>* mp_manager /*= nullptr*/) :
     PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, nullptr, areas_table, &node_ways_table,
             &node_relations_table, &way_relations_table, &relation_relations_table),
@@ -118,7 +119,7 @@ void DiffHandler2::node(const osmium::Node& node) {
         m_pending_ways.push_back(id);
     }
     // check if relations have to be updated
-    std::vector<osmium::object_id_type> rel_ids = m_node_relations_table->get_relation_ids_by_member(node.id());
+    std::vector<osmium::object_id_type> rel_ids = m_node_relations_table->get_relation_ids(node.id());
     for (auto id : rel_ids) {
         m_pending_relations.push_back(id);
     }
@@ -131,9 +132,9 @@ osmium::Location DiffHandler2::get_point_from_tables(osmium::object_id_type id) 
 void DiffHandler2::update_relation(const osmium::object_id_type id) {
     // get relation members from relations table
     std::vector<postgres_drivers::MemberIdTypePos> members;
-    m_node_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::node);
-    m_way_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::way);
-    m_relation_relations_table->get_members_by_id_and_type(members, id, osmium::item_type::relation);
+    m_node_relations_table->get_members_by_id_and_type<osmium::item_type::node>(members, id);
+    m_way_relations_table->get_members_by_id_and_type<osmium::item_type::way>(members, id);
+    m_relation_relations_table->get_members_by_id_and_type<osmium::item_type::relation>(members, id);
     std::sort(members.begin(), members.end());
     std::vector<geos::geom::Geometry*>* points = new std::vector<geos::geom::Geometry*>();
     std::vector<geos::geom::Geometry*>* linestrings = new std::vector<geos::geom::Geometry*>();
@@ -184,7 +185,7 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
     wkb_writer.writeHEX(*multilinestrings, multilinestring_stream);
     std::string mp_str = multipoint_stream.str();
     std::string ml_str = multilinestring_stream.str();
-    m_relations_table.update_relation_member_geometry(id, mp_str.c_str(), ml_str.c_str());
+    m_relations_table.update_geometry(id, mp_str.c_str(), ml_str.c_str());
     //TODO code before this "if" becomes unnecessary once ways are not written to lines table any more if they are considered as areas only.
     if (m_config.m_areas && (m_areas_table->count_osm_id(-id) > 0)) {
         update_multipolygon_geometry(id, members);
@@ -342,7 +343,7 @@ void DiffHandler2::way(const osmium::Way& way) {
         m_ways_linear_table.send_line(prepare_query(way, m_ways_linear_table, nullptr));
     }
     // check if relations have to be updated
-    std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids_by_member(way.id());
+    std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids(way.id());
     for (auto id : rel_ids) {
         m_pending_relations.push_back(id);
     }
@@ -350,7 +351,7 @@ void DiffHandler2::way(const osmium::Way& way) {
     m_node_ways_table->send_line(prepare_node_way_query(way));
     // expire tiles
     if (m_config.m_expiry_enabled) {
-        m_expire_tiles->expire_from_coord_sequence(way.nodes());
+        m_expire_tiles->expire_from_coord_sequence(way.nodes().begin(), way.nodes().end());
     }
     // remove from list of pending ways
     std::vector<osmium::object_id_type>::size_type found = m_pending_ways_idx;
@@ -392,7 +393,7 @@ void DiffHandler2::update_way(const osmium::object_id_type id) {
         // This point is only reached if a valid geometry could be build. If so,
         // trigger a geometry update of all relations using this way.
         // Check if relations have to be updated:
-        std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids_by_member(id);
+        std::vector<osmium::object_id_type> rel_ids = m_way_relations_table->get_relation_ids(id);
         for (auto id : rel_ids) {
             m_pending_relations.push_back(id);
         }
@@ -483,7 +484,7 @@ void DiffHandler2::area(const osmium::Area& area) {
     // expire tiles
     if (m_config.m_expiry_enabled) {
         for (auto it = area.outer_rings().begin(); it != area.outer_rings().end(); ++it) {
-            m_expire_tiles->expire_from_coord_sequence(*it);
+            m_expire_tiles->expire_from_coord_sequence(it->cbegin(), it->cend());
         }
     }
     // TODO remove from list of pending ways

@@ -7,9 +7,9 @@
 
 #include "database_location_handler.hpp"
 #include <osmium/index/index.hpp>
+#include <iostream>
 
-DatabaseLocationHandler::DatabaseLocationHandler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table) :
-    m_nodes_table(nodes_table),
+DatabaseLocationHandler::DatabaseLocationHandler(NodeLocationsTable& untagged_nodes_table) :
     m_untagged_nodes_table(untagged_nodes_table),
     m_ignore_errors(false),
     m_location_cache() {
@@ -27,12 +27,7 @@ void DatabaseLocationHandler::node(const osmium::Node& node) {
 }
 
 osmium::Location DatabaseLocationHandler::get_node_location_from_persisent(const osmium::object_id_type id) const {
-    osmium::Location loc = m_untagged_nodes_table.get_point(id);
-    if (loc.valid()) {
-        return loc;
-    }
-    // node is either in normal nodes table or missing at all
-    return m_nodes_table.get_point(id);
+    return m_untagged_nodes_table.get_location(id);
 }
 
 osmium::Location DatabaseLocationHandler::get_node_location(const osmium::object_id_type id) const {

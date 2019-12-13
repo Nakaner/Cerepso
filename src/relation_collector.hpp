@@ -20,7 +20,7 @@
 #include <osmium/relations/detail/member_meta.hpp>
 #include "geos_compatibility_definitions.hpp"
 #include "import_handler.hpp"
-#include "postgres_table.hpp"
+#include "tables/relations_table.hpp"
 
 /**
  * \brief The RelationCollector collects all relations.
@@ -40,7 +40,7 @@ private:
     osmium::memory::Buffer m_output_buffer;
 
     /// \brief database connection for the relations table
-    PostgresTable m_database_table;
+    RelationsTable m_database_table;
     osmium_geos_factory::GEOSFactory<> m_geos_factory;
     geos_factory_type m_geos_geom_factory;
     geos::io::WKBWriter m_geos_wkb_writer;

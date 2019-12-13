@@ -12,7 +12,7 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/way.hpp>
 
-#include "postgres_table.hpp"
+#include "tables/features_table.hpp"
 #include "tags_storage.hpp"
 
 enum class InterpolationType : char {
@@ -156,7 +156,7 @@ class AddrInterpolationHandler : public osmium::handler::Handler {
 
     RequiredNodesTracking m_required_nodes;
     SecondPassHandler m_handler_pass2;
-    PostgresTable& m_table;
+    FeaturesTable& m_table;
     TagsStorage m_tags_storage;
 
     using NodeConstIterator = osmium::WayNodeList::const_iterator;
@@ -189,7 +189,7 @@ class AddrInterpolationHandler : public osmium::handler::Handler {
     osmium::Location get_remote_point(NodeConstIterator it1, NodeConstIterator it2, double fraction);
 
 public:
-    AddrInterpolationHandler(PostgresTable& interpolated_nodes_table);
+    AddrInterpolationHandler(FeaturesTable& interpolated_nodes_table);
 
     /**
      * Check if value of addr:interpolation=* is valid.

@@ -10,20 +10,20 @@
 
 #include <memory>
 #include <unordered_map>
-#include "postgres_table.hpp"
+#include <osmium/osm/node.hpp>
+#include <osmium/osm/way.hpp>
+#include "tables/node_locations_table.hpp"
 #include "update_location_handler.hpp"
 
 class DatabaseLocationHandler :  public UpdateLocationHandler {
-    PostgresTable& m_nodes_table;
-
-    PostgresTable& m_untagged_nodes_table;
+    NodeLocationsTable& m_untagged_nodes_table;
 
     bool m_ignore_errors;
 
     std::unordered_map<osmium::object_id_type, osmium::Location> m_location_cache;
 
 public:
-    DatabaseLocationHandler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table);
+    DatabaseLocationHandler(NodeLocationsTable& untagged_nodes_table);
 
     DatabaseLocationHandler() = delete;
 

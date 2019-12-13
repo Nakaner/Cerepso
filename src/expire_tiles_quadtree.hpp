@@ -136,13 +136,9 @@ public:
 
     void expire_from_point(double lon, double lat);
 
-    /**
-     * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
-     *
-     * \param nodes list of nodes of the line. Coordinates are expected as
-     * longitude and latitude (WGS84/EPSG:4326).
-     */
-    void expire_from_coord_sequence(const osmium::NodeRefList& nodes);
+    void expire_from_coord_sequence(const std::vector<osmium::Location>& locations);
+
+    void expire_from_coord_sequence(const osmium::NodeRef* begin, const osmium::NodeRef* end);
 
     /**
      * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).

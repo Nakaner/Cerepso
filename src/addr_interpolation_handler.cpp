@@ -6,6 +6,7 @@
  */
 
 #include "addr_interpolation_handler.hpp"
+#include <iostream> //TODO get rid of this
 #include <osmium/geom/haversine.hpp>
 #include <osmium/geom/mercator_projection.hpp>
 #include <osmium/osm/node.hpp>
@@ -270,7 +271,7 @@ void HouseNumber::increment_alphabetic(const int increment) {
     suffix = static_cast<char>(new_suffix);
 }
 
-AddrInterpolationHandler::AddrInterpolationHandler(PostgresTable& interpolated_nodes_table) :
+AddrInterpolationHandler::AddrInterpolationHandler(FeaturesTable& interpolated_nodes_table) :
     m_required_nodes(),
     m_handler_pass2(*this),
     m_table(interpolated_nodes_table) {

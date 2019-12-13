@@ -67,10 +67,22 @@ public:
     /**
      * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
      *
-     * \param nodes list of nodes of the line. Coordinates are expected as
-     * longitude and latitude (WGS84/EPSG:4326).
+     * \param begin forward and backward iterator pointing to the first element in a container of osmium::Location.
+     * Coordinates are expected as longitude and latitude (WGS84/EPSG:4326).
+     *
+     * \param end pointer to the first element in the container after the end
      */
-    virtual void expire_from_coord_sequence(const osmium::NodeRefList& nodes) = 0;
+    virtual void expire_from_coord_sequence(const std::vector<osmium::Location>& locations) = 0;
+
+    /**
+     * Expire all tiles crossed by the line (given as geos::geom::CoordinateSequence).
+     *
+     * \param begin forward and backward iterator pointing to the first element in a container of osmium::Location.
+     * Coordinates are expected as longitude and latitude (WGS84/EPSG:4326).
+     *
+     * \param end pointer to the first element in the container after the end
+     */
+    virtual void expire_from_coord_sequence(const osmium::NodeRef* begin, const osmium::NodeRef* end) = 0;
 
     /**
      * \brief Expire all tiles which intersected a line.

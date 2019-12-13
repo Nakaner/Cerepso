@@ -22,10 +22,10 @@
  * be returned and the other arguments will be ignored.
  */
 template <class TLocationStorage>
-std::unique_ptr<UpdateLocationHandler> make_handler(PostgresTable& nodes_table, PostgresTable& untagged_nodes_table,
+std::unique_ptr<UpdateLocationHandler> make_handler(NodeLocationsTable& untagged_nodes_table,
         std::unique_ptr<TLocationStorage> storage_pos) {
     if (!storage_pos) {
-        return std::unique_ptr<UpdateLocationHandler>{static_cast<UpdateLocationHandler*>(new DatabaseLocationHandler(nodes_table, untagged_nodes_table))};
+        return std::unique_ptr<UpdateLocationHandler>{static_cast<UpdateLocationHandler*>(new DatabaseLocationHandler(untagged_nodes_table))};
     }
     return std::unique_ptr<UpdateLocationHandler>(static_cast<UpdateLocationHandler*>(new FileBasedLocationHandler<TLocationStorage>(std::move(storage_pos))));
 }

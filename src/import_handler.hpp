@@ -25,10 +25,10 @@ public:
      *
      * This constructor takes references to the program configuration and the instances of Table class.
      */
-    ImportHandler(CerepsoConfig& config,  PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table,
-            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
-            PostgresTable* way_relations_table = nullptr, PostgresTable* relation_relations_table = nullptr) :
+    ImportHandler(CerepsoConfig& config,  FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table,
+            AssociatedStreetRelationManager* assoc_manager = nullptr, FeaturesTable* areas_table = nullptr,
+            WayNodesTable* node_ways_table = nullptr, RelationMembersTable* node_relations_table = nullptr,
+            RelationMembersTable* way_relations_table = nullptr, RelationMembersTable* relation_relations_table = nullptr) :
         PostgresHandler(config, nodes_table, untagged_nodes_table, ways_table, assoc_manager, areas_table, node_ways_table,
                 node_relations_table, way_relations_table, relation_relations_table) {
     }
@@ -38,10 +38,10 @@ public:
      *
      * This constructor takes references to the program configuration and the instances of Table class.
      */
-    ImportHandler(PostgresTable& nodes_table, PostgresTable* untagged_nodes_table, PostgresTable& ways_table, CerepsoConfig& config,
-            AssociatedStreetRelationManager* assoc_manager = nullptr, PostgresTable* areas_table = nullptr,
-            PostgresTable* node_ways_table = nullptr, PostgresTable* node_relations_table = nullptr,
-            PostgresTable* way_relations_table = nullptr, PostgresTable* relation_relations_table = nullptr) :
+    ImportHandler(FeaturesTable& nodes_table, NodeLocationsTable* untagged_nodes_table, FeaturesTable& ways_table, CerepsoConfig& config,
+            AssociatedStreetRelationManager* assoc_manager = nullptr, FeaturesTable* areas_table = nullptr,
+            WayNodesTable* node_ways_table = nullptr, RelationMembersTable* node_relations_table = nullptr,
+            RelationMembersTable* way_relations_table = nullptr, RelationMembersTable* relation_relations_table = nullptr) :
         PostgresHandler(nodes_table, untagged_nodes_table, ways_table, config, assoc_manager, areas_table, node_ways_table,
                 node_relations_table, way_relations_table, relation_relations_table) {
     }

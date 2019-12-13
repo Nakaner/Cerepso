@@ -8,7 +8,11 @@
 #include "catch.hpp"
 #include "object_builder_utilities.hpp"
 #include <osmium/index/map/sparse_mmap_array.hpp>
-#include <postgres_table.hpp>
+#include <tables/features_table.hpp>
+#include <tables/node_locations_table.hpp>
+#include <tables/way_nodes_table.hpp>
+#include <tables/relations_table.hpp>
+#include <tables/relation_members_table.hpp>
 #include <postgres_drivers/columns.hpp>
 #include <diff_handler2.hpp>
 #include <expire_tiles_factory.hpp>
@@ -33,17 +37,17 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     postgres_drivers::Columns node_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_NODES);
     postgres_drivers::Columns way_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_WAYS);
     postgres_drivers::Columns relation_relations_columns(config.m_driver_config, postgres_drivers::TableType::RELATION_MEMBER_RELATIONS);
-    PostgresTable nodes_table ("nodes", config, node_columns);
-    PostgresTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
-    PostgresTable ways_table ("ways", config, way_linear_columns);
-    PostgresTable relations_table("relations", config, relation_columns);
-    PostgresTable node_ways_table("node_ways", config, node_ways_columns);
+    FeaturesTable nodes_table ("nodes", config, node_columns, osmium::osm_entity_bits::node);
+    NodeLocationsTable untagged_nodes_table ("untagged_nodes", config, untagged_nodes_columns);
+    FeaturesTable ways_table ("ways", config, way_linear_columns, osmium::osm_entity_bits::way);
+    RelationsTable relations_table("relations", config, relation_columns);
+    WayNodesTable node_ways_table("node_ways", config, node_ways_columns);
     node_ways_table.init();
-    PostgresTable node_relations_table("node_relations", config, node_relations_columns);
+    RelationMembersTable node_relations_table("node_relations", config, node_relations_columns);
     node_relations_table.init();
-    PostgresTable way_relations_table("way_relations", config, way_relations_columns);
+    RelationMembersTable way_relations_table("way_relations", config, way_relations_columns);
     way_relations_table.init();
-    PostgresTable relation_relations_table("relation_relations", config, relation_relations_columns);
+    RelationMembersTable relation_relations_table("relation_relations", config, relation_relations_columns);
     relation_relations_table.init();
 
     // create some nodes and add them to the location handler
@@ -93,8 +97,8 @@ TEST_CASE("check if preparing a query to insert a relation works") {
     index->set(node2.id(), node2.location());
     index->set(node3.id(), node3.location());
 
-    std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<sparse_mmap_array_t>(nodes_table, untagged_nodes_table,
-            std::move(index));
+    std::unique_ptr<UpdateLocationHandler> location_handler = make_handler<sparse_mmap_array_t>(
+            untagged_nodes_table, std::move(index));
     DiffHandler2 handler(nodes_table, &untagged_nodes_table, ways_table, relations_table,
             node_ways_table, node_relations_table, way_relations_table, relation_relations_table,
             config, expire_tiles, *location_handler);
