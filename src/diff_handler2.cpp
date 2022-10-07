@@ -161,7 +161,7 @@ void DiffHandler2::update_relation(const osmium::object_id_type id) {
                 continue;
             }
             geos::geom::CoordinateArraySequenceFactory coord_sequence_factory;
-            std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(coordinates.release())};
+            std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(coordinates.release(), 2)};
             std::unique_ptr<geos::geom::LineString> linestring {m_geom_factory->createLineString(coord_sequence.release())};
             if (linestring) {
                 linestrings->push_back(linestring.release());
@@ -292,7 +292,7 @@ void DiffHandler2::insert_relation(const osmium::Relation& relation, std::string
                     itc->y = loc.lat();
                 }
                 geos::geom::CoordinateArraySequenceFactory coord_sequence_factory;
-                std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(coordinates.release())};
+                std::unique_ptr<geos::geom::CoordinateSequence> coord_sequence {coord_sequence_factory.create(coordinates.release(), 2)};
                 if (trigger_tile_expiry) {
                     m_expire_tiles->expire_from_coord_sequence(coord_sequence.get());
                 }
