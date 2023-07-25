@@ -46,6 +46,9 @@ void AddrInterpolationHandler::handle_way(const osmium::Way& way) {
 }
 
 void AddrInterpolationHandler::interpolate(const osmium::Way& way, std::string& query) {
+    if (way.nodes().size() < 2) {
+        throw std::runtime_error{"invalid interpolation, way has one node only"};
+    }
     const char* interpolation = way.get_value_by_key("addr:interpolation", "");
     InterpolationType type;
     if (!strcmp(interpolation, "odd")) {
@@ -62,7 +65,19 @@ void AddrInterpolationHandler::interpolate(const osmium::Way& way, std::string& 
     }
     NodeConstIterator it1 = way.nodes().cbegin();
     const osmium::TagList* tags1 = m_tags_storage.get(way.nodes().front().ref());
+    if (!tags1) {
+        while (it1 + 1 != way.nodes().cend() && (!tags1 || !tags1->has_key("addr:housenumber"))) {
+            ++it1;
+            tags1 = m_tags_storage.get(it1->ref());
+        }
+        if (it1 == way.nodes().cend()) {
+            throw std::runtime_error{"invalid interpolation, failed to find first point with house number"};
+        }
+    }
     NodeConstIterator it2 = it1 + 1;
+    if (it2 == way.nodes().cend()) {
+        throw std::runtime_error{"invalid interpolation, failed to find fist point with house number"};
+    }
     const osmium::TagList* tags2 = m_tags_storage.get(it2->ref());
 
     // find next node with addr:housenumber
